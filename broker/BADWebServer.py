@@ -63,8 +63,9 @@ class LoginHandler (tornado.web.RequestHandler):
         try:
             userName = post_data['userName']
             password = post_data['password']
+            platform = 'desktop'
 
-            response = yield self.broker.login(userName, password)
+            response = yield self.broker.login(userName, password, platform)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
@@ -199,10 +200,9 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         brokerName = None
         dataverseName = post_data['dataverseName']
         channelName = post_data['channelName']
-        #subscriptions = post_data['subscriptions']
-        subscriptions = None
+        subscriptionIds = post_data['subscriptionIds']
 
-        response = yield self.broker.notifyBroker(brokerName, dataverseName, channelName, subscriptions)
+        response = yield self.broker.notifyBroker(brokerName, dataverseName, channelName, subscriptionIds)
 
         self.write(json.dumps(response))
         self.flush()

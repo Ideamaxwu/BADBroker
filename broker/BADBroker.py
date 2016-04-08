@@ -202,9 +202,9 @@ class BADBroker:
         self.subscriptions = {}  # susbscription indexed by channelName -> channelSubscriptionId-> userId
         self.userToSubscriptionMap = {}  # indexed by userSubscriptionId
         
-        self.channelLastResultDeliveryTime = {}
+        self.subscriptionLatestResultDeliveryTime = {}
 
-        self.accessTokens = {}
+        self.sessions = {}
         self.rabbitMQ = rabbitmq.RabbitMQ()
         self.cache = BADCache.BADLruCache()
 
@@ -258,7 +258,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, userName, password):
+    def login(self, userName, password, platform):
         # user = yield self.loadUser(userName)
         users = yield User.load(userName=userName)
 
@@ -268,14 +268,14 @@ class BADBroker:
             if password == user.password:
                 accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
-                self.accessTokens[userId] = accessToken
+                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken}
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, userId=userId)
                 return {'status': 'success', 'userId': userId, 'accessToken': accessToken}
             else:
                 return {'status': 'failed', 'error': 'Password does not match!'}
         else:
-            return {'status': 'failed', 'error': 'No user exists %s!' % (userName)}
+            return {'status': 'failed', 'error': 'No user exists %s!' % userName}
 
     @tornado.gen.coroutine
     def loadSubscriptionsForUser(self, userId):
@@ -284,8 +284,8 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def logoff(self, userId):
-        if userId in self.accessTokens:
-            del self.accessTokens[userId]
+        if userId in self.sessions:
+            del self.sessions[userId]
         
         return {'status': 'success', 'userId': userId}
 
@@ -375,7 +375,7 @@ class BADBroker:
         channelSubscriptions = yield ChannelSubscription.load(channelName=channelName, parameters=str(parameters))
         if channelSubscriptions and len(channelSubscriptions):
             if len(channelSubscriptions) > 0:
-                log.debug('Mutiple subscriptions matach, picking 0-th')
+                log.debug('Mutiple subscriptions matached, picking 0-th')
             return channelSubscriptions[0].channelSubscriptionId
         else:
             return None
@@ -468,7 +468,8 @@ class BADBroker:
             results = yield self.getResultsFromAsterix(channelName, channelSubscriptionId, deliveryTime)
 
             # Cache the results
-            self.putResultsIntoCache(channelName, channelSubscriptionId, deliveryTime, resultToUser)
+            if results:
+                self.putResultsIntoCache(channelName, channelSubscriptionId, deliveryTime, resultToUser)
 
         # Update last delivery timestamp of this subscription
         subscription = self.subscriptions[channelName][channelSubscriptionId][userId]
@@ -571,69 +572,81 @@ class BADBroker:
             return {'status': 'failed', 'error': response}
     
     @tornado.gen.coroutine
-    def notifyBroker(self, brokerName, dataverseName, channelName, subscriptions):
+    def notifyBroker(self, brokerName, dataverseName, channelName, subscriptionIds):
         # if brokerName != self.brokerName:
         #    return {'status': 'failed', 'error': 'Not the intended broker %s' %(brokerName)}
 
-        # Retrieve results for this notification and notify all users
-        #yield self.retrieveLastestResultsAndNotifyUsers(channelName)
-        tornado.ioloop.IOLoop.current().add_callback(self.retrieveLastestResultsAndNotifyUsers, channelName=channelName)
+        # Register a callback to retrieve results for this notification and notify all users
+        tornado.ioloop.IOLoop.current().add_callback(self.retrieveLatestResultsAndNotifyUsers, channelName, subscriptionIds)
         return {'status': 'success'}
 
     @tornado.gen.coroutine
-    def retrieveLastestResultsAndNotifyUsers(self, channelName):
+    def retrieveLatestResultsAndNotifyUsers(self, channelName, subscriptionIds):
         log.debug('Current subscriptions: %s' % self.subscriptions)
 
-        # Retrieve the lastest delivery time for this channel
-        if channelName in self.channelLastResultDeliveryTime:
-            query = 'let $times := for $t in dataset nearbyTweetChannelResults ' \
-                    'where $t.deliveryTime > datetime(\"{0}\") ' \
-                    'return $t.deliveryTime\n max($times)'.format(self.channelLastResultDeliveryTime[channelName])
-        else:
-            query = 'let $times := for $t in dataset nearbyTweetChannelResults ' \
-                    'return $t.deliveryTime\n return max($times)'
+        # Retrieve the latest delivery times for the subscriptions in subscriptionIds
 
-        status, response = yield self.asterix_backend.executeQuery(query)
-
-        lastestDeliveryTime = None
-        if status == 200 and response:
-            log.debug(response)
-            lastestDeliveryTime = json.loads(response)[0]
-            if lastestDeliveryTime:
-                log.info('Channel %s Latest delivery time %s' % (channelName, lastestDeliveryTime))
-                if lastestDeliveryTime and channelName in self.subscriptions:
-                    for channelSubscriptionId in self.subscriptions[channelName]:
-                        results = yield self.getResultsFromAsterix(channelName, channelSubscriptionId, lastestDeliveryTime)
-                        resultKey = self.getResultKey(channelName, channelSubscriptionId, lastestDeliveryTime)
-                        if results and not self.cache.hasKey(resultKey):
-                            self.putResultsIntoCache(channelName, channelSubscriptionId, lastestDeliveryTime, results)
-
-                # Sending notification to all users subscribed to this channel
-                tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers, channelName=channelName, lastestDeliveryTime=lastestDeliveryTime)
+        for subscriptionId in subscriptionIds:
+            channelSubscriptionId = channelName + '::' + subscriptionId
+            if channelSubscriptionId in self.subscriptionLatestResultDeliveryTime:
+                latestDeliveryTime = self.subscriptionLatestResultDeliveryTime[channelName]
+                query = 'for $t in dataset {0}Results ' \
+                        'where $t.subscriptionId = \"{1}\" and $t.deliveryTime > datetime(\"{1}\") ' \
+                        'return $t.deliveryTime'.format(channelName,
+                                                        subscriptionId,
+                                                        latestDeliveryTime)
             else:
-                log.error('Retrieving delivery time failed for channel %s' % channelName)
-        else:
-            log.error('Retrieving delivery time failed for channel %s' % channelName)
+                query = 'for $t in dataset {0}Results ' \
+                        'where $t.subscriptionId = \"{1}\" return $t.deliveryTime'.format(channelName, subscriptionId)
 
-    def notifyAllUsers(self, channelName, lastestDeliveryTime):
-        log.info('Sending out notification for channel %s deliverytime %s' % (channelName, lastestDeliveryTime))
+            log.debug(query)
+            status, response = yield self.asterix_backend.executeQuery(query)
+            log.debug(response)
 
-        if channelName in self.subscriptions:
-            for channelSubscriptionId in self.subscriptions[channelName]:
-                for userId in self.subscriptions[channelName][channelSubscriptionId]:
-                    sub = self.subscriptions[channelName][channelSubscriptionId][userId]
-                    userSubcriptionId = sub.userSubscriptionId
-                    self.notifyUser(channelName, userId, userSubcriptionId, lastestDeliveryTime)
+            latestDeliveryTimes = []
+            if status == 200 and response:
+                latestDeliveryTimes = json.loads(response)
+
+                if latestDeliveryTimes:
+                    log.info('Channel %s Latest delivery time %s' % (channelName, latestDeliveryTimes))
+
+                    # Retrieve results from Asterix and cache them
+                    for latestDeliveryTime in latestDeliveryTimes:
+                        results = yield self.getResultsFromAsterix(channelName, channelSubscriptionId, latestDeliveryTime)
+                        resultKey = self.getResultKey(channelName, channelSubscriptionId, latestDeliveryTime)
+                        if results and not self.cache.hasKey(resultKey):
+                            self.putResultsIntoCache(channelName, channelSubscriptionId, latestDeliveryTime, results)
+
+                        # Send notifications to all users made this channel subscription
+                        tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
+                                                                     channelName=channelName,
+                                                                     channelSubscriptionId=channelSubscriptionId,
+                                                                     latestDeliveryTime=latestDeliveryTime)
+                else:
+                    log.error('Retrieving delivery time failed for channel %s' % channelName)
+            else:
+                    log.error('Retrieving delivery time failed for channel %s' % channelName)
 
 
-    def notifyUser(self, channelName, userId, userSubscriptionId, lastestDeliveryTime):
+    def notifyAllUsers(self, channelName, channelSubscriptionId, latestDeliveryTime):
+        log.info('Sending out notification for channel %s subscription %s deliverytime %s' % (channelName,
+                                                                                              channelSubscriptionId,
+                                                                                              latestDeliveryTime))
+        for userId in self.subscriptions[channelName][channelSubscriptionId]:
+            sub = self.subscriptions[channelName][channelSubscriptionId][userId]
+            userSubcriptionId = sub.userSubscriptionId
+            self.notifyUser(channelName, userId, channelSubscriptionId, userSubcriptionId, latestDeliveryTime)
+
+
+    def notifyUser(self, channelName, userId, channelSubscriptionId, userSubscriptionId, latestDeliveryTime):
         log.info('Channel %s: sending notification to user %s for %s' % (channelName, userId, userSubscriptionId))
 
         message = {'userId': userId,
                    'channelName':  channelName,
+                   'channelSubscriptionId': channelSubscriptionId,
                    'userSubscriptionId': userSubscriptionId,
                    'recordCount': 0,
-                   'timestamp': lastestDeliveryTime
+                   'timestamp': latestDeliveryTime
                    }
 
         self.rabbitMQ.sendMessage(userId, json.dumps(message))
@@ -641,17 +654,16 @@ class BADBroker:
     def _checkAccess(self, userId, accessToken):
         return {'status': 'success'}
 
-        '''
-        if userId in self.accessTokens:
-            if accessToken == self.accessTokens[userId]:
-                return { 'status': 'success' }
+        if userId in self.sessions:
+            if accessToken == self.sessions[userId]['accessToken']:
+                return {'status': 'success'}
             else:
-                return { 'status': 'failed',
-                         'error': 'Invalid access token'}
+                return {'status': 'failed',
+                        'error': 'Invalid access token'}
         else: 
             return {'status': 'failed',
                     'error': 'User not authenticated'}
-        '''
+
 
     def __del__(self):
         self.rabbitMQ.close()
@@ -683,12 +695,11 @@ def test_broker():
     result = broker.subscribe(userId, accessToken, 'nearbyTweetChannel', [12])
     
     subscriptionId = result['subscriptionId']
-    print(broker.getresults(userId, accessToken, 'nearbyTweetChannel', subscriptionId, 12235, 100))
+    print(broker.getresults(userId, accessToken, 'nearbyTweetChannel', subscriptionId, 12235))
 
     print(broker.listchannels(userId, accessToken))
     
-    print(broker.notifyBroker(broker.brokerName, 
-                'nearbyTweetChannel', [{'subscriptionId': subscriptionId, 'timestamp': 121, 'recordCount': 12}]))
+    print(broker.notifyBroker(broker.brokerName, 'channels', 'nearbyTweetChannel', [subscriptionId]))
     
     # test = {'A': 12, 'B': [{'X': 12}, {'Y': 23}, {'Z': 34}]}
     # print(test['B'][0])
