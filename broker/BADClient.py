@@ -59,6 +59,9 @@ class BADClient:
                 else:
                     self.userId = response['userId']
                     print(self.userName, 'Register', json.dumps(response))
+        else:
+            print(r)
+            print('Registration failed for %s' %userName)            
 
     def login(self):
         print('Login')
@@ -77,7 +80,10 @@ class BADClient:
                     self.accessToken = response['accessToken']
                     print(self.userName, 'Login', json.dumps(response))
                     return True
-        return False
+        else:
+            print('Login failed for %s' %self.userName) 
+            print(r)      
+            return False
 
     def subscribe(self, channelName, parameters, callback):
         print('Subscribe')
