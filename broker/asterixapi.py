@@ -20,6 +20,7 @@ class AsterixQueryManager():
         
     def setDataverseName(self, dataverseName):
         self.dataverseName = dataverseName
+        return self
                             
     def forClause(self, clause):
         if self.dataverseName is None:

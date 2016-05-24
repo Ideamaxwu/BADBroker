@@ -35,11 +35,15 @@ class RegistrationHandler(tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userName = post_data['userName']
             email = post_data['email']
             password = post_data['password']
 
-            response = yield self.broker.register(userName, email, password)
+            platform = post_data['platform'] if 'platform' in post_data else None
+            gcmRegistrationId = post_data['gcmRegistrationId'] if 'gcmRegistrationId' in post_data else None
+
+            response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}

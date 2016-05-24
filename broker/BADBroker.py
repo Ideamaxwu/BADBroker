@@ -26,20 +26,21 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 #host = 'http://45.55.22.117:19002/'
 host = 'http://localhost:19002'
 
-asterix_backend = AsterixQueryManager(host)
-# asterix_backend.setDataverseName('emergencyTest')
-asterix_backend.setDataverseName('channels')
+asterix= AsterixQueryManager(host)
+# asterix.setDataverseName('emergencyTest')
+#asterix.setDataverseName('channels')
 
 
 class BADObject:
     @tornado.gen.coroutine
     def delete(self):
-        global asterix_backend
+        global asterix
+        asterix.setDataverseName(self.__dict__['dataverseName'])
         cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
         cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
 
-        status, response = yield asterix_backend.executeUpdate(cmd_stmt)
+        status, response = yield asterix.executeUpdate(cmd_stmt)
         if status == 200:
             log.info('Delete succeeded')
             return True
@@ -49,14 +50,15 @@ class BADObject:
 
     @tornado.gen.coroutine
     def save(self):
-        global asterix_backend
+        global asterix
+        asterix.setDataverseName(self.__dict__['dataverseName'])
         cmd_stmt = 'insert into dataset ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
         cmd_stmt = cmd_stmt + ')'
         log.debug(cmd_stmt)
 
-        status, response = yield asterix_backend.executeUpdate(cmd_stmt)
+        status, response = yield asterix.executeUpdate(cmd_stmt)
         if status == 200:
             log.info('Object %s Id %s saved' % (self.__class__.__name__, self.recordId))
             return True
@@ -72,6 +74,7 @@ class BADObject:
     @classmethod
     @tornado.gen.coroutine
     def load(cls, objectName, **kwargs):
+        global asterix
         condition = None
         if kwargs:
             for key, value in kwargs.items():
@@ -88,9 +91,10 @@ class BADObject:
             log.warning('No argument is provided for load')
             return None
 
+        asterix.setDataverseName(cls.__dict__['dataverseName'])
         dataset = objectName + 'Dataset'
         query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
-        status, response = yield asterix_backend.executeQuery(query)
+        status, response = yield asterix.executeQuery(query)
 
         if status == 200 and response:
             response = response.replace('\n', '').replace(' ', '')
@@ -129,12 +133,17 @@ class BADObject:
 
 
 class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
+    def __init__(self, dataverseName=None, recordId=None, userId=None, userName=None, password=None, email=None,
+                platform=None, gcmRegistrationId=None):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
         self.password = password        
         self.email = email
+
+        self.dataverseName = dataverseName
+        self.platform = platform
+        self.gcmRegistrationId = gcmRegistrationId
 
     @classmethod
     @tornado.gen.coroutine
@@ -195,8 +204,8 @@ class BADException(Exception):
 
 class BADBroker:    
     def __init__(self):
-        global asterix_backend
-        self.asterix_backend = asterix_backend
+        global asterix
+        self.asterix= asterix
         self.brokerName = 'brokerA'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
         self.users = {}
         
@@ -218,7 +227,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def loadUser333(self, userName):
         query = 'for $t in dataset UserDataset where $t.userName =\"{0}\" return $t'.format(userName)
-        status, response = yield asterix_backend.executeQuery(query)
+        status, response = yield asterix.executeQuery(query)
         if status == 200:
             response = json.loads(response)
             print(response)
@@ -236,7 +245,7 @@ class BADBroker:
             return None
 
     @tornado.gen.coroutine
-    def register(self, userName, email, password):
+    def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
         # user = yield self.loadUser(userName)
 
         users = yield User.load(userName=userName)
@@ -250,7 +259,7 @@ class BADBroker:
                     'userId': user.userId}
         else:
             userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
-            user = User(userId, userId, userName, password, email)
+            user = User(userId, userId, userName, password, email, platform, gcmRegistrationId)
             yield user.save()
             self.users[userName] = user
 
@@ -332,7 +341,7 @@ class BADBroker:
         aql_stmt = 'subscribe to ' + channelName + '(' + parameter_list + ') on ' + self.brokerName
         log.debug(aql_stmt)
 
-        status_code, response = yield self.asterix_backend.executeAQL(aql_stmt)
+        status_code, response = yield self.asterix.executeAQL(aql_stmt)
 
         if status_code != 200:
             raise BADException(response)
@@ -399,7 +408,7 @@ class BADBroker:
             log.error(badex)
             return {'status': 'failed', 'error': str(badex)}
 
-        status, response = yield asterix_backend.executeQuery("let $t := current-datetime() return $t")
+        status, response = yield asterix.executeQuery("let $t := current-datetime() return $t")
         if status != 200:
             return {'status': 'failed', 'error': response}
 
@@ -517,7 +526,7 @@ class BADBroker:
         aql_stmt = 'for $t in dataset %s where %s order by %s return $t' \
                    % ((channelName + 'Results'), whereClause, orderbyClause)
 
-        status, response = yield self.asterix_backend.executeQuery(aql_stmt)
+        status, response = yield self.asterix.executeQuery(aql_stmt)
 
         log.debug('Results status %d response %s' % (status, response))
 
@@ -542,7 +551,7 @@ class BADBroker:
             return check
         
         aql_stmt = 'for $channel in dataset Metadata.Channel return $channel'
-        status, response = yield self.asterix_backend.executeQuery(aql_stmt)
+        status, response = yield self.asterix.executeQuery(aql_stmt)
         
         if status == 200:
             response = response.replace('\n', '')
@@ -562,7 +571,7 @@ class BADBroker:
         
         log.debug(aql_stmt)
         
-        status, response = yield self.asterix_backend.executeQuery(aql_stmt)
+        status, response = yield self.asterix.executeQuery(aql_stmt)
         
         if status == 200:
             response = response.replace('\n', '')
@@ -601,7 +610,7 @@ class BADBroker:
                         'where $t.subscriptionId = \"{1}\" return $t.deliveryTime'.format(channelName, subscriptionId)
 
             log.debug(query)
-            status, response = yield self.asterix_backend.executeQuery(query)
+            status, response = yield self.asterix.executeQuery(query)
             log.debug(response)
 
             latestDeliveryTimes = []
@@ -677,13 +686,13 @@ class BADBroker:
                 if not line.startswith('#'):
                     commands = commands + line
         log.info('Executing commands: ' + commands)
-        status, response = yield self.asterix_backend.executeAQL(commands)
+        status, response = yield self.asterix.executeAQL(commands)
 
         if status != 200:
             log.error('Broker setup failed ' + response)
 
 def test_broker():
-    broker = BADBroker(asterix_backend)
+    broker = BADBroker(asterix)
     
     print(broker.register('sarwar', 'ysar@gm.com', 'pass'))
     
