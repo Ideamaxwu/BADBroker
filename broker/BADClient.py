@@ -7,7 +7,8 @@ import threading
 import pika
 import sys
 
-brokerUrl = "http://cert24.ics.uci.edu:8989"
+#brokerUrl = "http://cert24.ics.uci.edu:8989"
+brokerUrl = "http://localhost:8989"
 
 class BADClient:
     def __init__(self, brokerUrl):
