@@ -68,7 +68,7 @@ class BADClient:
 
     def login(self):
         print('Login')
-        post_data = {'userName' : self.userName, 'password': self.password}
+        post_data = {'dataverseName': self.dataverseName, 'userName' : self.userName, 'password': self.password}
         #response = service_call(URL, "login", post_data)
         r = requests.post(self.brokerUrl + '/login', data=json.dumps(post_data))
 
@@ -98,8 +98,11 @@ class BADClient:
         if parameters is None:
             parameters = []
 
-        post_data = {'userId' : self.userId, 'accessToken': self.accessToken,
-            'channelName': channelName, 'parameters': parameters}
+        post_data = {'dataverseName': self.dataverseName,
+                     'userId' : self.userId,
+                     'accessToken': self.accessToken,
+                     'channelName': channelName,
+                     'parameters': parameters}
 
         r = requests.post(self.brokerUrl + '/subscribe', data=json.dumps(post_data))
 
@@ -147,7 +150,8 @@ class BADClient:
     def getresults(self, channelName, subscriptionId, deliveryTime):
         print('Getresults for %s' % subscriptionId)
 
-        post_data = {'userId': self.userId,
+        post_data = {'dataverseName': self.dataverseName,
+                     'userId': self.userId,
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
@@ -237,9 +241,11 @@ def test_client():
             print(item)
 
     client = BADClient(brokerUrl=brokerUrl)
-    client.register(sys.argv[1], sys.argv[2], 'yusuf', 'abc@net.com')
 
-    sys.exit(0)
+    dataverseName = sys.argv[1]
+    userName = sys.argv[2]
+
+    client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
         if client.subscribe('nearbyTweetChannel', ['man'], on_result):

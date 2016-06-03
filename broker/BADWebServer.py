@@ -34,6 +34,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
 
         log.debug(post_data)
 
+        dataverseName = 'channels'
         try:
             dataverseName = post_data['dataverseName']
             userName = post_data['userName']
@@ -46,7 +47,8 @@ class RegistrationHandler(tornado.web.RequestHandler):
             response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
 
         except KeyError as e:
-            print('Parse error for ' +str(e) +' in ' + str(post_data))
+            print('Parse error for ' + str(e) + ' in ' + str(post_data))
+            print(e.with_traceback())
             response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
         self.write(json.dumps(response))
@@ -66,11 +68,12 @@ class LoginHandler (tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop'
 
-            response = yield self.broker.login(userName, password, platform)
+            response = yield self.broker.login(dataverseName, userName, password, platform)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
@@ -92,10 +95,11 @@ class LogoutHandler (tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userId = post_data['userId']
             accessToken = post_data['accessToken']
 
-            response = yield self.broker.logout(userId, accessToken)
+            response = yield self.broker.logout(dataverseName, userId, accessToken)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
@@ -117,12 +121,13 @@ class SubscriptionHandler(tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userId = post_data['userId']
             accessToken = post_data['accessToken']
             channelName = post_data['channelName']
             parameters = post_data['parameters']
 
-            response = yield self.broker.subscribe(userId, accessToken, channelName, parameters)
+            response = yield self.broker.subscribe(dataverseName, userId, accessToken, channelName, parameters)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -143,11 +148,12 @@ class UnsubscriptionHandler(tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userId = post_data['userId']
             accessToken = post_data['accessToken']
             userSubscriptionId = post_data['userSubscriptionId']
 
-            response = yield self.broker.unsubscribe(userId, accessToken, userSubscriptionId)
+            response = yield self.broker.unsubscribe(dataverseName, userId, accessToken, userSubscriptionId)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -171,13 +177,14 @@ class GetResultsHandler(tornado.web.RequestHandler):
         log.debug(post_data)
 
         try:
+            dataverseName = post_data['dataverseName']
             userId = post_data['userId']
             accessToken = post_data['accessToken']
             channelName = post_data['channelName']
             subscriptionId = post_data['userSubscriptionId']
             deliveryTime = post_data['deliveryTime']
 
-            response = yield self.broker.getresults(userId, accessToken, subscriptionId, deliveryTime)
+            response = yield self.broker.getresults(dataverseName, userId, accessToken, subscriptionId, deliveryTime)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -202,12 +209,11 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         post_data = json.loads(self.request.body)
         log.debug(post_data)
 
-        brokerName = None
         dataverseName = post_data['dataverseName']
         channelName = post_data['channelName']
         subscriptionIds = post_data['subscriptionIds']
 
-        response = yield self.broker.notifyBroker(brokerName, dataverseName, channelName, subscriptionIds)
+        response = yield self.broker.notifyBroker(dataverseName, channelName, subscriptionIds)
 
         self.write(json.dumps(response))
         self.flush()

@@ -110,9 +110,9 @@ class AsterixQueryManager():
                 return response.status_code, response.text    
 
     @tornado.gen.coroutine
-    def executeQuery(self, query):
+    def executeQuery(self, dataverseName, query):
         request_url = self.asterixBaseURL + "/" + "query"    
-        query = "use dataverse " + self.dataverseName + "; " + query + ";"    
+        query = "use dataverse " + dataverseName + "; " + query + ";"
         params = {'query': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
@@ -132,9 +132,9 @@ class AsterixQueryManager():
         return 500, 'Query failed: ' + query
 
     @tornado.gen.coroutine
-    def executeUpdate(self, query):
+    def executeUpdate(self, dataverseName, query):
         request_url = self.asterixBaseURL + "/" + "update"
-        query = "use dataverse " + self.dataverseName + "; " + query + ";"
+        query = "use dataverse " + dataverseName + "; " + query + ";"
         params = {'statements': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
@@ -152,9 +152,9 @@ class AsterixQueryManager():
         return 500, 'Query failed: ' + query
 
     @tornado.gen.coroutine
-    def executeAQL(self, query):
+    def executeAQL(self, dataverseName, query):
         request_url = self.asterixBaseURL + "/" + "aql"
-        query = "use dataverse " + self.dataverseName + "; " + query + ";"
+        query = "use dataverse " + dataverseName + "; " + query + ";"
         params = {'aql': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
 
@@ -173,9 +173,9 @@ class AsterixQueryManager():
         return 500, 'Query failed:' + query
 
     @tornado.gen.coroutine
-    def executeDDL(self, ddlStatement):
+    def executeDDL(self, dataverseName, ddlStatement):
         request_url = self.asterixBaseURL + "/" + "ddl"    
-        statement = "use dataverse " + self.dataverseName + "; " + ddlStatement + ";"    
+        statement = "use dataverse " + dataverseName + "; " + ddlStatement + ";"
         log.info('Executing... ' + statement)
 
         params = {'ddl': ddlStatement}
