@@ -46,7 +46,8 @@ class RegistrationHandler(tornado.web.RequestHandler):
             response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            print('Parse error for ' +str(e) +' in ' + str(post_data))
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -72,7 +73,7 @@ class LoginHandler (tornado.web.RequestHandler):
             response = yield self.broker.login(userName, password, platform)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -97,7 +98,7 @@ class LogoutHandler (tornado.web.RequestHandler):
             response = yield self.broker.logout(userId, accessToken)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()

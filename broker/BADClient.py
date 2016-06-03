@@ -12,6 +12,7 @@ brokerUrl = "http://localhost:8989"
 
 class BADClient:
     def __init__(self, brokerUrl):
+        self.dataverseName = None
         self.userName = None
         self.email = None
         self.password = None
@@ -41,14 +42,15 @@ class BADClient:
         self.rqthread = threading.Thread(target=rabbitRun, args=(host, userId))
         self.rqthread.start()
 
-    def register(self, userName, password, email=None):
+    def register(self, dataverseName, userName, password, email=None):
         print('Register')
 
+        self.dataverseName = dataverseName
         self.userName = userName
         self.email = email
         self.password = password
 
-        post_data = {'userName' : self.userName, 'email': self.email, 'password': self.password}
+        post_data = {'dataverseName': self.dataverseName, 'userName': self.userName, 'email': self.email, 'password': self.password}
         #response = service_call(URL, "register", post_data)
         r = requests.post(self.brokerUrl + '/register', data=json.dumps(post_data))
 
@@ -235,7 +237,10 @@ def test_client():
             print(item)
 
     client = BADClient(brokerUrl=brokerUrl)
-    client.register(sys.argv[1], 'yusuf', 'yusuf')
+    client.register(sys.argv[1], sys.argv[2], 'yusuf', 'abc@net.com')
+
+    sys.exit(0)
+
     if client.login():
         if client.subscribe('nearbyTweetChannel', ['man'], on_result):
         #if client.subscribe('recentEmergenciesOfTypeChannel', ['earthquake'], on_result):

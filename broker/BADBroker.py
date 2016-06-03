@@ -28,7 +28,7 @@ host = 'http://localhost:19002'
 
 asterix= AsterixQueryManager(host)
 # asterix.setDataverseName('emergencyTest')
-#asterix.setDataverseName('channels')
+# asterix.setDataverseName('channels')
 
 
 class BADObject:
