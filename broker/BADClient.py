@@ -99,7 +99,7 @@ class BADClient:
             parameters = []
 
         post_data = {'dataverseName': self.dataverseName,
-                     'userId' : self.userId,
+                     'userId': self.userId,
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'parameters': parameters}
@@ -237,8 +237,9 @@ class BADClient:
 def test_client():
     def on_result(channelName, subscriptionId, deliveryTime, results):
         print(channelName, subscriptionId, deliveryTime)
-        for item in results:
-            print(item)
+        if results and len(results) > 0:
+            for item in results:
+                print('APPDATA ' + str(item))
 
     client = BADClient(brokerUrl=brokerUrl)
 
@@ -248,7 +249,7 @@ def test_client():
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
-        if client.subscribe('nearbyTweetChannel', ['man'], on_result):
+        if client.subscribe('nearbyTweetChannel', ['Dead'], on_result):
         #if client.subscribe('recentEmergenciesOfTypeChannel', ['earthquake'], on_result):
             # Blocking call
             client.run()

@@ -129,6 +129,7 @@ class SubscriptionHandler(tornado.web.RequestHandler):
 
             response = yield self.broker.subscribe(dataverseName, userId, accessToken, channelName, parameters)
         except KeyError as e:
+            log.error(str(e))
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
         self.write(json.dumps(response))
@@ -221,7 +222,7 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
 
 def start_server():
     broker = BADBroker()
-    
+
     application = tornado.web.Application([
         (r"/", MainHandler),
         (r"/register", RegistrationHandler, dict(broker=broker)),

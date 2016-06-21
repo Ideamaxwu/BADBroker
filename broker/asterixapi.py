@@ -110,9 +110,12 @@ class AsterixQueryManager():
                 return response.status_code, response.text    
 
     @tornado.gen.coroutine
-    def executeQuery(self, dataverseName, query):
+    def executeQuery(self, dataverseName, queryStatment):
         request_url = self.asterixBaseURL + "/" + "query"    
-        query = "use dataverse " + dataverseName + "; " + query + ";"
+
+        query = "use dataverse " + dataverseName + "; "
+        query = query + queryStatment + ";"
+
         params = {'query': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
