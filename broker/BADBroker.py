@@ -337,7 +337,7 @@ class BADBroker:
 
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId, timestamp)
 
-        userSubscription = UserSubscription(dataverseName, userSubscriptionId, userSubscriptionId, userId,
+        userSubscription = UserSubscription(userSubscriptionId, userSubscriptionId, userId,
                                     channelSubscriptionId, channelName, timestamp, resultsDataset)
         yield userSubscription.save(dataverseName)
 
@@ -381,7 +381,7 @@ class BADBroker:
             log.error(badex)
             return {'status': 'failed', 'error': str(badex)}
 
-        status, response = yield asterix.executeQuery("let $t := current-datetime() return $t")
+        status, response = yield asterix.executeQuery(dataverseName, "let $t := current-datetime() return $t")
         if status != 200:
             return {'status': 'failed', 'error': response}
 
@@ -466,7 +466,7 @@ class BADBroker:
                 'results': resultToUser}
 
 
-    def getResultKey(self, dataverseName, channelName, channelSubscriptionId, deliveryTime):
+    def getResultKey(self, channelName, channelSubscriptionId, deliveryTime):
         return channelName + '::' + channelSubscriptionId + '::' + deliveryTime
 
     def getResultsFromCache(self, dataverseName, channelName, channelSubscriptionId, deliveryTime):
@@ -523,7 +523,7 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
         
-        aql_stmt = 'for $channel in dataset Channel return $channel'
+        aql_stmt = 'for $channel in dataset Metadata.Channel return $channel'
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
         
         if status == 200:
@@ -538,7 +538,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getChannelInfo(self, dataverseName, channelName):
-        aql_stmt = 'for $t in dataset Channel '
+        aql_stmt = 'for $t in dataset Metadata.Channel '
         aql_stmt = aql_stmt + 'where $t.ChannelName = \"' + channelName + '\" '
         aql_stmt = aql_stmt + 'return $t'
         
@@ -567,20 +567,23 @@ class BADBroker:
     def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, subscriptionIds):
         log.debug('Current subscriptions: %s' % self.subscriptions)
 
-        # Retrieve the latest delivery times for the subscriptions in subscriptionIds
+        if channelName not in self.subscriptions:
+            log.error('No such channel %s' % channelName)
+            return
 
+        # Retrieve the latest delivery times for the subscriptions in subscriptionIds
         for subscriptionId in subscriptionIds:
             channelSubscriptionId = channelName + '::' + subscriptionId
             if channelSubscriptionId in self.subscriptionLatestResultDeliveryTime:
                 latestDeliveryTime = self.subscriptionLatestResultDeliveryTime[channelName]
                 query = 'for $t in dataset {0}Results ' \
-                        'where $t.subscriptionId = \"{1}\" and $t.deliveryTime > datetime(\"{1}\") ' \
+                        'where $t.subscriptionId = uuid(\"{1}\") and $t.deliveryTime > datetime(\"{2}\") ' \
                         'return $t.deliveryTime'.format(channelName,
                                                         subscriptionId,
                                                         latestDeliveryTime)
             else:
                 query = 'for $t in dataset {0}Results ' \
-                        'where $t.subscriptionId = \"{1}\" return $t.deliveryTime'.format(channelName, subscriptionId)
+                        'where $t.subscriptionId = uuid(\"{1}\") return $t.deliveryTime'.format(channelName, subscriptionId)
 
             log.debug(query)
             status, response = yield self.asterix.executeQuery(dataverseName, query)
