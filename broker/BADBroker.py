@@ -243,7 +243,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform):
+    def login(self, dataverseName, userName, password, platform, gcmRegistrationId):
         # user = yield self.loadUser(userName)
         users = yield User.load(dataverseName=dataverseName, userName=userName)
 
@@ -253,7 +253,7 @@ class BADBroker:
             if password == user.password:
                 accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
-                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken}
+                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationId}
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
                 return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
