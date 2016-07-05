@@ -41,8 +41,8 @@ class RegistrationHandler(tornado.web.RequestHandler):
             email = post_data['email']
             password = post_data['password']
 
-            platform = post_data['platform'] if 'platform' in post_data else None
-            gcmRegistrationId = post_data['gcmRegistrationId'] if 'gcmRegistrationId' in post_data else None
+            platform = 'desktop' if 'platform' not in post_data else post_data['platform']
+            gcmRegistrationId = "" if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
 
@@ -72,7 +72,7 @@ class LoginHandler (tornado.web.RequestHandler):
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            gcmRegistrationId = None if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
+            gcmRegistrationId = "" if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.login(dataverseName, userName, password, platform, gcmRegistrationId)
 
