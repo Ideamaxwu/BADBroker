@@ -134,6 +134,9 @@ class User(BADObject):
         self.password = password        
         self.email = email
 
+        self.platform = platform
+        self.gcmRegistrationId = gcmRegistrationId
+
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userName=None):
@@ -253,7 +256,7 @@ class BADBroker:
                 self.sessions[userId] = {'platform': platform, 'accessToken': accessToken}
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
-                return {'status': 'success', 'userId': userId, 'accessToken': accessToken}
+                return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
             else:
                 return {'status': 'failed', 'error': 'Password does not match!'}
         else:
