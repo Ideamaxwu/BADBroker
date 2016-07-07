@@ -20,7 +20,7 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("This is BAD broker!!")
+        self.write('This is the BAD broker!!')
 
 
 class RegistrationHandler(tornado.web.RequestHandler):
@@ -42,7 +42,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
             password = post_data['password']
 
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            gcmRegistrationId = "" if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
+            gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
 
@@ -72,7 +72,7 @@ class LoginHandler (tornado.web.RequestHandler):
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            gcmRegistrationId = "" if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
+            gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.login(dataverseName, userName, password, platform, gcmRegistrationId)
 
@@ -221,22 +221,74 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         self.flush()
         self.finish()
 
+class ListChannelsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(str(self.request.body, encoding='utf-8'))
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info('Broker received listchannels')
+        log.info(str(self.request.body, encoding='utf-8'))
+
+        post_data = json.loads(self.request.body)
+        log.debug(post_data)
+
+        dataverseName = post_data['dataverseName']
+
+        response = yield self.broker.listchannels(dataverseName)
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class ListSubscriptionsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(str(self.request.body, encoding='utf-8'))
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info('Broker received listsubscriptions')
+        log.info(str(self.request.body, encoding='utf-8'))
+
+        post_data = json.loads(self.request.body)
+        log.debug(post_data)
+
+        dataverseName = post_data['dataverseName']
+        userId = post_data['userId']
+        accessToken = post_data['accessToken']
+
+        response = yield self.broker.listsubscriptions(dataverseName, userId, accessToken)
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 def start_server():
     broker = BADBroker()
 
     application = tornado.web.Application([
-        (r"/", MainHandler),
-        (r"/register", RegistrationHandler, dict(broker=broker)),
-        (r"/login", LoginHandler, dict(broker=broker)),
-        (r"/logout", LogoutHandler, dict(broker=broker)),
-        (r"/subscribe", SubscriptionHandler, dict(broker=broker)),
-        (r"/unsubscribe", UnsubscriptionHandler, dict(broker=broker)),
-        (r"/getresults", GetResultsHandler, dict(broker=broker)),
-        (r"/notifybroker", NotifyBrokerHandler, dict(broker=broker))
+        (r'/', MainHandler),
+        (r'/register', RegistrationHandler, dict(broker=broker)),
+        (r'/login', LoginHandler, dict(broker=broker)),
+        (r'/logout', LogoutHandler, dict(broker=broker)),
+        (r'/subscribe', SubscriptionHandler, dict(broker=broker)),
+        (r'/unsubscribe', UnsubscriptionHandler, dict(broker=broker)),
+        (r'/getresults', GetResultsHandler, dict(broker=broker)),
+        (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
+        (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
+        (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker))
     ])
     
     application.listen(8989)
     tornado.ioloop.IOLoop.current().start()
     
-if __name__ == "__main__":
+if __name__ == '__main__':
     start_server()
