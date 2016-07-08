@@ -17,9 +17,14 @@ import redis
 import re
 import logging as log
 import BADCache
+from threading import Lock
+from BADWebServer import webSocketSendMessage
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+
+mutex = Lock()
+latest_delivery_time_dict = {}
 
 #host = 'http://cacofonix-2.ics.uci.edu:19002'
 #host = 'http://128.195.52.196:19002'
@@ -664,7 +669,10 @@ class BADBroker:
                    'timestamp': latestDeliveryTime
                    }
 
+        set_delivery_time(userId, latestDeliveryTime)
+
         self.rabbitMQ.sendMessage(userId, json.dumps(message))
+        webSocketSendMessage(json.dumps(message))
 
     def _checkAccess(self, userId, accessToken):
         return {'status': 'success'}
@@ -695,6 +703,28 @@ class BADBroker:
 
         if status != 200:
             log.error('Broker setup failed ' + response)
+
+def set_delivery_time(userId, delivery_time):
+    global latest_delivery_time_dict
+    mutex.acquire()
+    try:
+        latest_delivery_time_dict[userId] = delivery_time
+    finally:
+        mutex.release()
+
+def get_delivery_time(userId):
+    delivery_time = -1
+    global latest_delivery_time_dict
+    mutex.acquire()
+    try:
+        delivery_time = latest_delivery_time_dict[userId]
+    except:
+        log.error('KeyError')
+        delivery_time = -1
+    finally:
+        mutex.release()
+
+    return delivery_time
 
 def test_broker():
     broker = BADBroker()
