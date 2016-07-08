@@ -180,6 +180,9 @@ class UserSubscription(BADObject):
     def __str__(self):
         return self.userSubscriptionId
 
+    def __repr__(self):
+        return self.userSubscriptionId
+
     def for_json(self):
         return self.__dict__
 
