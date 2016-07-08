@@ -88,6 +88,28 @@ class BADClient:
             print(r)      
             return False
 
+    def listchannels(self):
+        post_data = {'dataverseName': self.dataverseName, 'userId': self.userId, 'accessToken': self.accessToken}
+
+        r = requests.post(self.brokerUrl + "/listchannels", data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            response = r.json()
+            print(response)
+        else:
+            print('listchannels failed, call returned %s' % r)
+
+
+    def listsubscriptions(self):
+        post_data = {'dataverseName': self.dataverseName, 'userId': self.userId, 'accessToken': self.accessToken}
+        r = requests.post(self.brokerUrl + "/listsubscriptions", data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            response = r.json()
+            print(response)
+        else:
+            print('listsubscriptions failed, call returned %s' % r)
+
     def subscribe(self, channelName, parameters, callback):
         print('Subscribe')
 
@@ -249,10 +271,13 @@ def test_client():
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
-        if client.subscribe('nearbyTweetChannel', ['Dead'], on_result):
-        #if client.subscribe('recentEmergenciesOfTypeChannel', ['earthquake'], on_result):
-            # Blocking call
-            client.run()
+        #client.subscribe('nearbyTweetChannel', ['Dead'], on_result)
+        #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
+
+        client.listchannels()
+        client.listsubscriptions()
+
+        client.run()
     else:
         print('Login failed')
 
