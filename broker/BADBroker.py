@@ -186,7 +186,6 @@ class UserSubscription(BADObject):
     def for_json(self):
         return self.__dict__
 
-
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userId=None, userSubscriptionId=None):
