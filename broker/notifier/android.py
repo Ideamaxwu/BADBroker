@@ -1,5 +1,5 @@
-class WebClientNotifier:
-    def __init__(self):
+class AndroidClientNotifier():
+    def __init(self):
         pass
 
     def notify(self, userId, message):

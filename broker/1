@@ -56,7 +56,7 @@ create function NearbyTweetsContainingText($text) {
 	return {"timestamp": current-datetime(), "message" : $tweet.message-text}
 };
 
-create repetitive channel nearbyTweetChannel using NearbyTweetsContainingText@1 period duration("PT30S");
+create repetitive channel nearbyTweetChannel using NearbyTweetsContainingText@1 period duration("PT20S");
 
 insert into dataset TweetMessageuuids(
 [{"message-text":"Live man"},

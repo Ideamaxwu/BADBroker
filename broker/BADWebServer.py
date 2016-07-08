@@ -237,8 +237,10 @@ class ListChannelsHandler(tornado.web.RequestHandler):
         log.debug(post_data)
 
         dataverseName = post_data['dataverseName']
+        userId = post_data['userId']
+        accessToken = post_data['accessToken']
 
-        response = yield self.broker.listchannels(dataverseName)
+        response = yield self.broker.listchannels(dataverseName, userId, accessToken)
 
         self.write(json.dumps(response))
         self.flush()
@@ -266,7 +268,7 @@ class ListSubscriptionsHandler(tornado.web.RequestHandler):
 
         response = yield self.broker.listsubscriptions(dataverseName, userId, accessToken)
 
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, for_json=True))
         self.flush()
         self.finish()
 

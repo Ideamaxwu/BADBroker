@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-from itertools import chain
 
 import tornado.ioloop
 import tornado.web
 import tornado.gen
 import tornado.httpclient
-import notifiers.DesktopClientNotifier
-import notifiers.AndroidClientNotifier
-import notifiers.WebClientNotifier
+
+import notifier.web
+import notifier.android
+import notifier.desktop
 
 import socket
 import hashlib
@@ -91,7 +91,8 @@ class BADObject:
         status, response = yield asterix.executeQuery(dataverseName, query)
 
         if status == 200 and response:
-            response = response.replace('\n', '').replace(' ', '')
+            response = response.replace('\n', ' ').replace(' ', '')
+            print(response)
             if len(response) > 0:
                 return json.loads(response, encoding='utf-8')
             else:
@@ -173,14 +174,15 @@ class UserSubscription(BADObject):
         self.channelSubscriptionId = channelSubscriptionId
         self.channelName = channelName
         self.timestamp = timestamp
-        self.lastResultTimestamp = timestamp
+        self.latestDeliveredResultDeliveryTime = timestamp
         self.resultsDataset = resultsDataset
 
     def __str__(self):
         return self.userSubscriptionId
 
-    def __repr__(self):
-        return self.userSubscriptionId
+    def for_json(self):
+        return self.__dict__
+
 
     @classmethod
     @tornado.gen.coroutine
@@ -222,9 +224,9 @@ class BADBroker:
         return mylocaladdr
 
     def initializeNotifiers(self):
-        self.notifiers['desktop'] = notifiers.DesktopClientNotifier()
-        self.notifiers['android'] = notifiers.AndroidClientNotifier()
-        self.notifiers['web'] = notifiers.WebClientNotifier()
+        self.notifiers['desktop'] = notifier.desktop.DesktopClientNotifier()
+        self.notifiers['android'] = notifier.android.AndroidClientNotifier()
+        self.notifiers['web'] = notifier.web.WebClientNotifier()
 
     @tornado.gen.coroutine
     def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
@@ -470,7 +472,7 @@ class BADBroker:
         channelSubscriptionId = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelSubscriptionId
 
         # if not deliveryTime:
-        #    deliveryTime = self.userSubscriptions[dataverseName][channelName][subscriptionId][userId].lastResultTimestamp
+        #    deliveryTime = self.userSubscriptions[dataverseName][channelName][subscriptionId][userId].latestDeliveredResultDeliveryTime
 
         # Get results
         # First check in the cache, if not retrieve from Asterix store
@@ -490,7 +492,7 @@ class BADBroker:
 
         # Update last delivery timestamp of this subscription
         subscription = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
-        subscription.lastResultTimestamp = deliveryTime
+        subscription.latestDeliveredResultDeliveryTime = deliveryTime
         yield subscription.save(dataverseName)
 
         return {'status': 'success',
@@ -564,7 +566,7 @@ class BADBroker:
             response = response.replace('\n', '')
             print(response)
             
-            channels = json.loads(str(response, encoding='utf-8'))
+            channels = json.loads(response)
 
             return {'status': 'success', 'channels': channels}    
         else:
@@ -595,6 +597,8 @@ class BADBroker:
             return check
 
         userSubscriptions = yield UserSubscription.load(dataverseName=dataverseName, userId=userId)
+        print(userSubscriptions)
+
         return {'status': 'success', 'subscriptions': userSubscriptions}
 
     @tornado.gen.coroutine

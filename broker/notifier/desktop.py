@@ -1,7 +1,7 @@
 import rabbitmq
 import simplejson as json
 
-class DesktopClientNotifier:
+class DesktopClientNotifier():
     def __init__(self):
         self.rabbitMQ = rabbitmq.RabbitMQ()
 
