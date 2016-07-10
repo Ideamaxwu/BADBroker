@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rabbitmq
 import simplejson as json
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 class WebClientNotifier():
     def __init__(self):
         pass

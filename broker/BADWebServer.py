@@ -41,10 +41,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
             email = post_data['email']
             password = post_data['password']
 
-            platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
-
-            response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
+            response = yield self.broker.register(dataverseName, userName, email, password)
 
         except KeyError as e:
             print('Parse error for ' + str(e) + ' in ' + str(post_data))

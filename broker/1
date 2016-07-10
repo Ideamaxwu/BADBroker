@@ -7,9 +7,7 @@ create type UserType as closed {
     userId: string,
     userName: string,
     password: string,
-    email: string,
-    platform: string,
-    gcmRegistrationId: string
+    email: string
 }
 
 create dataset UserDataset (UserType)
