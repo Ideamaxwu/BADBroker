@@ -209,11 +209,11 @@ class BADBroker:
         self.userSubscriptions= {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
 
-        self.sessions = {}
+        self.sessions = {}                  # keep accesstokens of logged in users
+        self.notifiers = {}                 # list of all possible notifiers
 
-        self.notifiers = {}
-        self.initializeNotifiers()
-        self.cache = BADCache.BADLruCache()
+        self.initializeNotifiers()          # initialize notifiers
+        self.cache = BADCache.BADLruCache() # Caching technique
 
     def _myNetAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -440,6 +440,11 @@ class BADBroker:
             userSubscription = self.userToSubscriptionMap[dataverseName][userSubscriptionId]
             channelSubscriptionId = userSubscription.channelSubscriptionId
             channelName = userSubscription.channelName
+
+            status_code, response = yield self.asterix.executeAQL('unsubscribe {0} from {1}'.format(channelSubscriptionId, channelName))
+
+            if status_code != 200:
+                raise BADException(response)
 
             yield userSubscription.delete(dataverseName)
 
