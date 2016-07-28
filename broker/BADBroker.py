@@ -441,7 +441,7 @@ class BADBroker:
             channelSubscriptionId = userSubscription.channelSubscriptionId
             channelName = userSubscription.channelName
 
-            status_code, response = yield self.asterix.executeAQL('unsubscribe {0} from {1}'.format(channelSubscriptionId, channelName))
+            status_code, response = yield self.asterix.executeAQL('unsubscribe \"{0}\" from {1}'.format(channelSubscriptionId, channelName))
 
             if status_code != 200:
                 raise BADException(response)
@@ -702,9 +702,18 @@ class BADBroker:
             else:
                 self.notifiers[platform].notify(userId, message)
 
-    def _checkAccess(self, userId, accessToken):
-        return {'status': 'success'}
+    @tornado.gen.coroutine
+    def moveSubscription(self, channelSubscriptionId, channelName, brokerB):
+        # move subscription "c45ef6d0-c5ae-4b9e-b5da-cf1932718296" on nearbyTweetChannel to BrokerB
+        aql_stmt = 'move subscription \"{0}\" on {1} to {2}'.format(channelSubscriptionId, channelName, brokerB)
+        status_code, response = yield self.asterix.executeAQL(aql_stmt)
 
+        if status_code != 200:
+            raise BADException(response)
+        log.info('Subscription {0} on {1} to {2}'.format(channelSubscriptionId, channelName, brokerB))
+
+
+    def _checkAccess(self, userId, accessToken):
         if userId in self.sessions:
             if accessToken == self.sessions[userId]['accessToken']:
                 return {'status': 'success'}
