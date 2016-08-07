@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-from itertools import chain
 
 import tornado.ioloop
 import tornado.web
 import tornado.gen
 import tornado.httpclient
+
+import notifier.web
+import notifier.android
+import notifier.desktop
 
 import socket
 import hashlib
@@ -12,8 +15,7 @@ import simplejson as json
 
 from datetime import datetime
 from asterixapi import *
-import rabbitmq
-import redis
+
 import re
 import logging as log
 import BADCache
@@ -50,7 +52,7 @@ class BADObject:
     @tornado.gen.coroutine
     def save(self, dataverseName):
         global asterix
-        cmd_stmt = 'insert into dataset ' + self.__class__.__name__ + 'Dataset'
+        cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
         cmd_stmt = cmd_stmt + ')'
@@ -63,11 +65,6 @@ class BADObject:
         else:
             log.error('Object save failed, Error ' + response)
             raise Exception('Object save failed ' + response)
-
-    @tornado.gen.coroutine
-    def update(self, dataverseName):
-        yield self.delete(dataverseName)
-        yield self.save(dataverseName)
 
     @classmethod
     @tornado.gen.coroutine
@@ -94,13 +91,15 @@ class BADObject:
         status, response = yield asterix.executeQuery(dataverseName, query)
 
         if status == 200 and response:
-            response = response.replace('\n', '').replace(' ', '')
+            response = response.replace('\n', ' ').replace(' ', '')
+            print(response)
             if len(response) > 0:
                 return json.loads(response, encoding='utf-8')
             else:
                 return None
         else:
             return None
+
 
     @classmethod
     def createFrom(cls, objects):
@@ -130,8 +129,7 @@ class BADObject:
 
 
 class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None,
-                platform=None, gcmRegistrationId=None):
+    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
@@ -149,17 +147,19 @@ class User(BADObject):
 
 
 class ChannelSubscription(BADObject):
-    def __init__(self, recordId=None, channelName=None, parameters=None, channelSubscriptionId=None):
+    def __init__(self, recordId=None, channelName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.recordId = recordId
         self.channelName = channelName
         self.parameters = parameters
         self.channelSubscriptionId = channelSubscriptionId
+        self.latestResultDeliveryTime = currentDateTime
 
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, channelName=None, parameters=None):
         objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
         return ChannelSubscription.createFrom(objects)
+
 
 class UserSubscription(BADObject):
     def __init__(self, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
@@ -170,7 +170,7 @@ class UserSubscription(BADObject):
         self.channelSubscriptionId = channelSubscriptionId
         self.channelName = channelName
         self.timestamp = timestamp
-        self.lastResultTimestamp = timestamp
+        self.latestDeliveredResultDeliveryTime = timestamp
         self.resultsDataset = resultsDataset
 
     def __str__(self):
@@ -178,6 +178,9 @@ class UserSubscription(BADObject):
 
     def __repr__(self):
         return self.userSubscriptionId
+
+    def for_json(self):
+        return self.__dict__
 
     @classmethod
     @tornado.gen.coroutine
@@ -201,15 +204,16 @@ class BADBroker:
         self.asterix= asterix
         self.brokerName = 'brokerA'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
         self.users = {}
-        
-        self.subscriptions = {}  # susbscription indexed by channelName -> channelSubscriptionId-> userId
-        self.userToSubscriptionMap = {}  # indexed by userSubscriptionId
-        
-        self.subscriptionLatestResultDeliveryTime = {}
 
-        self.sessions = {}
-        self.rabbitMQ = rabbitmq.RabbitMQ()
-        self.cache = BADCache.BADLruCache()
+        self.channelSubscriptions= {} # indexed by dataverseName, channelname, subscriptionId
+        self.userSubscriptions= {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
+        self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
+
+        self.sessions = {}                  # keep accesstokens of logged in users
+        self.notifiers = {}                 # list of all possible notifiers
+
+        self.initializeNotifiers()          # initialize notifiers
+        self.cache = BADCache.BADLruCache() # Caching technique
 
     def _myNetAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -217,8 +221,13 @@ class BADBroker:
         mylocaladdr = str(s.getsockname()[0])                
         return mylocaladdr
 
+    def initializeNotifiers(self):
+        self.notifiers['desktop'] = notifier.desktop.DesktopClientNotifier()
+        self.notifiers['android'] = notifier.android.AndroidClientNotifier()
+        self.notifiers['web'] = notifier.web.WebClientNotifier()
+
     @tornado.gen.coroutine
-    def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
+    def register(self, dataverseName, userName, email, password):
         # user = yield self.loadUser(userName)
 
         users = yield User.load(dataverseName=dataverseName, userName=userName)
@@ -232,7 +241,7 @@ class BADBroker:
                     'userId': user.userId}
         else:
             userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
-            user = User(userId, userId, userName, password, email, platform, gcmRegistrationId)
+            user = User(userId, userId, userName, password, email)
             yield user.save(dataverseName)
             self.users[userName] = user
 
@@ -241,7 +250,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform):
+    def login(self, dataverseName, userName, password, platform, gcmRegistrationId):
         # user = yield self.loadUser(userName)
         users = yield User.load(dataverseName=dataverseName, userName=userName)
 
@@ -251,10 +260,10 @@ class BADBroker:
             if password == user.password:
                 accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
-                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken}
+                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationId}
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
-                return {'status': 'success', 'userId': userId, 'accessToken': accessToken}
+                return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
             else:
                 return {'status': 'failed', 'error': 'Password does not match!'}
         else:
@@ -325,11 +334,14 @@ class BADBroker:
         # response = json.loads(response)
         channelSubscriptionId = re.match(r'\[uuid\(\"(.*)\"\)\]', response).group(1)
 
-        uniqueId = channelName + '::' + channelSubscriptionId
-        channelSubscription = ChannelSubscription(uniqueId, channelName, str(parameters), channelSubscriptionId)
+        uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
+        currentDateTime = yield self.getCurrentDateTime(dataverseName)
+        channelSubscription = ChannelSubscription(uniqueId, channelName, str(parameters), channelSubscriptionId, currentDateTime)
+        channelSubscriptionId = channelSubscription.channelSubscriptionId
+
         yield channelSubscription.save(dataverseName)
 
-        return channelSubscriptionId
+        return channelSubscription
 
     @tornado.gen.coroutine
     def createUserSubscription(self, dataverseName, userId, channelName, channelSubscriptionId, timestamp):
@@ -337,31 +349,43 @@ class BADBroker:
 
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId, timestamp)
 
-        userSubscription = UserSubscription(dataverseName, userSubscriptionId, userSubscriptionId, userId,
+        userSubscription = UserSubscription(userSubscriptionId, userSubscriptionId, userId,
                                     channelSubscriptionId, channelName, timestamp, resultsDataset)
         yield userSubscription.save(dataverseName)
 
-        if channelName not in self.subscriptions:
-            self.subscriptions[channelName] = {}
+        if channelName not in self.userSubscriptions[dataverseName]:
+            self.userSubscriptions[dataverseName][channelName] = {}
 
-        if channelSubscriptionId not in self.subscriptions[channelName]:
-            self.subscriptions[channelName][channelSubscriptionId] = {}
+        if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
+            self.userSubscriptions[dataverseName][channelName][channelSubscriptionId] = {}
 
-        log.info(self.subscriptions)
-        self.subscriptions[channelName][channelSubscriptionId][userId] = userSubscription
+        log.info(self.userSubscriptions[dataverseName])
+        self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId] = userSubscription
 
-        self.userToSubscriptionMap[userSubscriptionId] = userSubscription
-        return userSubscriptionId
+        self.userToSubscriptionMap[dataverseName][userSubscriptionId] = userSubscription
+        return userSubscription
 
     @tornado.gen.coroutine
     def checkExistingChannelSubscription(self, dataverseName, channelName, parameters):
         channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName, parameters=str(parameters))
-        if channelSubscriptions and len(channelSubscriptions):
-            if len(channelSubscriptions) > 0:
+        if channelSubscriptions and len(channelSubscriptions) > 0:
+            if len(channelSubscriptions) > 1:
                 log.debug('Mutiple subscriptions matached, picking 0-th')
-            return channelSubscriptions[0].channelSubscriptionId
+            return channelSubscriptions[0]
         else:
             return None
+
+    @tornado.gen.coroutine
+    def getCurrentDateTime(self, dataverseName):
+        status, response = yield asterix.executeQuery(dataverseName, "let $t := current-datetime() return $t")
+        if status != 200:
+            return None
+
+        log.debug(response)
+        currentDateTime = json.loads(response)[0]  # re.match(r'\[\"(.*)\"\]', response).group(1)
+
+        log.debug('Current time at server ' + currentDateTime)
+        return currentDateTime
 
     @tornado.gen.coroutine
     def subscribe(self, dataverseName, userId, accessToken, channelName, parameters):
@@ -369,30 +393,40 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        # Check whether the channel already has a subscription with same param values
+        if dataverseName not in self.channelSubscriptions:
+            self.channelSubscriptions[dataverseName] = {}
+
+        if dataverseName not in self.userSubscriptions:
+            self.userSubscriptions[dataverseName] = {}
+
+        if dataverseName not in self.userToSubscriptionMap:
+            self.userToSubscriptionMap[dataverseName] = {}
+
+        # Check whether the channel already has a subscription with the same param values
         try:
-            channelSubscriptionId = yield self.checkExistingChannelSubscription(dataverseName, channelName=channelName, parameters=parameters)
-            if channelSubscriptionId:
-                log.info('Subscription found, id = %s, channel %s with params %s' % (channelSubscriptionId, channelName, parameters))
+            channelSubscription = yield self.checkExistingChannelSubscription(dataverseName, channelName=channelName, parameters=parameters)
+            if channelSubscription:
+                log.info('Subscription found, id = %s, channel %s with params %s' % (channelSubscription.channelSubscriptionId,
+                                                                                     channelName, parameters))
             else:
                 log.debug('Creating subscription, for channel %s with params %s' % (channelName, parameters))
-                channelSubscriptionId = yield self.createChannelSubscription(dataverseName, channelName, parameters)
+                channelSubscription = yield self.createChannelSubscription(dataverseName, channelName, parameters)
+
+            channelSubscriptionId = channelSubscription.channelSubscriptionId
+            if channelName not in self.channelSubscriptions[dataverseName]:
+                self.channelSubscriptions[dataverseName][channelName] = {}
+
+            self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId] = channelSubscription
+
         except BADException as badex:
             log.error(badex)
             return {'status': 'failed', 'error': str(badex)}
 
-        status, response = yield asterix.executeQuery("let $t := current-datetime() return $t")
-        if status != 200:
-            return {'status': 'failed', 'error': response}
+        currentDateTime = yield self.getCurrentDateTime(dataverseName)
+        userSubscription = yield self.createUserSubscription(dataverseName, userId, channelName, channelSubscriptionId, currentDateTime)
 
-        log.debug(response)
-
-        currentDateTime = json.loads(response)[0]  # re.match(r'\[\"(.*)\"\]', response).group(1)
-
-        userSuscriptionId = yield self.createUserSubscription(dataverseName, userId, channelName, channelSubscriptionId, currentDateTime)
-
-        if userSuscriptionId:
-            return {'status': 'success', 'userSubscriptionId': userSuscriptionId, 'timestamp': currentDateTime}
+        if userSubscription:
+            return {'status': 'success', 'userSubscriptionId': userSubscription.userSubscriptionId, 'timestamp': currentDateTime}
         else:
             return {'status': 'failed', 'error': 'User subscription creation failed!!'}
 
@@ -402,15 +436,20 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        if userSubscriptionId in self.userToSubscriptionMap:
-            userSubscription = self.userToSubscriptionMap[userSubscriptionId]
+        if userSubscriptionId in self.userToSubscriptionMap[dataverseName]:
+            userSubscription = self.userToSubscriptionMap[dataverseName][userSubscriptionId]
             channelSubscriptionId = userSubscription.channelSubscriptionId
             channelName = userSubscription.channelName
 
+            status_code, response = yield self.asterix.executeAQL('unsubscribe {0} from {1}'.format(channelSubscriptionId, channelName))
+
+            if status_code != 200:
+                raise BADException(response)
+
             yield userSubscription.delete(dataverseName)
 
-            del self.subscriptions[channelName][channelSubscriptionId][userId]
-            del self.userToSubscriptionMap[userSubscriptionId]
+            del self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
+            del self.userToSubscriptionMap[dataverseName][userSubscriptionId]
 
             log.info('User %s unsubscribed from %s' % (userId, channelName))
             return {'status': 'success'}
@@ -419,7 +458,7 @@ class BADBroker:
             return {'status': 'failed', 'error': 'No such subscription %s' % userSubscriptionId}
 
     def makeUserSubscriptionId(self, dataverseName, channelName, subscriptionId, userId, timestamp):
-        return channelName + '::' + subscriptionId + '::' + userId + "@" + timestamp
+        return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId + "@" + timestamp
 
     @tornado.gen.coroutine
     def getresults(self, dataverseName, userId, accessToken, userSubscriptionId, deliveryTime):
@@ -427,16 +466,16 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        if userSubscriptionId not in self.userToSubscriptionMap:
+        if userSubscriptionId not in self.userToSubscriptionMap[dataverseName]:
             msg = 'No subscription %s is found for user %s' % (userSubscriptionId, userId)
             log.warning(msg)
             return {'status': 'failed', 'error': msg}
 
-        channelName = self.userToSubscriptionMap[userSubscriptionId].channelName
-        channelSubscriptionId = self.userToSubscriptionMap[userSubscriptionId].channelSubscriptionId
+        channelName = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelName
+        channelSubscriptionId = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelSubscriptionId
 
         # if not deliveryTime:
-        #    deliveryTime = self.subscriptions[channelName][subscriptionId][userId].lastResultTimestamp
+        #    deliveryTime = self.userSubscriptions[dataverseName][channelName][subscriptionId][userId].latestDeliveredResultDeliveryTime
 
         # Get results
         # First check in the cache, if not retrieve from Asterix store
@@ -455,9 +494,9 @@ class BADBroker:
                 self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, deliveryTime, resultToUser)
 
         # Update last delivery timestamp of this subscription
-        subscription = self.subscriptions[channelName][channelSubscriptionId][userId]
-        subscription.lastResultTimestamp = deliveryTime
-        yield subscription.update(dataverseName)
+        subscription = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
+        subscription.latestDeliveredResultDeliveryTime = deliveryTime
+        yield subscription.save(dataverseName)
 
         return {'status': 'success',
                 'channelName': channelName,
@@ -467,7 +506,7 @@ class BADBroker:
 
 
     def getResultKey(self, dataverseName, channelName, channelSubscriptionId, deliveryTime):
-        return channelName + '::' + channelSubscriptionId + '::' + deliveryTime
+        return dataverseName + '::' + channelName + '::' + channelSubscriptionId + '::' + deliveryTime
 
     def getResultsFromCache(self, dataverseName, channelName, channelSubscriptionId, deliveryTime):
         resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, deliveryTime)
@@ -523,14 +562,14 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
         
-        aql_stmt = 'for $channel in dataset Channel return $channel'
+        aql_stmt = 'for $channel in dataset Metadata.Channel return $channel'
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
         
         if status == 200:
             response = response.replace('\n', '')
             print(response)
             
-            channels = json.loads(str(response, encoding='utf-8'))
+            channels = json.loads(response)
 
             return {'status': 'success', 'channels': channels}    
         else:
@@ -538,7 +577,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getChannelInfo(self, dataverseName, channelName):
-        aql_stmt = 'for $t in dataset Channel '
+        aql_stmt = 'for $t in dataset Metadata.Channel '
         aql_stmt = aql_stmt + 'where $t.ChannelName = \"' + channelName + '\" '
         aql_stmt = aql_stmt + 'return $t'
         
@@ -555,6 +594,17 @@ class BADBroker:
             return {'status': 'failed', 'error': response}
     
     @tornado.gen.coroutine
+    def listsubscriptions(self, dataverseName, userId, accessToken):
+        check = self._checkAccess(userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        userSubscriptions = yield UserSubscription.load(dataverseName=dataverseName, userId=userId)
+        print(userSubscriptions)
+
+        return {'status': 'success', 'subscriptions': userSubscriptions}
+
+    @tornado.gen.coroutine
     def notifyBroker(self, dataverseName, channelName, subscriptionIds):
         # if brokerName != self.brokerName:
         #    return {'status': 'failed', 'error': 'Not the intended broker %s' %(brokerName)}
@@ -565,28 +615,33 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, subscriptionIds):
-        log.debug('Current subscriptions: %s' % self.subscriptions)
+        log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
+
+        if channelName not in self.userSubscriptions[dataverseName]:
+            log.error('No such channel %s' % channelName)
+            return
 
         # Retrieve the latest delivery times for the subscriptions in subscriptionIds
+        for channelSubscriptionId in subscriptionIds:
+            if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
+                continue
 
-        for subscriptionId in subscriptionIds:
-            channelSubscriptionId = channelName + '::' + subscriptionId
-            if channelSubscriptionId in self.subscriptionLatestResultDeliveryTime:
-                latestDeliveryTime = self.subscriptionLatestResultDeliveryTime[channelName]
-                query = 'for $t in dataset {0}Results ' \
-                        'where $t.subscriptionId = \"{1}\" and $t.deliveryTime > datetime(\"{1}\") ' \
-                        'return $t.deliveryTime'.format(channelName,
-                                                        subscriptionId,
-                                                        latestDeliveryTime)
-            else:
-                query = 'for $t in dataset {0}Results ' \
-                        'where $t.subscriptionId = \"{1}\" return $t.deliveryTime'.format(channelName, subscriptionId)
+            latestDeliveryTime = self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestResultDeliveryTime
+
+            query = 'for $t in dataset {0}Results ' \
+                    'distinct by $t.deliveryTime ' \
+                    'where $t.subscriptionId = uuid(\"{1}\") and $t.deliveryTime > datetime(\"{2}\") ' \
+                    'return $t.deliveryTime'.format(channelName,
+                                                    channelSubscriptionId,
+                                                    latestDeliveryTime)
 
             log.debug(query)
             status, response = yield self.asterix.executeQuery(dataverseName, query)
             log.debug(response)
 
             latestDeliveryTimes = []
+            log.debug('ChannelName' + channelName + ' subscriptionId' + channelSubscriptionId + ' ' + str(latestDeliveryTimes))
+
             if status == 200 and response:
                 latestDeliveryTimes = json.loads(response)
 
@@ -596,7 +651,7 @@ class BADBroker:
                     # Retrieve results from Asterix and cache them
                     for latestDeliveryTime in latestDeliveryTimes:
                         results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestDeliveryTime)
-                        resultKey = self.getResultKey(channelName, channelSubscriptionId, latestDeliveryTime)
+                        resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestDeliveryTime)
                         if results and not self.cache.hasKey(resultKey):
                             self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestDeliveryTime, results)
 
@@ -606,6 +661,11 @@ class BADBroker:
                                                                      channelName=channelName,
                                                                      channelSubscriptionId=channelSubscriptionId,
                                                                      latestDeliveryTime=latestDeliveryTime)
+
+                    # set latestDeliveryTime to the subscription
+                    self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestResultDeliveryTime = latestDeliveryTimes[-1]
+                    yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save(dataverseName)
+
                 else:
                     log.error('Retrieving delivery time failed for channel %s' % channelName)
             else:
@@ -616,16 +676,16 @@ class BADBroker:
         log.info('Sending out notification for channel %s subscription %s deliverytime %s' % (channelName,
                                                                                               channelSubscriptionId,
                                                                                               latestDeliveryTime))
-        for userId in self.subscriptions[channelName][channelSubscriptionId]:
-            sub = self.subscriptions[channelName][channelSubscriptionId][userId]
+        for userId in self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]:
+            sub = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             userSubcriptionId = sub.userSubscriptionId
             self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId, latestDeliveryTime)
-
 
     def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestDeliveryTime):
         log.info('Channel %s: sending notification to user %s for %s' % (channelName, userId, userSubscriptionId))
 
         message = {'userId': userId,
+                   'dataverseName': dataverseName,
                    'channelName':  channelName,
                    'channelSubscriptionId': channelSubscriptionId,
                    'userSubscriptionId': userSubscriptionId,
@@ -633,7 +693,14 @@ class BADBroker:
                    'timestamp': latestDeliveryTime
                    }
 
-        self.rabbitMQ.sendMessage(userId, json.dumps(message))
+        if userId not in self.sessions:
+            log.error('User %s is not logged in to receive notifications' % userId)
+        else:
+            platform = self.sessions[userId]['platform']
+            if platform not in self.notifiers:
+                log.error('Platform %s is NOT supported yet!!' % platform)
+            else:
+                self.notifiers[platform].notify(userId, message)
 
     def _checkAccess(self, userId, accessToken):
         return {'status': 'success'}
@@ -647,10 +714,6 @@ class BADBroker:
         else: 
             return {'status': 'failed',
                     'error': 'User not authenticated'}
-
-
-    def __del__(self):
-        self.rabbitMQ.close()
 
     @tornado.gen.coroutine
     def setupBroker(self):
@@ -667,6 +730,7 @@ class BADBroker:
 
 def test_broker():
     broker = BADBroker()
+    broker.setupBroker()
 
     dataverseName = 'channels'
 
@@ -674,7 +738,7 @@ def test_broker():
     value = yield broker.register(dataverseName, 'sarwar', 'ysar@gm.com', 'pass')
     print(value)
 
-    print('Loggin in')
+    print('Logging in')
     result = yield broker.login(dataverseName, 'sarwar', 'pass')
     userId = result['userId']
     accessToken = result['accessToken']
@@ -699,5 +763,6 @@ def test_broker():
 
 
 if __name__ == '__main__':
-    test_broker()
-
+    #test_broker()
+    broker = BADBroker()
+    broker.testcalls()
