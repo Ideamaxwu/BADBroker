@@ -11,7 +11,7 @@ import hashlib
 import simplejson as json
 import sys
 from datetime import datetime
-from BADBroker import BADBroker, add_websocket_listener
+from BADBroker import BADBroker, set_live_web_sockets
 from asterixapi import AsterixQueryManager
 
 import logging as log
@@ -50,6 +50,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
             password = post_data['password']
 
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
+            log.info(platform)
             gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
@@ -80,6 +81,7 @@ class LoginHandler (tornado.web.RequestHandler):
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
+            log.info(platform)
             gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
 
             response = yield self.broker.login(dataverseName, userName, password, platform, gcmRegistrationId)
@@ -249,42 +251,10 @@ class PreferencePageHandler(tornado.web.RequestHandler):
         log.info("SAFIR entered preferences")
         self.render("preferences.html")
 
-class EventSourceHandler(tornado.web.RequestHandler):
-    def post(self):
-        log.info(str(self.request.body, encoding='utf-8'))
-        post_data = json.loads(str(self.request.body, encoding='utf-8'))
-
-        log.debug(post_data)
-
-        log.info("SAFIR entered EventSourceHandler")
-        global condition_variable
-        send_fire_message = False
-        mutex.acquire()
-        try:
-            if condition_variable == True:
-                send_fire_message = True
-                condition_variable = False
-        finally:
-            mutex.release()
-
-        if send_fire_message == True:
-            response = {'status': 'success', 'fire': 'true'}
-        else:
-            response = {'status': 'success', 'fire': 'false'}
-
-        try:
-            userId = post_data['userId']
-
-            delivery_time = get_delivery_time(userId)
-
-            if delivery_time >= 0:
-                response['deliveryTime'] = delivery_time
-            else:
-                response = {'status': 'failed', 'error': 'Key Not found'}
-        except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
-
-        print(json.dumps(response))
+class SubscriptionPageHandler(tornado.web.RequestHandler):
+    def get(self):
+        log.info("SAFIR entered subscriptions")
+        self.render("subscriptions.html")
 
 class ListChannelsHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
@@ -318,7 +288,7 @@ class BrowserWebSocketHandler(tornado.websocket.WebSocketHandler):
         self.set_nodelay(True)
         mutex.acquire()
         try:
-            live_web_sockets.add(self)
+            set_live_web_sockets(self)
         finally:
             mutex.release()
 
@@ -327,18 +297,6 @@ class BrowserWebSocketHandler(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         log.info("WebSocket closed")
-
-def get_web_sockets():
-    global live_web_sockets
-    web_sockets = None
-    mutex.acquire()
-
-    try:
-        web_sockets = live_web_sockets
-    finally:
-        mutex.release()
-
-    return web_sockets
 
 def webSocketSendMessage(message):
     global live_web_sockets
@@ -399,11 +357,11 @@ def start_server():
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
-        (r"/notifications", NotificationsPageHandler),
-        (r"/events", EventSourceHandler),
-        (r"/preferences", PreferencePageHandler),
-        (r"/websocketlistener", BrowserWebSocketHandler)
-    ])
+        (r'/notifications', NotificationsPageHandler),
+        (r'/preferences', PreferencePageHandler),
+        (r'/websocketlistener', BrowserWebSocketHandler),
+        (r'/subscriptions', SubscriptionPageHandler)
+    ], **settings)
 
     application.listen(8989)
     tornado.ioloop.IOLoop.current().start()

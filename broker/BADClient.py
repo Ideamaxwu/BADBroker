@@ -271,7 +271,7 @@ def test_client():
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
-        #client.subscribe('nearbyTweetChannel', ['Dead'], on_result)
+        client.subscribe('nearbyTweetChannel', ['Dead'], on_result)
         #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
 
         client.listchannels()

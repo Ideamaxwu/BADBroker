@@ -40,7 +40,7 @@ create type ChannelSubscriptionType as closed{
 create dataset ChannelSubscriptionDataset(ChannelSubscriptionType)
 primary key recordId;
 
-create broker brokerA at "http://localhost:8989/notifybroker";
+create broker brokerF at "http://localhost:8989/notifybroker";
 
 create type TweetMessageTypeuuid as closed {
 	tweetid: uuid,

@@ -20,18 +20,21 @@ import re
 import logging as log
 import BADCache
 from threading import Lock
-from BADWebServer import webSocketSendMessage
+import requests
+
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
-
-mutex = Lock()
-latest_delivery_time_dict = {}
 
 #host = 'http://cacofonix-2.ics.uci.edu:19002'
 #host = 'http://128.195.52.196:19002'
 #host = 'http://45.55.22.117:19002/'
 host = 'http://localhost:19002'
+
+mutex = Lock()
+live_web_sockets = set()
 
 asterix= AsterixQueryManager(host)
 # asterix.setDataverseName('emergencyTest')
@@ -139,7 +142,7 @@ class User(BADObject):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
-        self.password = password        
+        self.password = password
         self.email = email
 
         self.platform = platform
@@ -207,11 +210,11 @@ class BADException(Exception):
     pass
 
 
-class BADBroker:    
+class BADBroker:
     def __init__(self):
         global asterix
         self.asterix= asterix
-        self.brokerName = 'brokerA'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
+        self.brokerName = 'brokerF'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
         self.users = {}
 
         self.channelSubscriptions= {} # indexed by dataverseName, channelname, subscriptionId
@@ -223,11 +226,26 @@ class BADBroker:
         self.notifiers = {}
         self.initializeNotifiers()
         self.cache = BADCache.BADLruCache()
+        self.local_address = self._myNetAddress()
+        self._registerBrokerWithBCS()
+
+    def _registerBrokerWithBCS(self):
+        post_request = {"brokerName" : self.brokerName, \
+        "brokerIP" : str(self.local_address) \
+        }
+        log.info(post_request)
+        
+        '''r = requests.post("http://radon.ics.uci.edu:5000/registerbroker", json = post_request)
+        if r.status_code == 200:
+            log.info('Broker registered successfully')
+            log.info(r.text)
+        else:
+            log.debug('Broker registration with BCS failed')'''
 
     def _myNetAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 0))  
-        mylocaladdr = str(s.getsockname()[0])                
+        s.connect(('8.8.8.8', 0))
+        mylocaladdr = str(s.getsockname()[0])
         return mylocaladdr
 
     def initializeNotifiers(self):
@@ -287,7 +305,7 @@ class BADBroker:
     def logoff(self, dataverseName, userId):
         if userId in self.sessions:
             del self.sessions[userId]
-        
+
         return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
@@ -565,17 +583,17 @@ class BADBroker:
         check = self._checkAccess(userId, accessToken)
         if check['status'] == 'failed':
             return check
-        
+
         aql_stmt = 'for $channel in dataset Metadata.Channel return $channel'
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
-        
+
         if status == 200:
             response = response.replace('\n', '')
             print(response)
-            
+
             channels = json.loads(response)
 
-            return {'status': 'success', 'channels': channels}    
+            return {'status': 'success', 'channels': channels}
         else:
             return {'status': 'failed', 'error': response}
 
@@ -584,11 +602,11 @@ class BADBroker:
         aql_stmt = 'for $t in dataset Metadata.Channel '
         aql_stmt = aql_stmt + 'where $t.ChannelName = \"' + channelName + '\" '
         aql_stmt = aql_stmt + 'return $t'
-        
+
         log.debug(aql_stmt)
-        
+
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
-        
+
         if status == 200:
             response = response.replace('\n', '')
             print(response)
@@ -596,7 +614,7 @@ class BADBroker:
             return {'status': 'success', 'channels': channels}
         else:
             return {'status': 'failed', 'error': response}
-    
+
     @tornado.gen.coroutine
     def listsubscriptions(self, dataverseName, userId, accessToken):
         check = self._checkAccess(userId, accessToken)
@@ -697,11 +715,6 @@ class BADBroker:
                    'timestamp': latestDeliveryTime
                    }
 
-        set_delivery_time(userId, latestDeliveryTime)
-
-        self.rabbitMQ.sendMessage(userId, json.dumps(message))
-        webSocketSendMessage(json.dumps(message))
-
         if userId not in self.sessions:
             log.error('User %s is not logged in to receive notifications' % userId)
         else:
@@ -709,6 +722,13 @@ class BADBroker:
             if platform not in self.notifiers:
                 log.error('Platform %s is NOT supported yet!!' % platform)
             else:
+                if platform == 'web':
+                    mutex.acquire()
+                    try:
+                        global live_web_sockets
+                        self.notifiers[platform].set_live_web_sockets(live_web_sockets)
+                    finally:
+                        mutex.release()
                 self.notifiers[platform].notify(userId, message)
 
     def _checkAccess(self, userId, accessToken):
@@ -720,7 +740,7 @@ class BADBroker:
             else:
                 return {'status': 'failed',
                         'error': 'Invalid access token'}
-        else: 
+        else:
             return {'status': 'failed',
                     'error': 'User not authenticated'}
 
@@ -737,27 +757,13 @@ class BADBroker:
         if status != 200:
             log.error('Broker setup failed ' + response)
 
-def set_delivery_time(userId, delivery_time):
-    global latest_delivery_time_dict
+def set_live_web_sockets(web_socket_object):
+    global live_web_sockets
     mutex.acquire()
     try:
-        latest_delivery_time_dict[userId] = delivery_time
+        live_web_sockets.add(web_socket_object)
     finally:
         mutex.release()
-
-def get_delivery_time(userId):
-    delivery_time = -1
-    global latest_delivery_time_dict
-    mutex.acquire()
-    try:
-        delivery_time = latest_delivery_time_dict[userId]
-    except:
-        log.error('KeyError')
-        delivery_time = -1
-    finally:
-        mutex.release()
-
-    return delivery_time
 
 def test_broker():
     broker = BADBroker()
@@ -777,7 +783,7 @@ def test_broker():
     # print(broker.listchannels(userId, accessToken))
     # print(broker.getChannelInfo(userId, accessToken, 'EmergencyMessagesChannel'))
     result = yield broker.subscribe(dataverseName, userId, accessToken, 'nearbyTweetChannel', [12])
-    
+
     subscriptionId = result['subscriptionId']
 
     value = yield broker.getresults(dataverseName, userId, accessToken, 'nearbyTweetChannel', subscriptionId, 12235)
@@ -788,7 +794,7 @@ def test_broker():
 
     value = yield broker.notifyBroker(dataverseName, 'nearbyTweetChannel', [subscriptionId])
     print(value)
-    
+
     # test = {'A': 12, 'B': [{'X': 12}, {'Y': 23}, {'Z': 34}]}
     # print(test['B'][0])
 
