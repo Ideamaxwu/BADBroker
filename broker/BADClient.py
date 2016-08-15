@@ -19,8 +19,8 @@ class BADClient:
 
         self.userId = ""
         self.accessToken = ""
-        self.subscriptions = {}
         self.brokerUrl = brokerUrl
+        self.onNewResultCallback = None
 
         self.rqthread = None
         self.rqchannel = None
@@ -138,17 +138,6 @@ class BADClient:
                     subscriptionId = response['userSubscriptionId']
                     timestamp = response['timestamp']
 
-                    if channelName is not self.subscriptions:
-                        self.subscriptions[channelName] = {}
-
-                    self.subscriptions[channelName][subscriptionId] = {
-                        'subscriptionId': subscriptionId,
-                        'channelExecutionTime': timestamp,
-                        'channelName': channelName,
-                        'parameters': parameters,
-                        'callback': callback
-                    }
-
                     print(self.userName, 'Subscribe', json.dumps(response))
                     return True
         else:
@@ -159,15 +148,10 @@ class BADClient:
         print('Notified from broker', str(body, encoding='utf-8'))
         response = json.loads(body)
         channelName = response['channelName']
+        userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
 
-        print(self.subscriptions)
-
-        if channelName not in self.subscriptions:
-            print('No active subscription for channel', channelName)
-        else:
-            for subscriptionId in self.subscriptions[channelName]:
-                self.getresults(channelName, subscriptionId, latestChannelExecutionTime)
+        self.getresults(channelName, userSubscriptionId, latestChannelExecutionTime)
 
     def getresults(self, channelName, subscriptionId, channelExecutionTime):
         print('Getresults for %s' % subscriptionId)
@@ -185,56 +169,10 @@ class BADClient:
         if r.status_code == 200:
             results = r.json()
             if results and results['status'] == 'success':
-                callback = self.subscriptions[channelName][subscriptionId]['callback']
+                callback = self.onNewResultCallback
                 callback(channelName, subscriptionId, results['channelExecutionTime'], results['results'])
-
-                # update channelExecutionTime
-                for key in self.subscriptions[channelName]:
-                    self.subscriptions[channelName][key]['channelExecutionTime'] = channelExecutionTime
             else:
                 print('GetresultsError %s' % str(results['error']))
-
-    def onNewResultsOnChannel(self, channelName, subscriptionId, channelExecutionTime, results):
-        print(self.userName, channelName, 'Channel results', results)
-
-        if channelName not in self.subscriptions or subscriptionId not in self.subscriptions[channelName]:
-            print('No active subscription for this channel')
-            return
-
-        if results:
-            results = results.replace('\n', '')
-            allResultItems = json.loads(results)['results']
-
-            print('More new results received', len(allResultItems))
-            for item in allResultItems:
-                print(item)
-
-    def setCommands(self):
-        with open('client-commands.txt') as f:
-            for line in f.readlines():
-                if line.startswith("#") or len(line) <= 1:
-                    continue
-                print(line)
-                command = json.loads(line)
-                if 'delay' in command:
-                    delay = command['delay']
-                    time.sleep(delay)
-
-                if command['command'] == 'register':
-                    if len(sys.argv) >= 4:
-                        self.userName = sys.argv[1]
-                        self.password = sys.argv[2]
-                        self.email = sys.argv[3]
-                        self.register(self.userName, self.password, self.email)
-                    else:
-                        print('Usage python3 BADClient userName email password')
-                        sys.exit(0)
-
-                elif command['command'] == 'login':
-                    self.login(self.userName, self.password)
-
-                elif command['command'] == 'subscribe':
-                    self.subscribe(command['channelName'], command['parameters'])
 
     def run(self):
         self.runRabbitQM(self.userId, self.onNotifiedFromBroker, host='localhost')
@@ -269,13 +207,15 @@ def test_client():
     userName = sys.argv[2]
 
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
+    client.onNewResultCallback = on_result
 
     if client.login():
-        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        client.subscribe('nearbyTweetChannel', ['Live'], on_result)
-
-        client.listchannels()
         client.listsubscriptions()
+        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
+        #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
+
+        #client.listchannels()
+
 
         client.run()
     else:

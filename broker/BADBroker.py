@@ -88,7 +88,12 @@ class BADObject:
             return None
 
         dataset = objectName + 'Dataset'
-        query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
+
+        if condition:
+            query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
+        else:
+            query = 'for $t in dataset {0} return $t'.format(dataset)
+
         status, response = yield asterix.executeQuery(dataverseName, query)
 
         if status == 200 and response:
@@ -161,6 +166,11 @@ class ChannelSubscription(BADObject):
         objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
         return ChannelSubscription.createFrom(objects)
 
+    @classmethod
+    @tornado.gen.coroutine
+    def load(cls, dataverseName=None, channelName=None, channelSubscriptionId=None):
+        objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
+        return ChannelSubscription.createFrom(objects)
 
 class UserSubscription(BADObject):
     def __init__(self, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
@@ -202,17 +212,19 @@ class BADException(Exception):
 class BADBroker:    
     def __init__(self):
         global asterix
-        self.asterix= asterix
+        self.asterix = asterix
         self.brokerName = 'brokerA'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
-        self.users = {}
 
-        self.channelSubscriptions= {} # indexed by dataverseName, channelname, subscriptionId
-        self.userSubscriptions= {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
+        self.users = {}               # indexed by dataverse, userId
+        self.channelSubscriptions = {} # indexed by dataverseName, channelname, channelSubscriptionId
+
+        self.userSubscriptions = {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
 
         self.sessions = {}                  # keep accesstokens of logged in users
         self.notifiers = {}                 # list of all possible notifiers
 
+        self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
         self.initializeNotifiers()          # initialize notifiers
         self.cache = BADCache.BADLruCache() # Caching technique
 
@@ -221,6 +233,9 @@ class BADBroker:
         s.connect(('8.8.8.8', 0))  
         mylocaladdr = str(s.getsockname()[0])                
         return mylocaladdr
+
+    def initializeBroker(self):
+        pass
 
     def initializeNotifiers(self):
         self.notifiers['desktop'] = notifier.desktop.DesktopClientNotifier()
@@ -272,8 +287,43 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def loadSubscriptionsForUser(self, dataverseName, userId):
-        subscriptions = yield UserSubscription.load(dataverseName, userId=userId)
-        return subscriptions
+        log.info('Loading userSubscriptions for user {0}'.format(userId))
+        userSubscriptions = yield UserSubscription.load(dataverseName, userId=userId)
+
+        if dataverseName not in self.userSubscriptions:
+            self.userSubscriptions[dataverseName] = {}
+
+        if dataverseName not in self.userToSubscriptionMap:
+            self.userToSubscriptionMap[dataverseName] = {}
+
+        # Fill userSubscriptions and userToSubscription maps
+        for userSubscription in userSubscriptions:
+            channelName = userSubscription.channelName
+            channelSubscriptionId = userSubscription.channelSubscriptionId
+
+            if channelName not in self.userSubscriptions[dataverseName]:
+                self.userSubscriptions[dataverseName][channelName] = {}
+
+            if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
+                self.userSubscriptions[dataverseName][channelName][channelSubscriptionId] = {}
+
+            self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId] = userSubscription
+
+            userSubscriptionId = userSubscription.userSubscriptionId
+            self.userToSubscriptionMap[dataverseName][userSubscriptionId] = userSubscription
+
+            # Load channelSubscription if not already loaded
+            if dataverseName not in self.channelSubscriptions:
+                self.channelSubscriptions[dataverseName] = {}
+
+            if channelName not in self.channelSubscriptions[dataverseName]:
+                self.channelSubscriptions[dataverseName][channelName] = {}
+
+            channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
+                                                                  channelSubscriptionId=channelSubscriptionId)
+
+            if channelSubscriptions and len(channelSubscriptions) > 0:
+                self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId] = channelSubscriptions[0]
 
     @tornado.gen.coroutine
     def logoff(self, dataverseName, userId):
@@ -348,7 +398,7 @@ class BADBroker:
     def createUserSubscription(self, dataverseName, userId, channelName, channelSubscriptionId, timestamp):
         resultsDataset = channelName + 'Results'
 
-        userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId, timestamp)
+        userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId)
 
         userSubscription = UserSubscription(userSubscriptionId, userSubscriptionId, userId,
                                     channelSubscriptionId, channelName, timestamp, resultsDataset)
@@ -458,8 +508,8 @@ class BADBroker:
             log.warning('No such subscription %s' % userSubscriptionId)
             return {'status': 'failed', 'error': 'No such subscription %s' % userSubscriptionId}
 
-    def makeUserSubscriptionId(self, dataverseName, channelName, subscriptionId, userId, timestamp):
-        return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId + "@" + timestamp
+    def makeUserSubscriptionId(self, dataverseName, channelName, subscriptionId, userId):
+        return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId
 
     @tornado.gen.coroutine
     def getresults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
