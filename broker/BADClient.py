@@ -110,7 +110,7 @@ class BADClient:
         else:
             print('listsubscriptions failed, call returned %s' % r)
 
-    def subscribe(self, channelName, parameters, callback):
+    def subscribe(self, channelName, parameters):
         print('Subscribe')
 
         if (channelName is None or parameters is None):
@@ -141,7 +141,7 @@ class BADClient:
                     print(self.userName, 'Subscribe', json.dumps(response))
                     return True
         else:
-            print('Subscription failed for channel %s with params' % (channelName, parameters))
+            print('Subscription failed for channel %s with params %s' % (channelName, parameters))
             return False
 
     def onNotifiedFromBroker(self, channel, method, properties, body):
@@ -212,7 +212,7 @@ def test_client():
     if client.login():
         client.listsubscriptions()
         #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
+        client.subscribe('nearbyTweetChannel', ['Live'])
 
         #client.listchannels()
 

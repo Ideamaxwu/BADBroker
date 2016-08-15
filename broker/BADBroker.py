@@ -151,7 +151,6 @@ class User(BADObject):
     def __str__(self):
         return self.userName + ' ID ' + self.userId
 
-
 class ChannelSubscription(BADObject):
     def __init__(self, recordId=None, channelName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.recordId = recordId
@@ -162,14 +161,12 @@ class ChannelSubscription(BADObject):
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, parameters=None):
-        objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
-        return ChannelSubscription.createFrom(objects)
+    def load(cls, dataverseName=None, channelName=None, channelSubscriptionId=None, parameters=None):
+        if parameters:
+            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
+        elif channelSubscriptionId:
+            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
 
-    @classmethod
-    @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, channelSubscriptionId=None):
-        objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
         return ChannelSubscription.createFrom(objects)
 
 class UserSubscription(BADObject):
