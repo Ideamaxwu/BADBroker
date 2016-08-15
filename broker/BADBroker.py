@@ -137,16 +137,12 @@ class BADObject:
 
 
 class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None,
-                platform=None, gcmRegistrationId=None):
+    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
         self.password = password
         self.email = email
-
-        self.platform = platform
-        self.gcmRegistrationId = gcmRegistrationId
 
     @classmethod
     @tornado.gen.coroutine
@@ -221,11 +217,12 @@ class BADBroker:
         self.userSubscriptions= {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
 
-        self.sessions = {}
+        self.sessions = {}                  # keep accesstokens of logged in users
+        self.notifiers = {}                 # list of all possible notifiers
 
-        self.notifiers = {}
         self.initializeNotifiers()
         self.cache = BADCache.BADLruCache()
+        
         self.local_address = self._myNetAddress()
         self._registerBrokerWithBCS()
 
@@ -254,7 +251,7 @@ class BADBroker:
         self.notifiers['web'] = notifier.web.WebClientNotifier()
 
     @tornado.gen.coroutine
-    def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
+    def register(self, dataverseName, userName, email, password):
         # user = yield self.loadUser(userName)
 
         users = yield User.load(dataverseName=dataverseName, userName=userName)
@@ -268,7 +265,7 @@ class BADBroker:
                     'userId': user.userId}
         else:
             userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
-            user = User(userId, userId, userName, password, email, platform, gcmRegistrationId)
+            user = User(userId, userId, userName, password, email)
             yield user.save(dataverseName)
             self.users[userName] = user
 
@@ -467,6 +464,11 @@ class BADBroker:
             userSubscription = self.userToSubscriptionMap[dataverseName][userSubscriptionId]
             channelSubscriptionId = userSubscription.channelSubscriptionId
             channelName = userSubscription.channelName
+
+            status_code, response = yield self.asterix.executeAQL('unsubscribe {0} from {1}'.format(channelSubscriptionId, channelName))
+
+            if status_code != 200:
+                raise BADException(response)
 
             yield userSubscription.delete(dataverseName)
 

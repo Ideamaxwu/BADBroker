@@ -227,7 +227,6 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         dataverseName = post_data['dataverseName']
         channelName = post_data['channelName']
         subscriptionIds = post_data['subscriptionIds']
-        log.info('SAFIR' + str(subscriptionIds))
 
         response = yield self.broker.notifyBroker(dataverseName, channelName, subscriptionIds)
 
@@ -243,17 +242,17 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
 
 class NotificationsPageHandler(tornado.web.RequestHandler):
     def get(self):
-        log.info("SAFIR entered notifications")
+        log.info("Entered notifications")
         self.render("notifications.html")
 
 class PreferencePageHandler(tornado.web.RequestHandler):
     def get(self):
-        log.info("SAFIR entered preferences")
+        log.info("Entered preferences")
         self.render("preferences.html")
 
 class SubscriptionPageHandler(tornado.web.RequestHandler):
     def get(self):
-        log.info("SAFIR entered subscriptions")
+        log.info("Entered subscriptions")
         self.render("subscriptions.html")
 
 class ListChannelsHandler(tornado.web.RequestHandler):

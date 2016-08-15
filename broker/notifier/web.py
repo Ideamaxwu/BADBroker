@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #from BADWebServer import get_web_sockets
 
 class WebClientNotifier():
