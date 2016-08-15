@@ -64,7 +64,6 @@ def feedRecord(filename):
             if r.status_code != 200:
                 print('Insertation failed, %s' % str(r.text))
 
-
-
 if __name__ == "__main__":
     feedRecord(sys.argv[1])
+    

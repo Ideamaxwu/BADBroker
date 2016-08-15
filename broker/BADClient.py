@@ -143,7 +143,7 @@ class BADClient:
 
                     self.subscriptions[channelName][subscriptionId] = {
                         'subscriptionId': subscriptionId,
-                        'deliveryTime': timestamp,
+                        'channelExecutionTime': timestamp,
                         'channelName': channelName,
                         'parameters': parameters,
                         'callback': callback
@@ -159,7 +159,7 @@ class BADClient:
         print('Notified from broker', str(body, encoding='utf-8'))
         response = json.loads(body)
         channelName = response['channelName']
-        lastestDeliveryTime = response['timestamp']
+        latestChannelExecutionTime = response['channelExecutionTime']
 
         print(self.subscriptions)
 
@@ -167,9 +167,9 @@ class BADClient:
             print('No active subscription for channel', channelName)
         else:
             for subscriptionId in self.subscriptions[channelName]:
-                self.getresults(channelName, subscriptionId, lastestDeliveryTime)
+                self.getresults(channelName, subscriptionId, latestChannelExecutionTime)
 
-    def getresults(self, channelName, subscriptionId, deliveryTime):
+    def getresults(self, channelName, subscriptionId, channelExecutionTime):
         print('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
@@ -177,7 +177,7 @@ class BADClient:
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
-                     'deliveryTime': deliveryTime
+                     'channelExecutionTime': channelExecutionTime
                      }
 
         r = requests.post(self.brokerUrl + '/getresults', data=json.dumps(post_data))
@@ -186,15 +186,15 @@ class BADClient:
             results = r.json()
             if results and results['status'] == 'success':
                 callback = self.subscriptions[channelName][subscriptionId]['callback']
-                callback(channelName, subscriptionId, results['deliveryTime'], results['results'])
+                callback(channelName, subscriptionId, results['channelExecutionTime'], results['results'])
 
-                # update deliveryTime
+                # update channelExecutionTime
                 for key in self.subscriptions[channelName]:
-                    self.subscriptions[channelName][key]['deliveryTime'] = deliveryTime
+                    self.subscriptions[channelName][key]['channelExecutionTime'] = channelExecutionTime
             else:
                 print('GetresultsError %s' % str(results['error']))
 
-    def onNewResultsOnChannel(self, channelName, subscriptionId, deliveryTime, results):
+    def onNewResultsOnChannel(self, channelName, subscriptionId, channelExecutionTime, results):
         print(self.userName, channelName, 'Channel results', results)
 
         if channelName not in self.subscriptions or subscriptionId not in self.subscriptions[channelName]:
@@ -257,8 +257,8 @@ class BADClient:
 
 
 def test_client():
-    def on_result(channelName, subscriptionId, deliveryTime, results):
-        print(channelName, subscriptionId, deliveryTime)
+    def on_result(channelName, subscriptionId, channelExecutionTime, results):
+        print(channelName, subscriptionId, channelExecutionTime)
         if results and len(results) > 0:
             for item in results:
                 print('APPDATA ' + str(item))
@@ -271,11 +271,11 @@ def test_client():
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
-        #client.subscribe('nearbyTweetChannel', ['Dead'], on_result)
+        client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
         #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
 
-        client.listchannels()
-        client.listsubscriptions()
+        #client.listchannels()
+        #client.listsubscriptions()
 
         client.run()
     else:

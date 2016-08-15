@@ -180,10 +180,10 @@ class GetResultsHandler(tornado.web.RequestHandler):
             userId = post_data['userId']
             accessToken = post_data['accessToken']
             channelName = post_data['channelName']
-            subscriptionId = post_data['userSubscriptionId']
-            deliveryTime = post_data['deliveryTime']
+            userSubscriptionId = post_data['userSubscriptionId']
+            channelExecutionTime = post_data['channelExecutionTime']
 
-            response = yield self.broker.getresults(dataverseName, userId, accessToken, subscriptionId, deliveryTime)
+            response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -210,9 +210,10 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
 
         dataverseName = post_data['dataverseName']
         channelName = post_data['channelName']
+        channelExecutionTime = post_data['channelExecutionTime']
         subscriptionIds = post_data['subscriptionIds']
 
-        response = yield self.broker.notifyBroker(dataverseName, channelName, subscriptionIds)
+        response = yield self.broker.notifyBroker(dataverseName, channelName, channelExecutionTime, subscriptionIds)
 
         self.write(json.dumps(response))
         self.flush()
