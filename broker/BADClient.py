@@ -271,11 +271,11 @@ def test_client():
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
 
     if client.login():
-        client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.subscribe('nearbyTweetChannel', ['Live'], on_result)
+        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
+        client.subscribe('nearbyTweetChannel', ['Live'], on_result)
 
-        #client.listchannels()
-        #client.listsubscriptions()
+        client.listchannels()
+        client.listsubscriptions()
 
         client.run()
     else:

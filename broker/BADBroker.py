@@ -649,11 +649,11 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, subscriptionIds):
-        log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
-
-        if channelName not in self.userSubscriptions[dataverseName]:
-            log.error('No such channel %s' % channelName)
+        if dataverseName not in self.userSubscriptions or channelName not in self.userSubscriptions[dataverseName]:
+            log.error('No such dataverse %s or no such channel %s' % (dataverseName, channelName))
             return
+
+        log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
 
         # Retrieve the latest delivery times for the subscriptions in subscriptionIds
         for channelSubscriptionId in subscriptionIds:
@@ -699,7 +699,7 @@ class BADBroker:
                                                                      latestChannelExecutionTime=latestChannelExecutionTime)
 
                     # set latestChannelExecutionTime to the subscription
-                    self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestResultDeliveryTime = latestChannelExecutionTimes[-1]
+                    self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime = latestChannelExecutionTimes[-1]
                     yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save(dataverseName)
 
                 else:
