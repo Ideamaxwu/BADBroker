@@ -195,10 +195,10 @@ class GetResultsHandler(tornado.web.RequestHandler):
             userId = post_data['userId']
             accessToken = post_data['accessToken']
             channelName = post_data['channelName']
-            subscriptionId = post_data['userSubscriptionId']
-            deliveryTime = post_data['deliveryTime']
+            userSubscriptionId = post_data['userSubscriptionId']
+            channelExecutionTime = post_data['channelExecutionTime']
 
-            response = yield self.broker.getresults(dataverseName, userId, accessToken, subscriptionId, deliveryTime)
+            response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -226,9 +226,10 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
 
         dataverseName = post_data['dataverseName']
         channelName = post_data['channelName']
+        channelExecutionTime = post_data['channelExecutionTime']
         subscriptionIds = post_data['subscriptionIds']
 
-        response = yield self.broker.notifyBroker(dataverseName, channelName, subscriptionIds)
+        response = yield self.broker.notifyBroker(dataverseName, channelName, channelExecutionTime, subscriptionIds)
 
         mutex.acquire()
         try:
@@ -254,6 +255,11 @@ class SubscriptionPageHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("Entered subscriptions")
         self.render("subscriptions.html")
+
+class LocationSubscriptionPageHandler(tornado.web.RequestHandler):
+    def get(self):
+        log.info("Entered location subscriptions")
+        self.render("locationsubs.html")
 
 class ListChannelsHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
@@ -359,7 +365,8 @@ def start_server():
         (r'/notifications', NotificationsPageHandler),
         (r'/preferences', PreferencePageHandler),
         (r'/websocketlistener', BrowserWebSocketHandler),
-        (r'/subscriptions', SubscriptionPageHandler)
+        (r'/subscriptions', SubscriptionPageHandler),
+        (r'/locationsubs', LocationSubscriptionPageHandler)
     ], **settings)
 
     application.listen(8989)

@@ -163,6 +163,8 @@ class AsterixQueryManager():
 
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
+        print (request_url)
+
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='GET')
