@@ -5,12 +5,13 @@ import time
 import datetime
 import requests
 
-URL = 'http://cacofonix-2.ics.uci.edu:19002'
+# URL = 'http://169.234.50.93:19002'
+URL = 'http://169.234.26.75:19002'
 
 def feedRecord(filename):
     jsonfile = filename + '.json'
     lastOffset = 0
-    currentTime = datetime.datetime.now()
+    # currentTime = datetime.datetime.utcnow()
 
     with open(jsonfile) as f:
         for line in f.readlines():
@@ -23,10 +24,11 @@ def feedRecord(filename):
             if 'timeoffset' in record:
                 timeOffset = record['timeoffset']
                 timeOffset /= 100
-                wait = timeOffset - lastOffset
-                time.sleep(wait)
+                wait = timeOffset - lastOffset 
+                time.sleep(wait+10)
 
-                timestamp = currentTime + datetime.timedelta(seconds=timeOffset)
+                # timestamp = currentTime + datetime.timedelta(seconds=(timeOffset))
+                timestamp = datetime.datetime.utcnow()
                 timestamp = timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
                 lastOffset = timeOffset
 
@@ -64,7 +66,6 @@ def feedRecord(filename):
             if r.status_code != 200:
                 print('Insertation failed, %s' % str(r.text))
 
-
-
 if __name__ == "__main__":
     feedRecord(sys.argv[1])
+    

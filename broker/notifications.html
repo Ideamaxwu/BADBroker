@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>NewsFeed</title>
+<head>
+    <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/css/bootstrap.min.css"-->
+    <!--integrity="sha384-MIwDKRSSImVFAZCVLtU0LMDdON6KVCrZHyVQQj6e8wIEJkW4tvwqXrbMIya1vriY" crossorigin="anonymous">-->
+
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+          integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+            integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+            crossorigin="anonymous"></script>
+    <script type="text/javascript" src="/static/js/ng-infinite-scroll.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdn.rawgit.com/gdi2290/angular-websocket/v1.0.9/angular-websocket.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.js"></script>
+    <script src="http://rawgit.com/angular-ui/angular-google-maps/2.0.X/dist/angular-google-maps.js"></script>
+
+</head>
+<body ng-app="myApp">
+<div class="container_fluid">
+    <div ng-controller="MainController">
+        <nav class="navbar navbar-light navbar-static-top" style="background-color: #424242;">
+            <div class="container">
+                <a class="navbar-brand" href="/notifications.html">BAD_WebClient</a>
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/subscriptions">Subscriptions<span
+                                class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/notifications">Notifications<span
+                                class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle navbar-btn" role="button" id="dropdownMenu1"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Settings <span
+                                class="caret"></span></button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                            <li><a href="/preferences">Preferences</a></li>
+                            <li role="separator" class="divdider"></li>
+                            <li><a href="/" ng-click="logoutUser()">Log Out</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <div class="row">
+            <div id="main-content">
+                <div ng-init="init()">
+                    <div class="col-lg-4 col-md-offset-4">
+                        <div id="notifications" ng-repeat='message in messages'>
+                            <p>Emergency: {{!message.emergencytype| uppercase}}</p>
+                            <p>Severity: {{!message.severity}}</p>
+                            <p>Message: {{!message.message}}</p>
+                            <p>Coordinates: {{!message.coordinates}}</p>
+                            <p>Radius: {{!message.radius}}</p>
+                            <p>TimeStamp: {{!message.timestamp | date:"MM/dd/yyyy 'at' h:mm:ssa"}}</p>
+                            <div class="map_canvas" id="map_canvas-{{!message.timestamp}}">
+                                <ui-gmap-google-map center="message.center" zoom="map.zoom">
+                                    <ui-gmap-marker coords="message.center" idkey="marker.id">
+                                    </ui-gmap-marker>
+                                </ui-gmap-google-map>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/static/js/app.js"></script>
+<script type="text/javascript" src="/static/js/MainController.js"></script>
+<script type="text/javascript" src="/static/js/HttpGetter.js"></script>
+<script type="text/javascript" src="/static/js/SessionStorage.js"></script>
+<script type="text/javascript" src="/static/js/ng-infinite-scroll.min.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/css/style.css">
+</body>
+</html>
