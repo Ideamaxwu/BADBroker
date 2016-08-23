@@ -315,6 +315,9 @@ class BADBroker:
         log.info('Loading userSubscriptions for user {0}'.format(userId))
         userSubscriptions = yield UserSubscription.load(dataverseName, userId=userId)
 
+        if userSubscriptions is None:
+            return
+
         if dataverseName not in self.userSubscriptions:
             self.userSubscriptions[dataverseName] = {}
 
@@ -713,25 +716,25 @@ class BADBroker:
         return {'status': 'success', 'subscriptions': userSubscriptions}
 
     @tornado.gen.coroutine
-    def notifyBroker(self, dataverseName, channelName, channelExecutionTime, subscriptionIds):
+    def notifyBroker(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         # if brokerName != self.brokerName:
         #    return {'status': 'failed', 'error': 'Not the intended broker %s' %(brokerName)}
 
         # Register a callback to retrieve results for this notification and notify all users
         tornado.ioloop.IOLoop.current().add_callback(self.retrieveLatestResultsAndNotifyUsers, dataverseName,
-                                                     channelName, channelExecutionTime, subscriptionIds)
+                                                     channelName, channelExecutionTime, channelSubscriptionIds)
         return {'status': 'success'}
 
     @tornado.gen.coroutine
-    def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, subscriptionIds):
+    def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         if dataverseName not in self.userSubscriptions or channelName not in self.userSubscriptions[dataverseName]:
             log.error('No such dataverse %s or no such channel %s' % (dataverseName, channelName))
             return
 
         log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
 
-        # Retrieve the latest delivery times for the subscriptions in subscriptionIds
-        for channelSubscriptionId in subscriptionIds:
+        # Retrieve the latest delivery times for the subscriptions in channelSubscriptionIds
+        for channelSubscriptionId in channelSubscriptionIds:
             if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
                 continue
 
@@ -741,7 +744,8 @@ class BADBroker:
                     'distinct by $t.channelExecutionTime ' \
                     'where $t.subscriptionId = uuid(\"{1}\") ' \
                     'and $t.channelExecutionTime > datetime(\"{2}\") ' \
-                    'and $t.channelExecutionTime <= datetime(\"{3}\")' \
+                    'and $t.channelExecutionTime <= datetime(\"{3}\") ' \
+                    'order by $t.channelExecutionTime ' \
                     'return $t.channelExecutionTime'.format(channelName,
                                                     channelSubscriptionId,
                                                     latestChannelExecutionTime, channelExecutionTime)

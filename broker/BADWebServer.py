@@ -19,6 +19,7 @@ from threading import Lock
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+
 mutex = Lock()
 condition_variable = False
 live_web_sockets = set()
@@ -28,8 +29,6 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("SAFIR")
         self.render("index.html")
-
-
 
 class RegistrationHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
