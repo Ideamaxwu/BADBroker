@@ -32,7 +32,8 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 #host = 'http://128.195.52.196:19002'
 #host = 'http://45.55.22.117:19002/'
 #host = 'http://128.195.52.76:19002'
-host = 'http://promethium.ics.uci.edu:19002'
+#host = 'http://promethium.ics.uci.edu:19002'
+host = 'http://localhost:19002'
 
 mutex = Lock()
 live_web_sockets = set()
@@ -143,15 +144,13 @@ class BADObject:
 
 
 class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None, platform=None,
-        gcmRegistrationId=None):
+    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
         self.password = password
         self.email = email
-        self.platform = platform
-        self.gcmRegistrationId = gcmRegistrationId
+
 
     @classmethod
     @tornado.gen.coroutine
@@ -237,7 +236,7 @@ class BADBroker:
         self.cache = BADCache.BADLruCache()
         
         self.local_address = self._myNetAddress()
-        self._registerBrokerWithBCS()
+        #self._registerBrokerWithBCS()
 
     def _registerBrokerWithBCS(self):
         post_request = {"brokerName" : self.brokerName, \
@@ -268,7 +267,7 @@ class BADBroker:
         self.notifiers['web'] = notifier.web.WebClientNotifier()
 
     @tornado.gen.coroutine
-    def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
+    def register(self, dataverseName, userName, password, email):
         # user = yield self.loadUser(userName)
 
         users = yield User.load(dataverseName=dataverseName, userName=userName)
@@ -282,7 +281,7 @@ class BADBroker:
                     'userId': user.userId}
         else:
             userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
-            user = User(userId, userId, userName, password, email, platform, gcmRegistrationId)
+            user = User(userId, userId, userName, password, email)
             yield user.save(dataverseName)
             self.users[userName] = user
 
@@ -834,6 +833,19 @@ class BADBroker:
             raise BADException(response)
         log.info('Subscription {0} on channel {1} moved to broker {2}'.format(channelSubscriptionId, channelName, brokerB))
 
+    @tornado.gen.coroutine
+    def insertrecords(self, dataverseName, userId, accessToken, datasetName, records):
+        check = self._checkAccess(userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        aql_stmt = 'insert into dataset {0} {1}'.format(datasetName, records)
+        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+
+        if status_code != 200:
+            raise BADException(response)
+
+        log.info('Records added into %s' %datasetName)
 
     def _checkAccess(self, userId, accessToken):
         if userId in self.sessions:
@@ -845,6 +857,7 @@ class BADBroker:
         else:
             return {'status': 'failed',
                     'error': 'User not authenticated'}
+
 
     @tornado.gen.coroutine
     def setupBroker(self):
