@@ -232,7 +232,7 @@ def test_client():
     if client.login():
         client.listsubscriptions()
         #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.subscribe('nearbyTweetChannel', ['Live'])
+        client.subscribe('nearbyTweetChannel', ['Happy'])
 
         #client.listchannels()
         client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

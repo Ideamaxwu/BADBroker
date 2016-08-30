@@ -30,6 +30,7 @@ primary key recordId;
 create type ChannelSubscriptionType as closed{
     recordId: string,
     channelName:string,
+    brokerName: string,
     parameters: string,
     channelSubscriptionId: string,
     latestChannelExecutionTime: string
@@ -39,6 +40,9 @@ create dataset ChannelSubscriptionDataset(ChannelSubscriptionType)
 primary key recordId;
 
 create broker brokerF at "http://localhost:8989/notifybroker";
+
+
+
 
 create type TweetMessageTypeuuid as closed {
 	tweetid: uuid,

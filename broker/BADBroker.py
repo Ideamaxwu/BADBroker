@@ -162,18 +162,19 @@ class User(BADObject):
         return self.userName + ' ID ' + self.userId
 
 class ChannelSubscription(BADObject):
-    def __init__(self, recordId=None, channelName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
+    def __init__(self, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.recordId = recordId
         self.channelName = channelName
+        self.brokerName = brokerName
         self.parameters = parameters
         self.channelSubscriptionId = channelSubscriptionId
         self.latestChannelExecutionTime = currentDateTime
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, channelSubscriptionId=None, parameters=None):
+    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
         if parameters:
-            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
+            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
         elif channelSubscriptionId:
             objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
 
@@ -414,8 +415,7 @@ class BADBroker:
 
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
         currentDateTime = yield self.getCurrentDateTime(dataverseName)
-        channelSubscription = ChannelSubscription(uniqueId, channelName, str(parameters), channelSubscriptionId, currentDateTime)
-        channelSubscriptionId = channelSubscription.channelSubscriptionId
+        channelSubscription = ChannelSubscription(uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
 
         yield channelSubscription.save(dataverseName)
 
@@ -445,10 +445,11 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def checkExistingChannelSubscription(self, dataverseName, channelName, parameters):
-        channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName, parameters=str(parameters))
+        channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
+                                                              brokerName=self.brokerName, parameters=str(parameters))
         if channelSubscriptions and len(channelSubscriptions) > 0:
             if len(channelSubscriptions) > 1:
-                log.debug('Mutiple subscriptions matached, picking 0-th')
+                log.debug('Multiple subscriptions matched, picking 0-th')
             return channelSubscriptions[0]
         else:
             return None
