@@ -1,0 +1,42 @@
+drop dataverse channels if exists;
+create dataverse channels;
+use dataverse channels;
+
+create type UserType as closed {
+    recordId: string,
+    userId: string,
+    userName: string,
+    password: string,
+    email: string
+}
+
+create dataset UserDataset (UserType)
+primary key recordId;
+
+create type UserSubscriptionType as closed {
+    recordId: string,
+    userSubscriptionId: string,
+    channelSubscriptionId: string,
+    userId: string,
+    channelName: string,
+    timestamp: string,
+    latestDeliveredResultTime: string,
+    resultsDataset: string
+}
+
+create dataset UserSubscriptionDataset(UserSubscriptionType)
+primary key recordId;
+
+create type ChannelSubscriptionType as closed{
+    recordId: string,
+    channelName:string,
+    brokerName: string,
+    parameters: string,
+    channelSubscriptionId: string,
+    latestChannelExecutionTime: string
+}
+
+create dataset ChannelSubscriptionDataset(ChannelSubscriptionType)
+primary key recordId;
+
+create broker brokerF at "http://localhost:8989/notifybroker";
