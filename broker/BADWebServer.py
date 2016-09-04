@@ -19,6 +19,7 @@ from threading import Lock
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+
 mutex = Lock()
 condition_variable = False
 live_web_sockets = set()
@@ -28,8 +29,6 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("SAFIR")
         self.render("index.html")
-
-
 
 class RegistrationHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
@@ -49,11 +48,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
             email = post_data['email']
             password = post_data['password']
 
-            platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            log.info(platform)
-            gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
-
-            response = yield self.broker.register(dataverseName, userName, email, password, platform, gcmRegistrationId)
+            response = yield self.broker.register(dataverseName, userName, password, email)
 
         except KeyError as e:
             print('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -199,6 +194,37 @@ class GetResultsHandler(tornado.web.RequestHandler):
             channelExecutionTime = post_data['channelExecutionTime']
 
             response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request'}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class InsertRecordsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            datasetName = post_data['datasetName']
+            records = post_data['records']
+
+            response = yield self.broker.insertrecords(dataverseName, userId, accessToken, datasetName, records)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -366,7 +392,8 @@ def start_server():
         (r'/preferences', PreferencePageHandler),
         (r'/websocketlistener', BrowserWebSocketHandler),
         (r'/subscriptions', SubscriptionPageHandler),
-        (r'/locationsubs', LocationSubscriptionPageHandler)
+        (r'/locationsubs', LocationSubscriptionPageHandler),
+        (r'/insertrecords', InsertRecordsHandler, dict(broker=broker))
     ], **settings)
 
     application.listen(8989)

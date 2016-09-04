@@ -32,7 +32,8 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 #host = 'http://128.195.52.196:19002'
 #host = 'http://45.55.22.117:19002/'
 #host = 'http://128.195.52.76:19002'
-host = 'http://promethium.ics.uci.edu:19002'
+#host = 'http://promethium.ics.uci.edu:19002'
+host = 'http://localhost:19002'
 
 mutex = Lock()
 live_web_sockets = set()
@@ -143,15 +144,13 @@ class BADObject:
 
 
 class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None, platform=None,
-        gcmRegistrationId=None):
+    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
         self.password = password
         self.email = email
-        self.platform = platform
-        self.gcmRegistrationId = gcmRegistrationId
+
 
     @classmethod
     @tornado.gen.coroutine
@@ -163,18 +162,19 @@ class User(BADObject):
         return self.userName + ' ID ' + self.userId
 
 class ChannelSubscription(BADObject):
-    def __init__(self, recordId=None, channelName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
+    def __init__(self, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.recordId = recordId
         self.channelName = channelName
+        self.brokerName = brokerName
         self.parameters = parameters
         self.channelSubscriptionId = channelSubscriptionId
         self.latestChannelExecutionTime = currentDateTime
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, channelSubscriptionId=None, parameters=None):
+    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
         if parameters:
-            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, parameters=parameters)
+            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
         elif channelSubscriptionId:
             objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
 
@@ -237,7 +237,7 @@ class BADBroker:
         self.cache = BADCache.BADLruCache()
         
         self.local_address = self._myNetAddress()
-        self._registerBrokerWithBCS()
+        #self._registerBrokerWithBCS()
 
     def _registerBrokerWithBCS(self):
         post_request = {"brokerName" : self.brokerName, \
@@ -268,7 +268,7 @@ class BADBroker:
         self.notifiers['web'] = notifier.web.WebClientNotifier()
 
     @tornado.gen.coroutine
-    def register(self, dataverseName, userName, email, password, platform, gcmRegistrationId):
+    def register(self, dataverseName, userName, password, email):
         # user = yield self.loadUser(userName)
 
         users = yield User.load(dataverseName=dataverseName, userName=userName)
@@ -282,7 +282,7 @@ class BADBroker:
                     'userId': user.userId}
         else:
             userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
-            user = User(userId, userId, userName, password, email, platform, gcmRegistrationId)
+            user = User(userId, userId, userName, password, email)
             yield user.save(dataverseName)
             self.users[userName] = user
 
@@ -314,6 +314,9 @@ class BADBroker:
     def loadSubscriptionsForUser(self, dataverseName, userId):
         log.info('Loading userSubscriptions for user {0}'.format(userId))
         userSubscriptions = yield UserSubscription.load(dataverseName, userId=userId)
+
+        if userSubscriptions is None:
+            return
 
         if dataverseName not in self.userSubscriptions:
             self.userSubscriptions[dataverseName] = {}
@@ -412,8 +415,7 @@ class BADBroker:
 
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
         currentDateTime = yield self.getCurrentDateTime(dataverseName)
-        channelSubscription = ChannelSubscription(uniqueId, channelName, str(parameters), channelSubscriptionId, currentDateTime)
-        channelSubscriptionId = channelSubscription.channelSubscriptionId
+        channelSubscription = ChannelSubscription(uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
 
         yield channelSubscription.save(dataverseName)
 
@@ -443,10 +445,11 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def checkExistingChannelSubscription(self, dataverseName, channelName, parameters):
-        channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName, parameters=str(parameters))
+        channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
+                                                              brokerName=self.brokerName, parameters=str(parameters))
         if channelSubscriptions and len(channelSubscriptions) > 0:
             if len(channelSubscriptions) > 1:
-                log.debug('Mutiple subscriptions matached, picking 0-th')
+                log.debug('Multiple subscriptions matched, picking 0-th')
             return channelSubscriptions[0]
         else:
             return None
@@ -713,25 +716,25 @@ class BADBroker:
         return {'status': 'success', 'subscriptions': userSubscriptions}
 
     @tornado.gen.coroutine
-    def notifyBroker(self, dataverseName, channelName, channelExecutionTime, subscriptionIds):
+    def notifyBroker(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         # if brokerName != self.brokerName:
         #    return {'status': 'failed', 'error': 'Not the intended broker %s' %(brokerName)}
 
         # Register a callback to retrieve results for this notification and notify all users
         tornado.ioloop.IOLoop.current().add_callback(self.retrieveLatestResultsAndNotifyUsers, dataverseName,
-                                                     channelName, channelExecutionTime, subscriptionIds)
+                                                     channelName, channelExecutionTime, channelSubscriptionIds)
         return {'status': 'success'}
 
     @tornado.gen.coroutine
-    def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, subscriptionIds):
+    def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         if dataverseName not in self.userSubscriptions or channelName not in self.userSubscriptions[dataverseName]:
             log.error('No such dataverse %s or no such channel %s' % (dataverseName, channelName))
             return
 
         log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
 
-        # Retrieve the latest delivery times for the subscriptions in subscriptionIds
-        for channelSubscriptionId in subscriptionIds:
+        # Retrieve the latest delivery times for the subscriptions in channelSubscriptionIds
+        for channelSubscriptionId in channelSubscriptionIds:
             if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
                 continue
 
@@ -741,7 +744,8 @@ class BADBroker:
                     'distinct by $t.channelExecutionTime ' \
                     'where $t.subscriptionId = uuid(\"{1}\") ' \
                     'and $t.channelExecutionTime > datetime(\"{2}\") ' \
-                    'and $t.channelExecutionTime <= datetime(\"{3}\")' \
+                    'and $t.channelExecutionTime <= datetime(\"{3}\") ' \
+                    'order by $t.channelExecutionTime ' \
                     'return $t.channelExecutionTime'.format(channelName,
                                                     channelSubscriptionId,
                                                     latestChannelExecutionTime, channelExecutionTime)
@@ -830,6 +834,19 @@ class BADBroker:
             raise BADException(response)
         log.info('Subscription {0} on channel {1} moved to broker {2}'.format(channelSubscriptionId, channelName, brokerB))
 
+    @tornado.gen.coroutine
+    def insertrecords(self, dataverseName, userId, accessToken, datasetName, records):
+        check = self._checkAccess(userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        aql_stmt = 'insert into dataset {0} {1}'.format(datasetName, records)
+        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+
+        if status_code != 200:
+            raise BADException(response)
+
+        log.info('Records added into %s' %datasetName)
 
     def _checkAccess(self, userId, accessToken):
         if userId in self.sessions:
@@ -841,6 +858,7 @@ class BADBroker:
         else:
             return {'status': 'failed',
                     'error': 'User not authenticated'}
+
 
     @tornado.gen.coroutine
     def setupBroker(self):
