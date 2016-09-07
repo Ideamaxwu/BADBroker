@@ -4,6 +4,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.gen
 import tornado.httpclient
+import tornado.iostream
 
 import notifier.web
 import notifier.android
@@ -33,12 +34,14 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 #host = 'http://45.55.22.117:19002/'
 #host = 'http://128.195.52.76:19002'
 #host = 'http://promethium.ics.uci.edu:19002'
-host = 'http://localhost:19002'
+asterix_server = 'localhost'
+asterix_url = 'http://' + asterix_server + ':19002'
 
 mutex = Lock()
 live_web_sockets = set()
 
-asterix= AsterixQueryManager(host)
+asterix = AsterixQueryManager(asterix_url)
+
 # asterix.setDataverseName('emergencyTest')
 # asterix.setDataverseName('channels')
 
@@ -236,7 +239,7 @@ class BADBroker:
         self.initializeNotifiers()
         self.cache = BADCache.BADLruCache()
         
-        self.local_address = self._myNetAddress()
+        #self.local_address = self._myNetAddress()
         #self._registerBrokerWithBCS()
 
     def _registerBrokerWithBCS(self):
@@ -847,6 +850,25 @@ class BADBroker:
             raise BADException(response)
 
         log.info('Records added into %s' %datasetName)
+
+    @tornado.gen.coroutine
+    def feedrecords(self, dataverseName, userId, accessToken, portNo, records):
+        check = self._checkAccess(userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        iostream = tornado.iostream.IOStream(socket=sock)
+        yield iostream.connect((asterix_server, portNo))
+
+        if isinstance(records, list):
+            for record in records:
+                log.info('Feeding record {0}'.format(record))
+                yield iostream.write(json.dumps(record).encode('utf-8'))
+        else:
+            record = records
+            log.info('Feeding record {0}'.format(record))
+            yield iostream.write(json.dumps(record).encode('utf-8'))
 
     def _checkAccess(self, userId, accessToken):
         if userId in self.sessions:
