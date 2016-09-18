@@ -234,6 +234,37 @@ class InsertRecordsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class FeedRecordsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            portNo = post_data['portNo']
+            records = post_data['records']
+
+            response = yield self.broker.feedrecords(dataverseName, userId, accessToken, portNo, records)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request'}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 class NotifyBrokerHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -393,7 +424,8 @@ def start_server():
         (r'/websocketlistener', BrowserWebSocketHandler),
         (r'/subscriptions', SubscriptionPageHandler),
         (r'/locationsubs', LocationSubscriptionPageHandler),
-        (r'/insertrecords', InsertRecordsHandler, dict(broker=broker))
+        (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
+        (r'/feedrecords', FeedRecordsHandler, dict(broker=broker))
     ], **settings)
 
     application.listen(8989)

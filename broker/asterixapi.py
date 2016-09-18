@@ -175,7 +175,7 @@ class AsterixQueryManager():
         except Exception as e:
             log.error('Erorr ', str(e))
 
-        return 500, 'Query failed:' + query
+        return 500, 'Query failed: ' + query
 
     @tornado.gen.coroutine
     def executeDDL(self, dataverseName, ddlStatement):
@@ -196,4 +196,4 @@ class AsterixQueryManager():
         except Exception as e:
             log.error('Error ' + str(e))
 
-        return 500, 'Query failed:' + ddlStatement
+        return 500, 'Query failed: ' + ddlStatement

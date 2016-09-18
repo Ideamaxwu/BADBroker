@@ -6,6 +6,7 @@ import time
 import threading
 import pika
 import sys
+import random
 
 #brokerUrl = "http://cert24.ics.uci.edu:8989"
 brokerUrl = "http://localhost:8989"
@@ -173,6 +174,26 @@ class BADClient:
                 else:
                     print('Error:', response['error'])
 
+    def feedrecords(self, portNo, records):
+        print('Feed records into port %s' %portNo)
+
+        post_data = {'dataverseName': self.dataverseName,
+                     'userId': self.userId,
+                     'accessToken': self.accessToken,
+                     'portNo': portNo,
+                     'records': records
+                     }
+
+        r = requests.post(self.brokerUrl + '/feedrecords', data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            response = r.json()
+            if response:
+                if response['status'] == 'success':
+                    print('Insert successful')
+                else:
+                    print('Error:', response['error'])
+
     def getresults(self, channelName, subscriptionId, channelExecutionTime):
         print('Getresults for %s' % subscriptionId)
 
@@ -230,12 +251,29 @@ def test_client():
     client.onNewResultCallback = on_result
 
     if client.login():
-        client.listsubscriptions()
+        #client.listsubscriptions()
         #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        client.subscribe('nearbyTweetChannel', ['Happy'])
+        #client.subscribe('nearbyTweetChannel', ['Happy'])
 
         #client.listchannels()
-        client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
+        #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
+
+        # Feed created as per file 4
+        data = [{'recordId': str(random.random()),
+                'userId': '237',
+                'userName': '343434',
+                'password': '12245',
+                'email': 'value@abc.net'
+                },
+                {'recordId': str(random.random()),
+                'userId': '9999',
+                'userName': '343434',
+                'password': '12245',
+                'email': 'value@abc.net'
+                }
+                ]
+
+        client.feedrecords(10002, data)
 
         client.run()
     else:
