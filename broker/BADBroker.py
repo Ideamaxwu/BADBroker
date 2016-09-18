@@ -294,7 +294,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform, gcmRegistrationId):
+    def login(self, dataverseName, userName, password, platform, gcmRegistrationToken):
         # user = yield self.loadUser(userName)
         users = yield User.load(dataverseName=dataverseName, userName=userName)
 
@@ -304,7 +304,10 @@ class BADBroker:
             if password == user.password:
                 accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
-                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationId}
+                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationToken}
+
+                if platform == 'android':
+                    self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
                 return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
@@ -789,7 +792,7 @@ class BADBroker:
             else:
                     log.error('Retrieving delivery time failed for channel %s' % channelName)
 
-
+    @tornado.gen.coroutine
     def notifyAllUsers(self, dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime):
         log.info('Sending out notification for channel %s subscription %s channelExecutionTime %s' % (channelName,
                                                                                               channelSubscriptionId,
@@ -797,8 +800,9 @@ class BADBroker:
         for userId in self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]:
             sub = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             userSubcriptionId = sub.userSubscriptionId
-            self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId, latestChannelExecutionTime)
+            yield self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId, latestChannelExecutionTime)
 
+    @tornado.gen.coroutine
     def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime):
         log.info('Channel %s: sending notification to user %s for %s' % (channelName, userId, userSubscriptionId))
 
@@ -825,7 +829,7 @@ class BADBroker:
                         self.notifiers[platform].set_live_web_sockets(live_web_sockets)
                     finally:
                         mutex.release()
-                self.notifiers[platform].notify(userId, message)
+                yield self.notifiers[platform].notify(userId, message)
 
     @tornado.gen.coroutine
     def moveSubscription(self, channelSubscriptionId, channelName, brokerB):
