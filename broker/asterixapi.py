@@ -77,7 +77,7 @@ class AsterixQueryManager():
             raise Exception('No dataverse name set')
 
         if len(self.queryString) == 0:
-            raise Exception("GROUP BY cann't start a query")
+            raise Exception("GROUP BY cannot start a query")
         else:
             self.queryString = self.queryString + " return " + clause
         
