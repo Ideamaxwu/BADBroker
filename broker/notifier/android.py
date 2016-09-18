@@ -11,7 +11,7 @@ class AndroidClientNotifier():
     def __init__(self):
         self.fcm_server = 'https://fcm.googleapis.com/fcm/send'
 
-        # Authorization key associated with bigactivedata@gmail.com, registered through FCM Console
+        # Authorization key is associated with bigactivedata@gmail.com, registered through FCM Console
         self.fcm_authorization_key = 'AIzaSyBAhgXCQERi2vwSdEEPrxvQV1xpJ7e4owk'
 
         # Mobile clients send their tokens and they are stored here
@@ -31,8 +31,8 @@ class AndroidClientNotifier():
         registration_token = self.fcm_registration_tokens[userId]
         post_data = {'to': registration_token,
                      'notification': {
-                         'title':'New results in channel',
-                         'text': 'Channel %s' % message['channelName']
+                         'title':'New results',
+                         'text': 'In channel %s' % message['channelName']
                      },
                      'data': message
                     }
