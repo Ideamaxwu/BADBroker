@@ -24,7 +24,6 @@ class AndroidClientNotifier():
 
     @tornado.gen.coroutine
     def notify(self, userId, message):
-
         if userId not in self.fcm_registration_tokens:
             log.error('User %s does not have an FCM token' %userId)
             return
