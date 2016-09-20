@@ -446,6 +446,7 @@ def start_server():
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
+        (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
         (r'/notifications', NotificationsPageHandler),
         (r'/preferences', PreferencePageHandler),
         (r'/websocketlistener', BrowserWebSocketHandler),
