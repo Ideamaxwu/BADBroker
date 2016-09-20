@@ -37,11 +37,13 @@ if response['status'] != 'success':
 """
 
 channelName = 'nearbyTweetChannel'
-brokerName = 'brokerA'
+brokerName = 'brokerF'
 
 response = service_call(URL, "notifybroker", {
     'dataverseName': 'channels',
     'channelName': channelName,
+    'channelExecutionTime': "2016-09-20T13:29:06.390Z",
+    'subscriptionIds': ['c0b62d66-e4b3-c2bd-73c1-4151a7e94429']
 })
 
 print(json.dumps(response))

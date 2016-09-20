@@ -478,7 +478,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def subscribe(self, dataverseName, userId, accessToken, channelName, parameters):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -521,7 +521,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def unsubscribe(self, dataverseName, userId, accessToken, userSubscriptionId):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -551,7 +551,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getresults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -679,7 +679,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def listchannels(self, dataverseName, userId, accessToken):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -716,7 +716,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def listsubscriptions(self, dataverseName, userId, accessToken):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -833,7 +833,11 @@ class BADBroker:
                         self.notifiers[platform].set_live_web_sockets(live_web_sockets)
                     finally:
                         mutex.release()
-                yield self.notifiers[platform].notify(userId, message)
+
+                if platform == 'android':
+                    yield self.notifiers[platform].notify(userId, message)
+                else:
+                    self.notifiers[platform].notify(userId, message)
 
     @tornado.gen.coroutine
     def moveSubscription(self, channelSubscriptionId, channelName, brokerB):
@@ -847,7 +851,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def insertrecords(self, dataverseName, userId, accessToken, datasetName, records):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -861,7 +865,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def feedrecords(self, dataverseName, userId, accessToken, portNo, records):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 

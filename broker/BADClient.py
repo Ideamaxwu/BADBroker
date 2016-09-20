@@ -251,9 +251,9 @@ def test_client():
     client.onNewResultCallback = on_result
 
     if client.login():
-        #client.listsubscriptions()
+        client.listsubscriptions()
         #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.subscribe('nearbyTweetChannel', ['Happy'])
+        client.subscribe('nearbyTweetChannel', ['man'])
 
         #client.listchannels()
         #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
@@ -273,7 +273,7 @@ def test_client():
                 }
                 ]
 
-        client.feedrecords(10002, data)
+        #client.feedrecords(10002, data)
 
         client.run()
     else:
