@@ -42,8 +42,8 @@
       <file leaf-file-name="BADWebServer.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BADWebServer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.49081364">
-              <caret line="448" column="27" selection-start-line="448" selection-start-column="27" selection-end-line="448" selection-end-column="27" />
+            <state vertical-scroll-proportion="-2.776903">
+              <caret line="350" column="0" selection-start-line="350" selection-start-column="0" selection-end-line="350" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -758,7 +758,13 @@
       <option name="project" value="LOCAL" />
       <updated>1474379415090</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Some changes.">
+      <created>1474379493838</created>
+      <option name="number" value="00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1474379493838</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1214,8 +1220,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BADWebServer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.49081364">
-          <caret line="448" column="27" selection-start-line="448" selection-start-column="27" selection-end-line="448" selection-end-column="27" />
+        <state vertical-scroll-proportion="-2.776903">
+          <caret line="350" column="0" selection-start-line="350" selection-start-column="0" selection-end-line="350" selection-end-column="0" />
           <folding />
         </state>
       </provider>

@@ -435,7 +435,6 @@ def start_server():
     }
 
     application = tornado.web.Application([
-
         (r'/', MainHandler),
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
