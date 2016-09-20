@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import gcm
 import tornado.ioloop
 import tornado.web
 import tornado.gen
@@ -227,7 +227,7 @@ class BADBroker:
         self.brokerName = 'brokerF'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
 
         self.users = {}               # indexed by dataverse, userId
-        self.channelSubscriptions = {} # indexed by dataverseName, channelname, channelSubscriptionId
+        self.channelSubscriptions = {}  # indexed by dataverseName, channelname, channelSubscriptionId
 
         self.userSubscriptions = {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
@@ -304,7 +304,11 @@ class BADBroker:
             if password == user.password:
                 accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
-                self.sessions[userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationToken}
+
+                if dataverseName not in self.sessions:
+                    self.sessions[dataverseName] = {}
+
+                self.sessions[dataverseName][userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationToken}
 
                 if platform == 'android':
                     self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
@@ -361,8 +365,8 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def logoff(self, dataverseName, userId):
-        if userId in self.sessions:
-            del self.sessions[userId]
+        if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
+            del self.sessions[dataverseName][userId]
 
         return {'status': 'success', 'userId': userId}
 
@@ -815,10 +819,10 @@ class BADBroker:
                    'channelExecutionTime': latestChannelExecutionTime
                    }
 
-        if userId not in self.sessions:
+        if dataverseName not in self.sessions or userId not in self.sessions[dataverseName]:
             log.error('User %s is not logged in to receive notifications' % userId)
         else:
-            platform = self.sessions[userId]['platform']
+            platform = self.sessions[dataverseName][userId]['platform']
             if platform not in self.notifiers:
                 log.error('Platform %s is NOT supported yet!!' % platform)
             else:
@@ -874,9 +878,18 @@ class BADBroker:
             log.info('Feeding record {0}'.format(record))
             yield iostream.write(json.dumps(record).encode('utf-8'))
 
-    def _checkAccess(self, userId, accessToken):
-        if userId in self.sessions:
-            if accessToken == self.sessions[userId]['accessToken']:
+    @tornado.gen.coroutine
+    def gcmRegistration(self, dataverseName, userId, accessToken, gcmRegistrationToken):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        yield self.notifiers['android'].setRegistrationToken(self, dataverseName, userId, gcmRegistrationToken)
+        return {'status': 'success'}
+
+    def _checkAccess(self, dataverseName, userId, accessToken):
+        if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
+            if accessToken == self.sessions[dataverseName][userId]['accessToken']:
                 return {'status': 'success'}
             else:
                 return {'status': 'failed',

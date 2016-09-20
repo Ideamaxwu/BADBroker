@@ -298,6 +298,33 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         self.flush()
         self.finish()
 
+class GCMRegistrationHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(str(self.request.body, encoding='utf-8'))
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info('Broker received gcmregistration')
+        log.info(str(self.request.body, encoding='utf-8'))
+
+        post_data = json.loads(self.request.body)
+        log.debug(post_data)
+
+        dataverseName = post_data['dataverseName']
+        userId = post_data['userId']
+        accessToken = post_data['accessToken']
+        gcmRegistrationToken = post_data['gcmRegistrationToken']
+
+        response = yield self.broker.gcmRegistration(dataverseName, userId, accessToken, gcmRegistrationToken)
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 class NotificationsPageHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("Entered notifications")

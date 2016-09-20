@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import tornado.httpclient
 import logging as log
 import tornado.gen
@@ -9,26 +10,26 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 
 class AndroidClientNotifier():
     def __init__(self):
-        self.fcm_server = 'https://fcm.googleapis.com/fcm/send'
+        self.gcmServer = 'https://fcm.googleapis.com/fcm/send'
 
         # Authorization key is associated with bigactivedata@gmail.com, registered through FCM Console
-        self.fcm_authorization_key = 'AIzaSyBAhgXCQERi2vwSdEEPrxvQV1xpJ7e4owk'
+        self.gcmAuthorizationKey = 'AIzaSyBAhgXCQERi2vwSdEEPrxvQV1xpJ7e4owk'
 
         # Mobile clients send their tokens and they are stored here
-        self.fcm_registration_tokens = {}
+        self.gcmRegistrationTokens = {}
         self.client = tornado.httpclient.AsyncHTTPClient()
 
     def setRegistrationToken(self, userId, registrationToken):
         log.info('Entering or Updating registration token of User %s' %userId)
-        self.fcm_registration_tokens[userId] = registrationToken
+        self.gcmRegistrationTokens[userId] = registrationToken
 
     @tornado.gen.coroutine
     def notify(self, userId, message):
-        if userId not in self.fcm_registration_tokens:
+        if userId not in self.gcmRegistrationTokens:
             log.error('User %s does not have an FCM token' %userId)
             return
 
-        registration_token = self.fcm_registration_tokens[userId]
+        registration_token = self.gcmRegistrationTokens[userId]
         post_data = {'to': registration_token,
                      'notification': {
                          'title':'New results',
@@ -36,9 +37,9 @@ class AndroidClientNotifier():
                      },
                      'data': message
                     }
-        request = tornado.httpclient.HTTPRequest(self.fcm_server, method='POST',
+        request = tornado.httpclient.HTTPRequest(self.gcmServer, method='POST',
                                                  headers={'Content-Type': 'application/json',
-                                                          'Authorization:key': self.fcm_authorization_key},
+                                                          'Authorization:key': self.gcmAuthorizationKey},
                                                  body=json.dumps(post_data))
         response = yield self.client.fetch(request)
         log.info(response)
