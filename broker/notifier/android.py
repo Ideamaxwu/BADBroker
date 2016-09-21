@@ -39,7 +39,7 @@ class AndroidClientNotifier():
                     }
         request = tornado.httpclient.HTTPRequest(self.gcmServer, method='POST',
                                                  headers={'Content-Type': 'application/json',
-                                                          'Authorization:key': self.gcmAuthorizationKey},
+                                                          'Authorization': 'key=%s' %self.gcmAuthorizationKey},
                                                  body=json.dumps(post_data))
         response = yield self.client.fetch(request)
         log.info(response)
