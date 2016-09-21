@@ -118,14 +118,6 @@ def processResult(dataverseName, channelName, subId, results):
     sys.stdout.write(subId + ' ' + results + '\n\n\n')
     
 
-def listOfChannels():
-    url = 'http://localhost:19002/query'
-    query = 'for $t in dataset Metadata.Channel return $t;'
-    response = requests.get(url, params = {'query': query})
-
-    status_code = response.status_code
-    print(response.text)
-
 def listOfFunctions():
     url = 'http://localhost:19002/query'
     query = 'for $t in dataset Metadata.Function return $t;'
