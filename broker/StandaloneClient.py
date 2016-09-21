@@ -2,7 +2,6 @@
 import requests
 import json
 import sys
-from asterixapi import *
 import time, threading
 import hashlib
 
@@ -43,7 +42,7 @@ class PreparedStatement():
     
     def __repr__(self):
         return self.statement
-        
+
 
 class Subscription():
     def __init__(self, channel, params, callback):
@@ -52,13 +51,10 @@ class Subscription():
         self.interval = self.channel.interval
         
         self.callback = callback
-        self.scheduler = None        
-        
-        self.astm = AsterixQueryManager("http://cacofonix-4.ics.uci.edu:19002")
-        self.astm.setDataverseName(self.channel.dataverse)    
+        self.scheduler = None
         self.subscriptionStatement = self.channel.channelStatement.setValues(params).getStatement()
     
-        self.subscriptionID = hashlib.sha224(self.subscriptionStatement).hexdigest()
+        self.subscriptionID = hashlib.sha224(self.subscriptionStatement.encode()).hexdigest()
         
     def start(self):        
         self._fetchChannelResults()    
@@ -72,18 +68,23 @@ class Subscription():
     def _fetchChannelResults(self):
         print('Invoking channel function for channel %s' %(self.channel))
         print('Channel function %s' %(self.subscriptionStatement))
-        
-        status_code, results = self.astm.executeQuery(self.subscriptionStatement)
-        print('Status:' , status_code)
-        print('Results: ', results)
+
+        query = 'use dataverse {0}; {1};'.format(self.channel.dataverse, self.subscriptionStatement)
+        response = requests.get(self.channel.serverUrl, params={'query': query})
+
+        status_code = response.status_code
+        results = response.text
+
+        print('Response URL', response.url)
+        print('Status:', status_code)
+        print('Results:', results)
         
         if status_code == 200:            
-            self.callback(self.subscriptionID, results)
+            self.callback(self.channel.dataverse, self.channel.channelName, self.subscriptionID, results)
         
         self.scheduler = threading.Timer(self.interval, self._fetchChannelResults)
         self.scheduler.start()        
-    
-    
+
     def __str__(self):
         return self.subcriptionID
         
@@ -96,42 +97,66 @@ class Subscription():
             return 0
                         
 class Channel():
-    def __init__(self, dataverse, name, channelStatement, interval):
+    def __init__(self, server, serverPort, dataverse, channelName, channelStatement, interval):
+        self.server = server
+        self.serverPort = serverPort
+        self.serverUrl = 'http://{0}:{1}/query'.format(server, serverPort)
         self.dataverse = dataverse
-        self.name  = name
+        self.channelName = channelName
         self.channelStatement = channelStatement
         self.interval = interval
    
     def __str__(self):
-        return self.name
+        return self.channelName
     
     def __str__(self):
-        return self.name           
+        return self.channelName
     
-def processResult(subId, results):
-    print('Got result for %s' %(subId))
+def processResult(dataverseName, channelName, subId, results):
+    print('Got result for %s at channel %s on dataverse %s' %(subId, channelName, dataverseName))
     sys.stdout.write(subId + ' ' + results + '\n\n\n')
     
 
 def listOfChannels():
-    return
+    url = 'http://localhost:19002/query'
+    query = 'for $t in dataset Metadata.Channel return $t;'
+    response = requests.get(url, params = {'query': query})
 
-        
+    status_code = response.status_code
+    print(response.text)
+
+def listOfFunctions():
+    url = 'http://localhost:19002/query'
+    query = 'for $t in dataset Metadata.Function return $t;'
+    response = requests.get(url, params = {'query': query})
+
+    status_code = response.status_code
+    print(response.text)
+
+
 #query = 'for $m in dataset CHPReportsDefault where $m.radius < ? return $m'        
 #query = 'for $m in dataset CHPReportsDefault where contains($m.message, ?) return $m'        
 
-query = 'for $m in MessageWithKeyword(?) return $m'        
+query = 'for $m in NearbyTweetsContainingText(?) return $m'
 #ps = PreparedStatement("for $m in MessageWithinRadius(?) return $m")
 
 ps = PreparedStatement(query)
-channel1 = Channel('emergencyTest', "message_within_radius", ps, 2)
-sub = Subscription(channel1, ["Evacuate"], processResult)
+channel1 = Channel(server='localhost',
+                   serverPort=19002,
+                   dataverse='channels',
+                   channelName="message_with_keyword",
+                   channelStatement=ps,
+                   interval=2)
+
+sub = Subscription(channel1, ["man"], processResult)
+listOfFunctions()
+
 
 sub.start()
-time.sleep(10)
-sub.stop()
+#time.sleep(10)
+#sub.stop()
 
-sys.exit(0)
+#sys.exit(0)
 
             
 """
@@ -146,7 +171,7 @@ response = requests.get(request_url, params = {"query" : query})
 print(response.url)
 print(response.status_code)
 print(response.text)
-"""
+
 
 manager = AsterixQueryManager("http://cacofonix-4.ics.uci.edu:19002", "query");
 #manager.setDataverseName("TinySocial")
@@ -158,7 +183,7 @@ status_code, response = manager.execute();
 print(status_code)
 print(response)
 
-objects =  json.loads(response)
+objects = json.loads(response)
 
 if isinstance(objects, list):
     for item in objects:
@@ -167,7 +192,6 @@ else:
     for key, value in objects:
         print(key, value)
 
-
 manager.reset()
 #status_code, result = manager.executeDDL("create function MessageWithinRadius($radius) {for $m in dataset CHPReportsDefault where $m.radius < $radius return $m}")            
 
@@ -175,4 +199,5 @@ myChannel = "for $m in dataset CHPReportsDefault where $m.radius < 20 return $m"
 print(manager.executeQuery(myChannel))
 
 sys.exit(0)
+"""""
 
