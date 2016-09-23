@@ -308,7 +308,7 @@ class BADBroker:
                 if dataverseName not in self.sessions:
                     self.sessions[dataverseName] = {}
 
-                self.sessions[dataverseName][userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationId': gcmRegistrationToken}
+                self.sessions[dataverseName][userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationToken': gcmRegistrationToken}
 
                 if platform == 'android':
                     self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
@@ -881,6 +881,9 @@ class BADBroker:
             record = records
             log.info('Feeding record {0}'.format(record))
             yield iostream.write(json.dumps(record).encode('utf-8'))
+
+        iostream.close()
+        sock.close()
 
     @tornado.gen.coroutine
     def gcmRegistration(self, dataverseName, userId, accessToken, gcmRegistrationToken):

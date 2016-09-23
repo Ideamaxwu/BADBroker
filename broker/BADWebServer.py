@@ -77,7 +77,7 @@ class LoginHandler (tornado.web.RequestHandler):
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
             log.info(platform)
-            gcmRegistrationId = '' if 'gcmRegistrationId' not in post_data else post_data['gcmRegistrationId']
+            gcmRegistrationId = '' if 'gcmRegistrationToken' not in post_data else post_data['gcmRegistrationToken']
 
             response = yield self.broker.login(dataverseName, userName, password, platform, gcmRegistrationId)
 

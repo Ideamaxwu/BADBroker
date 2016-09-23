@@ -32,11 +32,16 @@ class AndroidClientNotifier():
         registration_token = self.gcmRegistrationTokens[userId]
         post_data = {'to': registration_token,
                      'notification': {
-                         'title':'New results',
+                         'title': 'New results',
                          'text': 'In channel %s' % message['channelName']
                      },
+                     'priority': 'high',
+                     'collapse_key': message['channelName'],
                      'data': message
                     }
+
+        log.info(post_data)
+
         request = tornado.httpclient.HTTPRequest(self.gcmServer, method='POST',
                                                  headers={'Content-Type': 'application/json',
                                                           'Authorization': 'key=%s' %self.gcmAuthorizationKey},
