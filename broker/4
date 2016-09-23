@@ -1,0 +1,26 @@
+use dataverse channels;
+
+drop feed TweetFeed if exists;
+create feed TweetFeed using socket_adapter (
+    ("sockets" = "127.0.0.1:10001"),
+    ("address-type" = "IP"),
+    ("type-name" = "TweetMessageTypeuuid"),
+    ("format" = "json")
+);
+
+
+drop feed UserFeed if exists;
+create feed UserFeed using socket_adapter (
+    ("sockets" = "127.0.0.1:10002"),
+    ("address-type" = "IP"),
+    ("type-name" = "UserType"),
+    ("format" = "json")
+);
+
+use dataverse channels;
+
+set wait-for-completion-feed "false";
+connect feed TweetFeed to dataset TweetMessageuuids;
+connect feed UserFeed to dataset UserDataset;
+
+
