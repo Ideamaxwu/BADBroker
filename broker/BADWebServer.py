@@ -195,7 +195,7 @@ class GetResultsHandler(tornado.web.RequestHandler):
 
             response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
         print(json.dumps(response))
         self.write(json.dumps(response))

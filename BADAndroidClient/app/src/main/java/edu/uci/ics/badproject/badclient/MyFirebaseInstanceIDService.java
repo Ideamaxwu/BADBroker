@@ -26,8 +26,8 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
         String refreshedToken = FirebaseInstanceId.getInstance().getToken();
         Log.d(TAG, "Refreshed token: " + refreshedToken);
 
-        SharedPreferences.Editor editor = getSharedPreferences(MainActivity.PREFS, Context.MODE_PRIVATE).edit();
-        editor.putString("gcmRegistrationId", refreshedToken);
+        SharedPreferences.Editor editor = getSharedPreferences(MainActivity.Preference_TAG, Context.MODE_PRIVATE).edit();
+        editor.putString("gcmRegistrationToken", refreshedToken).commit();
 
         // TODO: Implement this method to send any registration to your app's servers.
         sendRegistrationToServer(refreshedToken);

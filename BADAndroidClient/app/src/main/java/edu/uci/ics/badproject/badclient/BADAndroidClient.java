@@ -1,6 +1,8 @@
 package edu.uci.ics.badproject.badclient;
 
 import android.os.AsyncTask;
+import android.os.Bundle;
+import android.preference.Preference;
 import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
@@ -25,27 +27,20 @@ import java.net.URL;
 
 public abstract class BADAndroidClient {
     public final static String TAG = "BADAndroidClient";
-    private String broker = "10.0.2.2";
-    private int port = 8989;
-    private String brokerUrl = "http://" + this.broker + ":" + this.port;
 
+    private String brokerUrl = null;
     private String dataverseName = null;
     public String userName, email, password, userId, accessToken;
-    private String gcmRegistrationToken = null;
+    public String gcmRegistrationToken = null;
 
     public BADAndroidClient() {
     }
 
-    public BADAndroidClient(String broker, int port) {
-        this.broker = broker;
-        this.port = port;
-        this.brokerUrl = "http://" + this.broker + ":" + this.port;
+    public BADAndroidClient(String brokerUrl, String dataverseName) {
+        this.brokerUrl = brokerUrl;
+        this.dataverseName = dataverseName;
     }
 
-    public void setBroker(String server, int port) {
-        this.broker = server;
-        this.port = port;
-    }
 
     public void setDataverse(String dv) {
         this.dataverseName = dv;
@@ -291,6 +286,30 @@ public abstract class BADAndroidClient {
 
     public String toString() {
         return this.userId + " -- " + this.accessToken;
+    }
+
+    public Bundle toBundle() {
+        Bundle bundle = new Bundle();
+        bundle.putString("brokerUrl", brokerUrl);
+        bundle.putString("dataverseName", dataverseName);
+        bundle.putString("userName", userName);
+        bundle.putString("userId", userId);
+        bundle.putString("accessToken", accessToken);
+        bundle.putString("password", password);
+        bundle.putString("email", email);
+        bundle.putString("gcmRegistrationToken", gcmRegistrationToken);
+        return bundle;
+    }
+
+    public void loadFromBundle(Bundle savedInstance) {
+        this.brokerUrl = savedInstance.getString("brokerUrl");
+        this.dataverseName = savedInstance.getString("dataverseName");
+        this.userName = savedInstance.getString("userName");
+        this.userId = savedInstance.getString("userId");
+        this.password = savedInstance.getString("password");
+        this.accessToken= savedInstance.getString("accessToken");
+        this.email = savedInstance.getString("email");
+        this.gcmRegistrationToken= savedInstance.getString("gcmRegistrationToken");
     }
 
     public abstract void onRegistration(JSONObject result);

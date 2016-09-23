@@ -1,7 +1,9 @@
 package edu.uci.ics.badproject.badclient;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -15,16 +17,32 @@ import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    public final static String Preference_TAG = "Badclient.Preference";
 
-    public static final String PREFS = "Prefs";
     private TextView txtViewStatus = null;
     private EditText editText = null;
 
-    BADAndroidClient client = new MyBADClient("channels");
+    BADAndroidClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        String brokerUrl = getResources().getString(R.string.broker_url);
+        String dataverseName = getResources().getString(R.string.dataverseName);
+
+        client = new MyBADClient(brokerUrl, dataverseName);
+        Log.d(TAG, "Activity is being created");
+
+        if (getSharedPreferences(Preference_TAG, MODE_PRIVATE).contains("userId")) {
+            Log.d(TAG, "Loading activity state from shared preference");
+            SharedPreferences preferences = getSharedPreferences(Preference_TAG, MODE_PRIVATE);
+            client.userId = preferences.getString("userId", "");
+            client.userName = preferences.getString("userName", "");
+            client.accessToken = preferences.getString("accessToken", "");
+            client.gcmRegistrationToken = preferences.getString("gcmRegistration", "");
+        }
+
         setContentView(R.layout.activity_main);
         txtViewStatus = (TextView)findViewById(R.id.txtViewStatus);
         editText = (EditText)findViewById(R.id.editText);
@@ -39,13 +57,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i(TAG, "Activity received a new intent");
+        if (intent.getExtras() != null)
+            this.onNoticationForNewResultsInChannel(intent.getExtras());
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
     }
 
     public void registerUser(View v) {
@@ -70,8 +91,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class MyBADClient extends BADAndroidClient {
-        public MyBADClient(String dataverseName) {
-            super.setDataverse(dataverseName);
+        public MyBADClient(String brokerUrl, String dataverseName) {
+            super(brokerUrl, dataverseName);
         }
 
         @Override
@@ -90,11 +111,15 @@ public class MainActivity extends AppCompatActivity {
                     if (result.getString("status").equals("success")) {
                         client.userId = result.getString("userId");
                         client.accessToken = result.getString("accessToken");
-                        
 
+                        getSharedPreferences(Preference_TAG, MODE_PRIVATE).edit()
+                                .putString("userName", client.userName)
+                                .putString("userId", client.userId)
+                                .putString("accessToken", client.accessToken)
+                                .putString("gcmRegistrationToken", client.gcmRegistrationToken)
+                                .commit();
                     }
                 } catch (JSONException jex) {
-
                 }
 
             }
