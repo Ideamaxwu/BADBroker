@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BADClient</string>
+    <string name="broker_url">http://10.0.2.2:8989</string>
+</resources>

@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "68640962179",
+    "firebase_url": "https://bigactivedata-2bb29.firebaseio.com",
+    "project_id": "bigactivedata-2bb29",
+    "storage_bucket": "bigactivedata-2bb29.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68640962179:android:2f1337ca27e8c121",
+        "android_client_info": {
+          "package_name": "edu.uci.ics.badproject.badclient"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "68640962179-kog6blh1k1p63tl70conla00u0o05a84.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWV0-Hr-D6ZFr8G7BKBgxFjG5zF54o1zY"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
