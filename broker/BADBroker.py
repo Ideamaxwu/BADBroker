@@ -23,6 +23,8 @@ import BADCache
 from threading import Lock
 import requests
 
+import configparser
+
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -154,7 +156,6 @@ class User(BADObject):
         self.password = password
         self.email = email
 
-
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userName=None):
@@ -223,8 +224,23 @@ class BADException(Exception):
 class BADBroker:
     def __init__(self):
         global asterix
+        global asterix_server
+
+        config = configparser.ConfigParser()
+        config.read('brokerconfig.ini')
+
+        if config.has_section('Asterix'):
+            asterix_server = config.get('Asterix', 'server')
+            port = config.getint('Asterix', 'port')
+            asterix_url = 'http://' + asterix_server + ':' + port
+            asterix = AsterixQueryManager(asterix_url)
+
         self.asterix = asterix
-        self.brokerName = 'brokerF'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
+
+        if config.has_section('Broker'):
+            self.brokerName = config.get('Broker', 'brokerName')
+        else:
+            self.brokerName = 'brokerF'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
 
         self.users = {}               # indexed by dataverse, userId
         self.channelSubscriptions = {}  # indexed by dataverseName, channelname, channelSubscriptionId
@@ -238,7 +254,14 @@ class BADBroker:
         self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
         self.initializeNotifiers()
         self.cache = BADCache.BADLruCache()
-        
+
+        if config.has_section('BCS'):
+            server = config.get('BCS', 'server')
+            port = config.getint('BCS', 'port')
+            self.bcsUrl = 'http://' + server + ':' + port
+        else:
+            self.bcsUrl = 'http://radon.ics.uci.edu:5000'
+
         #self.local_address = self._myNetAddress()
         #self._registerBrokerWithBCS()
 
@@ -249,7 +272,7 @@ class BADBroker:
 
         log.info(post_request)
         
-        r = requests.post("http://radon.ics.uci.edu:5000/registerbroker", json = post_request)
+        r = requests.post(self.bcsUrl + "/registerbroker", json=post_request)
         if r.status_code == 200:
             log.info('Broker registered successfully')
             log.info(r.text)
