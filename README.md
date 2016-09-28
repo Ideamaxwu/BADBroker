@@ -11,6 +11,8 @@
 * Actually, there is an another call to locate the broker, to begin with. This is supported by a Broker Coordination Service (BCS) that manages the network of brokers. The client talks to the BCS to get the broker URL first and then makes all the above mentioned calls to the broker.
 
 
+### Run the broker ###
+* Start by `python3 BADWebserver.py` located at directory `badbroker`. The broker is based on `tornado` framework in python3. 
 
 ## register ##
 ```
