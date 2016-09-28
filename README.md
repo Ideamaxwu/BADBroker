@@ -21,17 +21,19 @@
 ```
 
 Response:
+```
 { 
 	"status": "success", 
 	"userId" : string 
 } 
+```
 
 * Example call: http://<brokerIp>:8989/register
  
  
  
 ## login ##
-
+```
 { 
 	"dataverseName": string,
 	"userName" : string, 
@@ -39,33 +41,38 @@ Response:
 	"platform": string [possible values: "desktop", "web", "android"],
 	"gcmRegistrationToken": string [for "android" platform]
 } 
-
+```
 Response:
+```
 { 
 	"status": "success", 
 	"userId" : string, 
 	"accessToken": string 
 } 
+```
  
 * UserId and accessToken received in a successful login call are used in all successive calls. So, the user needs to store them.
  
 ## logout ##
-
+```
 { 
 	"dataverseName": string,
 	"userId" : string, 
 	"accessToken" : string 
 } 
+```
 
 Response:
+```
 { 
 	"status": "success", 
 } 
- 
+```
+
 ## subscribe ##
 
 * Subscribe to a parametermized channel by passing channel name and its parameter values.
- 
+``` 
 { 
 	"dataverseName": string,
 	"userId" : string, 
@@ -74,13 +81,15 @@ Response:
 	"channelName" : string,  
 	"parameters" : [param1, param2, ...] (i.e., JSON array)
 } 
-
+```
 Response:
+```
 { 
 	"status": "success", 
 	"userSubscriptionId": string, 
 	"timestamp": string  
 } 
+```
 
 ## unsubscribe ##
 
