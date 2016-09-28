@@ -12,7 +12,7 @@
 
 
 ### Run the broker ###
-* First, you need to setup the Asterix backend (install it from BAD enable asterix branch). Run `brokersetup.aql` from the Asterix web console. Note that the script contains the `dataverse` name of your application as well as the broker location. Change them as per your application needs.
+* First, you need to setup the Asterix backend (install it from BAD enable asterix branch). Run `brokersetup.aql` (located inside `broker`) from the Asterix web console. Note that the script contains the `dataverse` name of your application as well as the broker location. Change them as per your application needs.
 
 * Then, setup your application datasets, functions and channels as shown in example file `1' and run the script through the Asterix web console.
 
