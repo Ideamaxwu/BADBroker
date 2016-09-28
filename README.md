@@ -30,8 +30,6 @@ Response:
 
 * Example call: http://<brokerIp>:8989/register
  
- 
- 
 ## login ##
 ```
 { 
