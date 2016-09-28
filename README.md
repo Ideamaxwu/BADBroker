@@ -94,19 +94,19 @@ Response:
 ## unsubscribe ##
 
 * Unsubscribe from a subscription user made earlier
-
+```
 {
 	"dataverseName": string,
 	"userId": string,
 	"accessToken": string,
 	"userSubscriptionId": string
 } 
-
+```
 
 ## getresults ##
 
 * Fetch results from a subscribed channel. This call is assumed to be made in response to a notification received from the broker that indicates that new results are populated for the channel and are ready to be fetched.
-
+```
 {
 	"dataverseName": string,
 	"userId": string,
@@ -115,40 +115,44 @@ Response:
 	"userSubscriptionId": string,
 	"channelExecutionTime": string
 }
-
+```
 Response:
+```
 {
 	"status": "success",
 	"results": [... JSON Array...]
 }
+```
 
 ## listchannels ## 
 
 * List of all available channels in the system 
-
+```
 {
 	"dataverseName": string,
 	"userId" : string, 
 	"accessToken" : string 
 } 
-
+```
 Response:
+```
 { 
 	"status": "success", 
 	"channels" : [ object (channel) ] 
 } 
-
+```
 ## listsubscriptions ## 
 
 * List all subscriptions of a user
- 
+``` 
 { 
 	"dataverseName": string,
 	"userId" : string, 
 	"accessToken" : string 
 } 
-
+```
 Response:
+```
 { 
 	"status": "success", 
 	"subscriptions" : [ 
@@ -159,36 +163,39 @@ Response:
 	} 
 	] 
 } 
-  
+```  
 ## gcmregistration ## 
 
 * Send the Android client's GCM registration token to the broker if the token is refreshed.
-
+```
 {
 	"dataverseName": string,
 	"userId": string,
 	"accessToken": string,
 	"gcmRegistrationToken": string
 } 
-
+```
 Response:
+```
 {
 	"status": "success"
 }
-
+```
 
 ## notifybroker ##
 
 * This is invoked by the Asterix Backend
- 
+``` 
 { 
 	"dataverseName" : string, 
 	"channelName" : string, 
 	"channelExecutionTime": string,
 	"subscriptionIds": [string]
 } 
-
+```
 Response:
+```
 { 
 	"status": "success"
 }
+```
