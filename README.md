@@ -10,7 +10,8 @@
 
 
 
-## register ##  
+## register ##
+
 { 
 	"dataverseName": string,
 	"userName" : string, 
@@ -28,7 +29,8 @@ Response:
  
  
  
-## login ## 
+## login ##
+
 { 
 	"dataverseName": string,
 	"userName" : string, 
@@ -46,7 +48,8 @@ Response:
  
 * UserId and accessToken received in a successful login call are used in all successive calls. So, the user needs to store them.
  
-## logout  ##
+## logout ##
+
 { 
 	"dataverseName": string,
 	"userId" : string, 
@@ -178,5 +181,4 @@ Response:
 Response:
 { 
 	"status": "success"
-} 
- 
+}
