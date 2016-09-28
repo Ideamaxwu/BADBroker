@@ -12,7 +12,7 @@
 
 
 ### Run the broker ###
-* Start by `python3 BADWebserver.py` located at directory `badbroker`. The broker is based on `tornado` framework in python3. 
+* Start by `python3 BADWebserver.py` located at directory `broker`. The broker is based on `tornado` framework in python3. 
 
 ## register ##
 ```
