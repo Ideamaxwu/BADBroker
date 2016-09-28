@@ -11,13 +11,14 @@
 
 
 ## register ##
-
+```
 { 
 	"dataverseName": string,
 	"userName" : string, 
 	"email" : string,  
 	"password" : string, 
 } 
+```
 
 Response:
 { 
