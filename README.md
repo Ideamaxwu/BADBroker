@@ -1,10 +1,12 @@
 # README #
 
-* All calls are HTTP POST calls to a URI relative to the broker's URL. Calls are made from clients except for "notifybroker", which is called from the Asterix backend. Request and response body (JSON objects) of the respective calls are shown. Responses are shown for successful calls. For failure, "status" is set to "failed" and a corresponding "error" message is returned. 
+* The broker is an HTTP server that hosts a set of REST calls.
+
+* All calls are POST calls to a URI relative to the broker's URL. Calls are made from clients except for "notifybroker", which is called from the Asterix backend. Request and response body (JSON objects) of the calls are shown below. Responses are shown for successful calls. For failure, "status" is set to "failed" and a corresponding "error" message is returned. 
  
 * The broker (by default) listens at port 8989.
 
-* The usual flow of calls from a client program is as follows. The client program registers to the broker by making "register", followed by "login". Once logged in, the client invokes "subscribe" in order to subscribe to the designated channel and "wait" for receiving notifications from the broker (indicating that new results are available in the subscribed channel). After receiving the notification, the client makes "getresults" call to retrieve the results. 
+* The usual flow of calls from a client program to the broker is as follows. The client program registers to the broker by making "register", followed by "login". Once logged in, the client invokes "subscribe" in order to subscribe to the designated channel and "wait" for receiving notifications from the broker (indicating that new results are available in the subscribed channel). After receiving the notification, the client makes "getresults" call to retrieve the results. 
 
 * Actually, there is an another call to locate the broker, to begin with. This is supported by a Broker Coordination Service (BCS) that manages the network of brokers. The client talks to the BCS to get the broker URL first and then makes all the above mentioned calls to the broker.
 
