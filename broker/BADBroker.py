@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import gcm
+
 import tornado.ioloop
 import tornado.web
 import tornado.gen
