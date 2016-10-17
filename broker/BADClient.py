@@ -69,7 +69,7 @@ class BADClient:
 
     def login(self):
         print('Login')
-        post_data = {'dataverseName': self.dataverseName, 'userName' : self.userName, 'password': self.password}
+        post_data = {'dataverseName': self.dataverseName, 'userName': self.userName, 'password': self.password}
         #response = service_call(URL, "login", post_data)
         r = requests.post(self.brokerUrl + '/login', data=json.dumps(post_data))
 
@@ -259,6 +259,7 @@ def test_client():
         #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
 
         # Feed created as per file 4
+        '''
         data = [{'recordId': str(random.random()),
                 'userId': '237',
                 'userName': '343434',
@@ -274,6 +275,7 @@ def test_client():
                 ]
 
         client.feedrecords(10002, data)
+        '''
 
         client.run()
     else:

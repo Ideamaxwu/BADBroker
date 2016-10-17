@@ -30,6 +30,34 @@ class MainHandler(tornado.web.RequestHandler):
         log.info("SAFIR")
         self.render("index.html")
 
+
+class RegisterApplicationHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            appName = post_data['appName']
+            dataverseName = post_data['dataverseName']
+
+            response = yield self.broker.registerApplication(appName, dataverseName)
+
+        except KeyError as e:
+            print('Parse error for ' + str(e) + ' in ' + str(post_data))
+            print(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 class RegistrationHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -428,7 +456,7 @@ class ListSubscriptionsHandler(tornado.web.RequestHandler):
         self.finish()
 
 def start_server():
-    broker = BADBroker()
+    broker = BADBroker.getInstance()
 
     settings = {
         "static_path": os.path.join(os.path.dirname(__file__), "static")
@@ -436,6 +464,7 @@ def start_server():
 
     application = tornado.web.Application([
         (r'/', MainHandler),
+        (r'/registerapplication', RegisterApplicationHandler, dict(broker=broker)),
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
         (r'/logout', LogoutHandler, dict(broker=broker)),

@@ -36,22 +36,15 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 #host = 'http://45.55.22.117:19002/'
 #host = 'http://128.195.52.76:19002'
 #host = 'http://promethium.ics.uci.edu:19002'
-asterix_server = 'localhost'
-asterix_url = 'http://' + asterix_server + ':19002'
 
 mutex = Lock()
 live_web_sockets = set()
-
-asterix = AsterixQueryManager(asterix_url)
-
-# asterix.setDataverseName('emergencyTest')
-# asterix.setDataverseName('channels')
 
 
 class BADObject:
     @tornado.gen.coroutine
     def delete(self, dataverseName):
-        global asterix
+        asterix = AsterixQueryManager.getInstance()
         cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
         cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
@@ -66,7 +59,7 @@ class BADObject:
 
     @tornado.gen.coroutine
     def save(self, dataverseName):
-        global asterix
+        asterix = AsterixQueryManager.getInstance()
         cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
@@ -84,7 +77,7 @@ class BADObject:
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName, objectName, **kwargs):
-        global asterix
+        asterix = AsterixQueryManager.getInstance()
         condition = None
         if kwargs:
             for key, value in kwargs.items():
@@ -222,20 +215,19 @@ class BADException(Exception):
 
 
 class BADBroker:
-    def __init__(self):
-        global asterix
-        global asterix_server
+    brokerInstance = None
 
+    @classmethod
+    def getInstance(cls):
+        if BADBroker.brokerInstance is None:
+            BADBroker.brokerInstance = BADBroker()
+        return BADBroker.brokerInstance
+
+    def __init__(self):
         config = configparser.ConfigParser()
         config.read('brokerconfig.ini')
 
-        if config.has_section('Asterix'):
-            asterix_server = config.get('Asterix', 'server')
-            port = config.getint('Asterix', 'port')
-            asterix_url = 'http://' + asterix_server + ':' + port
-            asterix = AsterixQueryManager(asterix_url)
-
-        self.asterix = asterix
+        self.asterix = AsterixQueryManager.getInstance()
 
         if config.has_section('Broker'):
             self.brokerName = config.get('Broker', 'brokerName')
@@ -258,16 +250,28 @@ class BADBroker:
         if config.has_section('BCS'):
             server = config.get('BCS', 'server')
             port = config.getint('BCS', 'port')
-            self.bcsUrl = 'http://' + server + ':' + port
+            self.bcsUrl = 'http://' + server + ':' + str(port)
         else:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
-        #self.local_address = self._myNetAddress()
-        #self._registerBrokerWithBCS()
+        self.local_address = self._myNetAddress()
+        tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
 
+    @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
-        post_request = {"brokerName" : self.brokerName, \
-        "brokerIP" : str(self.local_address) \
+        # Register the broker
+        log.info("Registering broker with name {}".format(self.brokerName))
+        aqlStatment = 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.local_address, 8989)
+        status, response = yield self.asterix.executeAQL(None, aqlStatment)
+
+        if status == 200:
+            log.info('Broker {} is registered.'.format(self.brokerName))
+        else:
+            log.error('Broker registration failed')
+
+        post_request = {
+                "brokerName": self.brokerName,
+                "brokerIP": str(self.local_address)
         }
 
         log.info(post_request)
@@ -447,7 +451,7 @@ class BADBroker:
         channelSubscriptionId = re.match(r'\[uuid\(\"(.*)\"\)\]', response).group(1)
 
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
-        currentDateTime = yield self.getCurrentDateTime(dataverseName)
+        currentDateTime = yield self.getCurrentDateTime()
         channelSubscription = ChannelSubscription(uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
 
         yield channelSubscription.save(dataverseName)
@@ -488,8 +492,8 @@ class BADBroker:
             return None
 
     @tornado.gen.coroutine
-    def getCurrentDateTime(self, dataverseName):
-        status, response = yield asterix.executeQuery(dataverseName, "let $t := current-datetime() return $t")
+    def getCurrentDateTime(self):
+        status, response = yield self.asterix.executeQuery(None, "let $t := current-datetime() return $t")
         if status != 200:
             return None
 
@@ -534,7 +538,7 @@ class BADBroker:
             log.error(badex)
             return {'status': 'failed', 'error': str(badex)}
 
-        currentDateTime = yield self.getCurrentDateTime(dataverseName)
+        currentDateTime = yield self.getCurrentDateTime()
         userSubscription = yield self.createUserSubscription(dataverseName, userId, channelName, channelSubscriptionId, currentDateTime)
 
         if userSubscription:
@@ -930,17 +934,24 @@ class BADBroker:
 
 
     @tornado.gen.coroutine
-    def setupBroker(self):
-        commands = ''
-        with open("1") as f:
+    def registerApplication(self, appName, dataverseName):
+        commands = 'drop dataverse {} if exists;\n'.format(dataverseName)
+        commands = commands + 'create dataverse {}; use dataverse {};'.format(dataverseName, dataverseName)
+
+        with open("brokersetupforapp.aql") as f:
             for line in f.readlines():
                 if not line.startswith('#'):
                     commands = commands + line
         log.info('Executing commands: ' + commands)
-        status, response = yield self.asterix.executeAQL(commands)
+        status, response = yield self.asterix.executeAQL(None, commands)
 
-        if status != 200:
+        if status == 200:
+            log.info('Broker setup succeeded for app {}'.format(appName))
+            return {'status': 'success'}
+        else:
             log.error('Broker setup failed ' + response)
+            return {'status': 'failed', 'error': response}
+
 
 def set_live_web_sockets(web_socket_object):
     global live_web_sockets
@@ -950,18 +961,20 @@ def set_live_web_sockets(web_socket_object):
     finally:
         mutex.release()
 
+@tornado.gen.coroutine
 def test_broker():
     broker = BADBroker()
-    broker.setupBroker()
 
-    dataverseName = 'channels'
+    dataverseName = 'unnamed'
+    print("Registering application")
+    yield broker.registerApplication(dataverseName)
 
-    print('Registering')
+    print('Registering user')
     value = yield broker.register(dataverseName, 'sarwar', 'ysar@gm.com', 'pass')
     print(value)
 
     print('Logging in')
-    result = yield broker.login(dataverseName, 'sarwar', 'pass')
+    result = yield broker.login(dataverseName, 'sarwar', 'pass', 'desktop', None)
     userId = result['userId']
     accessToken = result['accessToken']
 
@@ -982,6 +995,5 @@ def test_broker():
 
 
 if __name__ == '__main__':
-    #test_broker()
-    broker = BADBroker()
-    broker.testcalls()
+    test_broker()
+    tornado.ioloop.IOLoop.current().start()

@@ -4,20 +4,36 @@ import requests
 import urllib.parse
 import tornado.httpclient
 import logging as log
+import configparser
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
 
 class AsterixQueryManager():
-    def __init__(self, baseURL, servicePoint='query'):
+    asterixInstance = None
+
+    @classmethod
+    def getInstance(cls):
+        if AsterixQueryManager.asterixInstance is None:
+            config = configparser.ConfigParser()
+            config.read('brokerconfig.ini')
+            asterix_server = 'localhost'
+            asterix_port = 19002
+
+            if config.has_section('Asterix'):
+                asterix_server = config.get('Asterix', 'server')
+                asterix_port = config.getint('Asterix', 'asterix_port')
+
+            asterix_url = 'http://' + asterix_server + ':' + str(asterix_port)
+            AsterixQueryManager.asterixInstance = AsterixQueryManager(asterix_url)
+
+        return AsterixQueryManager.asterixInstance
+
+    def __init__(self, baseURL):
         self.asterixBaseURL = baseURL
-        self.asterixServicePoint = servicePoint
         self.queryString = ""
         self.dataverseName = None
-    
-    def setServicePoint(self, servicePoint):
-        self.asterixServicePoint = servicePoint
-        
+
     def setDataverseName(self, dataverseName):
         self.dataverseName = dataverseName
         return self
@@ -90,11 +106,11 @@ class AsterixQueryManager():
         self.queryString = ''
 
     def execute(self):
-        if self.asterixBaseURL is None or self.asterixServicePoint is None:
+        if self.asterixBaseURL is None is None:
             raise Exception('Query Manager is NOT setup well!!!')
         else:            
             if len(self.queryString) > 0:
-                request_url = self.asterixBaseURL + "/" + self.asterixServicePoint    
+                request_url = self.asterixBaseURL + "/" + "query"
                 query = "use dataverse " + self.dataverseName + "; " + self.queryString + ";"    
                 log.info('Executing... ', query)
                                 
@@ -113,7 +129,9 @@ class AsterixQueryManager():
     def executeQuery(self, dataverseName, queryStatment):
         request_url = self.asterixBaseURL + "/" + "query"    
 
-        query = "use dataverse " + dataverseName + "; "
+        query = ''
+        if dataverseName is not None:
+            query = "use dataverse " + dataverseName + "; "
         query = query + queryStatment + ";"
 
         params = {'query': query}
@@ -157,7 +175,8 @@ class AsterixQueryManager():
     @tornado.gen.coroutine
     def executeAQL(self, dataverseName, query):
         request_url = self.asterixBaseURL + "/" + "aql"
-        query = "use dataverse " + dataverseName + "; " + query + ";"
+        if dataverseName:
+            query = "use dataverse " + dataverseName + "; " + query + ";"
         params = {'aql': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
 
