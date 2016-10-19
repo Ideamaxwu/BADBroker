@@ -4,7 +4,7 @@ import simplejson as json
 
 brokerUrl = "http://localhost:8989"
 
-post_data = {'appName': 'demoapp', 'dataverseName': 'demoapp'}
+post_data = {'appName': 'demoapp', 'dataverseName': 'demoappdv'}
 
 r = requests.post(brokerUrl + "/registerapplication", data=json.dumps(post_data))
 

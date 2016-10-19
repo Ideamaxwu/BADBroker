@@ -22,15 +22,16 @@ class AsterixQueryManager():
 
             if config.has_section('Asterix'):
                 asterix_server = config.get('Asterix', 'server')
-                asterix_port = config.getint('Asterix', 'asterix_port')
+                asterix_port = config.getint('Asterix', 'port')
 
-            asterix_url = 'http://' + asterix_server + ':' + str(asterix_port)
-            AsterixQueryManager.asterixInstance = AsterixQueryManager(asterix_url)
+            AsterixQueryManager.asterixInstance = AsterixQueryManager(asterix_server, asterix_port)
 
         return AsterixQueryManager.asterixInstance
 
-    def __init__(self, baseURL):
-        self.asterixBaseURL = baseURL
+    def __init__(self, asterix_server, asterix_port):
+        self.asterix_server = asterix_server
+        self.asterix_port = asterix_port
+        self.asterixBaseURL = 'http://' + asterix_server + ':' + str(asterix_port)
         self.queryString = ""
         self.dataverseName = None
 
@@ -50,7 +51,7 @@ class AsterixQueryManager():
             raise Exception('No dataverse name set')
 
         if len(self.queryString) == 0:
-            raise Exception("LET cann't start a query")
+            raise Exception("LET cannot start a query")
         else:
             self.queryString = self.queryString + " let  " + clause
         return self
@@ -106,7 +107,7 @@ class AsterixQueryManager():
         self.queryString = ''
 
     def execute(self):
-        if self.asterixBaseURL is None is None:
+        if self.asterixBaseURL is None:
             raise Exception('Query Manager is NOT setup well!!!')
         else:            
             if len(self.queryString) > 0:
@@ -139,7 +140,7 @@ class AsterixQueryManager():
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
 
         log.info('Executing... ' + query)
-        
+
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='GET')
@@ -147,6 +148,7 @@ class AsterixQueryManager():
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
+            log.debug(response.body)
         except Exception as e:
             log.error('Error ' + str(e))
 
@@ -167,6 +169,7 @@ class AsterixQueryManager():
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
+            log.debug(e.response.body)
         except Exception as e:
             log.error('Error ' + str(e))
 
@@ -182,15 +185,18 @@ class AsterixQueryManager():
 
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
-        print (request_url)
+        print(request_url)
+        response = None
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='GET')
             response = yield httpclient.fetch(request)
+
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
+            log.debug(e.response.body)
         except Exception as e:
             log.error('Erorr ', str(e))
 
@@ -212,6 +218,7 @@ class AsterixQueryManager():
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
+            log.debug(e.response.body)
         except Exception as e:
             log.error('Error ' + str(e))
 

@@ -244,18 +244,19 @@ def test_client():
 
     client = BADClient(brokerUrl=brokerUrl)
 
-    dataverseName = sys.argv[1]
-    userName = sys.argv[2]
+    dataverseName = 'demoappdv'
+    userName = 'yusuf'
 
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
     client.onNewResultCallback = on_result
 
     if client.login():
+        client.listchannels()
         client.listsubscriptions()
-        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.subscribe('nearbyTweetChannel', ['man'])
+        if client.subscribe('nearbyTweetChannel', ['man']):
+            client.run()
 
-        #client.listchannels()
+        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
         #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
 
         # Feed created as per file 4
@@ -277,7 +278,6 @@ def test_client():
         client.feedrecords(10002, data)
         '''
 
-        client.run()
     else:
         print('Login failed')
 

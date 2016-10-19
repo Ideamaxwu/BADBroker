@@ -224,15 +224,19 @@ class BADBroker:
         return BADBroker.brokerInstance
 
     def __init__(self):
+        self.asterix = AsterixQueryManager.getInstance()
+
         config = configparser.ConfigParser()
         config.read('brokerconfig.ini')
 
-        self.asterix = AsterixQueryManager.getInstance()
-
         if config.has_section('Broker'):
-            self.brokerName = config.get('Broker', 'brokerName')
+            self.brokerName = config.get('Broker', 'name')
+            self.brokerIPAddr = config.get('Broker', 'ipaddress')
+            self.brokerPort = config.get('Broker', 'port')
         else:
             self.brokerName = 'brokerF'  # self._myNetAddress()  # str(hashlib.sha224(self._myNetAddress()).hexdigest())
+            self.brokerIPAddr = 'localhost'
+            self.brokerPort = 8989
 
         self.users = {}               # indexed by dataverse, userId
         self.channelSubscriptions = {}  # indexed by dataverseName, channelname, channelSubscriptionId
@@ -254,24 +258,15 @@ class BADBroker:
         else:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
-        self.local_address = self._myNetAddress()
+        self.brokerIPAddr = self._myNetAddress()
         tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
 
     @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
-        # Register the broker
-        log.info("Registering broker with name {}".format(self.brokerName))
-        aqlStatment = 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.local_address, 8989)
-        status, response = yield self.asterix.executeAQL(None, aqlStatment)
-
-        if status == 200:
-            log.info('Broker {} is registered.'.format(self.brokerName))
-        else:
-            log.error('Broker registration failed')
 
         post_request = {
                 "brokerName": self.brokerName,
-                "brokerIP": str(self.local_address)
+                "brokerIP": str(self.brokerIPAddr)
         }
 
         log.info(post_request)
@@ -898,7 +893,7 @@ class BADBroker:
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         iostream = tornado.iostream.IOStream(socket=sock)
-        yield iostream.connect((asterix_server, portNo))
+        yield iostream.connect((self.asterix.asterix_server, portNo))
 
         if isinstance(records, list):
             for record in records:
@@ -936,18 +931,26 @@ class BADBroker:
     @tornado.gen.coroutine
     def registerApplication(self, appName, dataverseName):
         commands = 'drop dataverse {} if exists;\n'.format(dataverseName)
-        commands = commands + 'create dataverse {}; use dataverse {};'.format(dataverseName, dataverseName)
+        commands = commands + 'create dataverse {}; \n use dataverse {};'.format(dataverseName, dataverseName)
 
         with open("brokersetupforapp.aql") as f:
             for line in f.readlines():
                 if not line.startswith('#'):
                     commands = commands + line
+        commands = commands + '\n'
+        commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
+
         log.info('Executing commands: ' + commands)
+
         status, response = yield self.asterix.executeAQL(None, commands)
 
         if status == 200:
             log.info('Broker setup succeeded for app {}'.format(appName))
-            return {'status': 'success'}
+            return {
+                'status': 'success',
+                'dataverseName': dataverseName,
+                'appName': appName,
+                'ApiKey': str(hashlib.sha224((appName + dataverseName + str(datetime.now())).encode()).hexdigest())}
         else:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
