@@ -152,6 +152,7 @@ class BADLSCCache:
                     self.leastSubscribedObject = min(self.cachedObjects)
 
                 log.info('Deleting item {} with subscription count {}'.format(self.leastSubscribedObject, len(self.leastSubscribedObject.userIds)))
+
                 self.cachedObjects.remove(self.leastSubscribedObject)
                 del self.cache[self.leastSubscribedObject.channelSubscriptionId][self.leastSubscribedObject.channelExecutionTime]
 
