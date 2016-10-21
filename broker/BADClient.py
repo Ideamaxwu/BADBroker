@@ -244,7 +244,7 @@ def test_client():
 
     client = BADClient(brokerUrl=brokerUrl)
 
-    dataverseName = 'demoappdv'
+    dataverseName = 'demoapp'
     userName = 'yusuf'
 
     client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')

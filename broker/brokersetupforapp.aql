@@ -1,3 +1,13 @@
+create type ApplicationType as closed {
+    recordId: string,
+    appName: string,
+    email: string,
+    apiKey: string
+}
+
+create dataset ApplicationDataset (ApplicationType)
+primary key recordId;
+
 create type UserType as closed {
     recordId: string,
     userId: string,

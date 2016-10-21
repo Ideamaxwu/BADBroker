@@ -45,8 +45,9 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
         try:
             appName = post_data['appName']
             dataverseName = post_data['dataverseName']
+            email = post_data['email']
 
-            response = yield self.broker.registerApplication(appName, dataverseName)
+            response = yield self.broker.registerApplication(appName, dataverseName, email)
 
         except KeyError as e:
             print('Parse error for ' + str(e) + ' in ' + str(post_data))

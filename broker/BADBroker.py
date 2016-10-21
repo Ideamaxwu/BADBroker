@@ -12,10 +12,9 @@ import notifier.desktop
 
 import socket
 import hashlib
-import simplejson as json
 
 from datetime import datetime
-from asterixapi import *
+from brokerobjects import *
 
 import re
 import logging as log
@@ -25,8 +24,6 @@ import requests
 
 import configparser
 
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
@@ -39,180 +36,6 @@ log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', l
 
 mutex = Lock()
 live_web_sockets = set()
-
-
-class BADObject:
-    @tornado.gen.coroutine
-    def delete(self, dataverseName):
-        asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
-        log.debug(cmd_stmt)
-
-        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
-        if status == 200:
-            log.info('Delete succeeded')
-            return True
-        else:
-            log.error('Delete failed. Error ' + response)
-            raise Exception('Delete failed ' + response)
-
-    @tornado.gen.coroutine
-    def save(self, dataverseName):
-        asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
-        cmd_stmt = cmd_stmt + '('
-        cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
-        cmd_stmt = cmd_stmt + ')'
-        log.debug(cmd_stmt)
-
-        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
-        if status == 200:
-            log.info('Object %s Id %s saved' % (self.__class__.__name__, self.recordId))
-            return True
-        else:
-            log.error('Object save failed, Error ' + response)
-            raise Exception('Object save failed ' + response)
-
-    @classmethod
-    @tornado.gen.coroutine
-    def load(cls, dataverseName, objectName, **kwargs):
-        asterix = AsterixQueryManager.getInstance()
-        condition = None
-        if kwargs:
-            for key, value in kwargs.items():
-                if isinstance(value, str):
-                    paramvalue = '\"{0}\"'.format(value)
-                else:
-                    paramvalue = value
-
-                if condition is None:
-                    condition = '$t.{0} = {1}'.format(key, paramvalue)
-                else:
-                    condition = condition + ' and $t.{0} = {1}'.format(key, paramvalue)
-        else:
-            log.warning('No argument is provided for load')
-            return None
-
-        dataset = objectName + 'Dataset'
-
-        if condition:
-            query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
-        else:
-            query = 'for $t in dataset {0} return $t'.format(dataset)
-
-        status, response = yield asterix.executeQuery(dataverseName, query)
-
-        if status == 200 and response:
-            response = response.replace('\n', ' ').replace(' ', '')
-            print(response)
-            if len(response) > 0:
-                return json.loads(response, encoding='utf-8')
-            else:
-                return None
-        else:
-            return None
-
-
-    @classmethod
-    def createFrom(cls, objects):
-        if not objects:
-            return None
-
-        if isinstance(objects, list):
-            instances = []
-            for object in objects:
-                instance = cls()
-                if not object or not isinstance(object, dict):
-                    log.error('Creating %s Invalid argument %s' % (cls.__name__, object))
-                    return None
-
-                instance.__dict__ = object
-                instances.append(instance)
-            return instances
-        else:
-            object = objects
-            if not isinstance(object, dict):
-                log.error('Creating %s Invalid argument %s' % (cls.__name__, object))
-                return None
-
-            instance = cls()
-            instance.__dict__ = object
-            return instance
-
-
-class User(BADObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
-        self.recordId = recordId
-        self.userId = userId
-        self.userName = userName
-        self.password = password
-        self.email = email
-
-    @classmethod
-    @tornado.gen.coroutine
-    def load(cls, dataverseName=None, userName=None):
-        objects = yield BADObject.load(dataverseName, cls.__name__, userName=userName)
-        return User.createFrom(objects)
-
-    def __str__(self):
-        return self.userName + ' ID ' + self.userId
-
-class ChannelSubscription(BADObject):
-    def __init__(self, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
-        self.recordId = recordId
-        self.channelName = channelName
-        self.brokerName = brokerName
-        self.parameters = parameters
-        self.channelSubscriptionId = channelSubscriptionId
-        self.latestChannelExecutionTime = currentDateTime
-
-    @classmethod
-    @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
-        if parameters:
-            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
-        elif channelSubscriptionId:
-            objects = yield BADObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
-
-        return ChannelSubscription.createFrom(objects)
-
-class UserSubscription(BADObject):
-    def __init__(self, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
-                 channelName=None, timestamp=None, resultsDataset=None):
-        self.recordId = recordId
-        self.userSubscriptionId = userSubscriptionId
-        self.userId = userId
-        self.channelSubscriptionId = channelSubscriptionId
-        self.channelName = channelName
-        self.timestamp = timestamp
-        self.latestDeliveredResultTime = timestamp
-        self.resultsDataset = resultsDataset
-
-    def __str__(self):
-        return self.userSubscriptionId
-
-    def __repr__(self):
-        return self.userSubscriptionId
-
-    def for_json(self):
-        return self.__dict__
-
-    @classmethod
-    @tornado.gen.coroutine
-    def load(cls, dataverseName=None, userId=None, userSubscriptionId=None):
-        if userId:
-            objects = yield BADObject.load(dataverseName, cls.__name__, userId=userId)
-        elif userSubscriptionId:
-            objects = yield BADObject.load(dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
-        else:
-            return None
-
-        return UserSubscription.createFrom(objects)
-
-class BADException(Exception):
-    pass
-
 
 class BADBroker:
     brokerInstance = None
@@ -929,7 +752,35 @@ class BADBroker:
 
 
     @tornado.gen.coroutine
-    def registerApplication(self, appName, dataverseName):
+    def registerApplication(self, appName, dataverseName, email):
+        # Check if there is already a dataverse exists with the same name
+        command = 'use dataverse {};'.format(dataverseName)
+        status, response = yield self.asterix.executeAQL(None, command);
+
+        if status == 200:
+            log.info('Registering new app {} dataverse {} exists'.format(appName, dataverseName))
+            apps = yield Application.load(dataverseName, appName=appName)
+
+            if apps and len(apps) > 0:
+                log.info('Obtained application with the same name {} in dataverse {}'.format(appName, dataverseName))
+                app = apps[0]
+                apiKey = app.apiKey
+            else:
+                log.info('Create new app {} in dataverse {}'.format(appName, dataverseName))
+                apiKey = str(hashlib.sha224((dataverseName + appName + str(datetime.now())).encode()).hexdigest())
+                app = Application(recordId=appName, appName=appName, email=email, apiKey=apiKey)
+                yield app.save(dataverseName)
+                apiKey = app.apiKey
+
+            return {
+                'status': 'success',
+                'dataverseName': dataverseName,
+                'appName': appName,
+                'apiKey': apiKey
+            }
+
+        log.info('No dataverse {} exists for new app {}. creating one...'.format(dataverseName, appName))
+
         commands = 'drop dataverse {} if exists;\n'.format(dataverseName)
         commands = commands + 'create dataverse {}; \n use dataverse {};'.format(dataverseName, dataverseName)
 
@@ -938,7 +789,7 @@ class BADBroker:
                 if not line.startswith('#'):
                     commands = commands + line
         commands = commands + '\n'
-        commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
+        commands = commands + 'create broker {} at "http://{}:{}/notifybroker";'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
 
         log.info('Executing commands: ' + commands)
 
@@ -946,11 +797,19 @@ class BADBroker:
 
         if status == 200:
             log.info('Broker setup succeeded for app {}'.format(appName))
+            log.info('Create new app {} in dataverse {}'.format(appName, dataverseName))
+
+            apiKey = str(hashlib.sha224((dataverseName + appName + str(datetime.now())).encode()).hexdigest())
+            app = Application(recordId=appName, appName=appName, email=email, apiKey=apiKey)
+            yield app.save(dataverseName)
+            apiKey = app.apiKey
+
             return {
                 'status': 'success',
                 'dataverseName': dataverseName,
                 'appName': appName,
-                'ApiKey': str(hashlib.sha224((appName + dataverseName + str(datetime.now())).encode()).hexdigest())}
+                'apiKey': apiKey
+            }
         else:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
@@ -963,40 +822,3 @@ def set_live_web_sockets(web_socket_object):
         live_web_sockets.add(web_socket_object)
     finally:
         mutex.release()
-
-@tornado.gen.coroutine
-def test_broker():
-    broker = BADBroker()
-
-    dataverseName = 'unnamed'
-    print("Registering application")
-    yield broker.registerApplication(dataverseName)
-
-    print('Registering user')
-    value = yield broker.register(dataverseName, 'sarwar', 'ysar@gm.com', 'pass')
-    print(value)
-
-    print('Logging in')
-    result = yield broker.login(dataverseName, 'sarwar', 'pass', 'desktop', None)
-    userId = result['userId']
-    accessToken = result['accessToken']
-
-    # print(broker.listchannels(userId, accessToken))
-    # print(broker.getChannelInfo(userId, accessToken, 'EmergencyMessagesChannel'))
-    result = yield broker.subscribe(dataverseName, userId, accessToken, 'nearbyTweetChannel', [12])
-    
-    userSubscriptionId = result['userSubscriptionId']
-
-    value = yield broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, 12235)
-    print(value)
-
-    value = yield broker.listchannels(dataverseName, userId, accessToken)
-    print(value)
-
-    # test = {'A': 12, 'B': [{'X': 12}, {'Y': 23}, {'Z': 34}]}
-    # print(test['B'][0])
-
-
-if __name__ == '__main__':
-    test_broker()
-    tornado.ioloop.IOLoop.current().start()
