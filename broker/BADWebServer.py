@@ -105,10 +105,8 @@ class LoginHandler (tornado.web.RequestHandler):
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
-            log.info(platform)
-            gcmRegistrationId = '' if 'gcmRegistrationToken' not in post_data else post_data['gcmRegistrationToken']
 
-            response = yield self.broker.login(dataverseName, userName, password, platform, gcmRegistrationId)
+            response = yield self.broker.login(dataverseName, userName, password, platform)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}

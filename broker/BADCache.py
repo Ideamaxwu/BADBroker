@@ -6,7 +6,7 @@ from queue import PriorityQueue
 log.getLogger(__name__)
 log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
 
-class NoCache:
+class EmptyCache:
     def get(self, key):
         return None
 
@@ -54,38 +54,38 @@ class BADLruCache:
         self.cache[key] = {'timestamp': timestamp, 'object': object}
         return True
 
-class CachedObject:
-    def __init__(self, key=None, channelSubscriptionId=None, channelExecutionTime=None, userIds=[], timestamp=None, object=None):
-        self.key = key
-        self.channelSubscriptionId = channelExecutionTime
-        self.channelExecutionTime = channelExecutionTime
-        self.userIds = userIds
-        self.timestamp = timestamp
-        self.object = object
-
-    def __repr__(self):
-        return self.key
-
-    def __str__(self):
-        return str(self.key)
-
-    def __cmp__(self, other):
-        return len(self.userIds) - len(other.userIds)
-
-    def __lt__(self, other):
-        if len(self.userIds) == len(other.userIds):
-            return self.timestamp < other.timestamp
-
-        return len(self.userIds) < len(other.userIds)
-
-    def __eq__(self, other):
-        return self.key == other.key
-
-    def __hash__(self):
-        return self.key.__hash__()
-
-
 class BADLSCCache:
+    class CachedObject:
+        def __init__(self, key=None, channelSubscriptionId=None, channelExecutionTime=None, userIds=[], timestamp=None, object=None):
+            self.key = key
+            self.channelSubscriptionId = channelExecutionTime
+            self.channelExecutionTime = channelExecutionTime
+            self.userIds = userIds
+            self.timestamp = timestamp
+            self.object = object
+
+        def __repr__(self):
+            return self.key
+
+        def __str__(self):
+            return str(self.key)
+
+        def __cmp__(self, other):
+            return len(self.userIds) - len(other.userIds)
+
+        def __lt__(self, other):
+            if len(self.userIds) == len(other.userIds):
+                return self.timestamp < other.timestamp
+
+            return len(self.userIds) < len(other.userIds)
+
+        def __eq__(self, other):
+            return self.key == other.key
+
+        def __hash__(self):
+            return self.key.__hash__()
+
+
     def __init__(self, size=100):
         self.cache = {}
         self.cachedObjects = []
@@ -128,7 +128,7 @@ class BADLSCCache:
             channelExecutionTime = kwargs['channelExecutionTime']
             userIds = kwargs['userIds']
 
-            cachedObject = CachedObject()
+            cachedObject = BADLSCCache.CachedObject()
             cachedObject.key = key
             cachedObject.object = object
             cachedObject.channelSubscriptionId = channelSubscriptionId

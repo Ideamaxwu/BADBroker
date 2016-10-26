@@ -12,17 +12,15 @@ import notifier.desktop
 
 import socket
 import hashlib
-
 from datetime import datetime
-from brokerobjects import *
-
 import re
 import logging as log
-import BADCache
 from threading import Lock
 import requests
-
 import configparser
+
+from brokerobjects import *
+import BADCache
 
 
 log.getLogger(__name__)
@@ -117,8 +115,14 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def register(self, dataverseName, userName, password, email):
-        # user = yield self.loadUser(userName)
-
+        """
+           Registers users/clients in the BAD broker.
+        :param dataverseName: dataverse name where the user wants to join (where the application resides in)
+        :param userName: user name
+        :param password: password for the account
+        :param email: email address of the user
+        :return: 'status': 'success'/'failed', if succeeded, returns 'userId', else 'error' contains error occurred
+        """
         users = yield User.load(dataverseName=dataverseName, userName=userName)
 
         if users and len(users) > 0:
@@ -126,10 +130,14 @@ class BADBroker:
             self.users[userName] = user
             log.warning('User %s is already registered' % (user.userId))
 
-            return {'status': 'failed', 'error': 'User is already registered with the same name!',
-                    'userId': user.userId}
+            return {
+                'status': 'failed',
+                'error': 'User is already registered with the same name!',
+                'userId': user.userId
+            }
+
         else:
-            userId = userName  # str(hashlib.sha224(userName.encode()).hexdigest())
+            userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
             user = User(userId, userId, userName, password, email)
             yield user.save(dataverseName)
             self.users[userName] = user
@@ -139,24 +147,42 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform, gcmRegistrationToken):
-        # user = yield self.loadUser(userName)
+    def login(self, dataverseName, userName, password, platform):
+        """
+        Signs in user and creates a session for the user. Only after login, the user is able to perform operations.
+        :param dataverseName: dataverse name
+        :param userName: user name of the user/client
+        :param password: password
+        :param platform: platform on which the user in in the current login session. Can be 'desktop', 'web' and 'android'
+        :return: On 'success', 'userId' and 'accessToken'
+        """
+
         users = yield User.load(dataverseName=dataverseName, userName=userName)
 
         if users and len(users) > 0:
             user = users[0]
             print(user.userName, user.password, password)
             if password == user.password:
-                accessToken = str(hashlib.sha224((userName + str(datetime.now())).encode()).hexdigest())
+                accessToken = str(hashlib.sha224((dataverseName + userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
 
                 if dataverseName not in self.sessions:
                     self.sessions[dataverseName] = {}
 
-                self.sessions[dataverseName][userId] = {'platform': platform, 'accessToken': accessToken, 'gcmRegistrationToken': gcmRegistrationToken}
+                # Check if the user is already logged in, that is, has an entry in sessions
+                if userId in self.sessions[dataverseName]:
+                    return {
+                        'status': 'failed',
+                        'error': 'User `%s` is already logged in. Cannot have multiple sessions!' %userName
+                    }
 
-                if platform == 'android':
-                    self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
+                # Create a new session for this user
+                self.sessions[dataverseName][userId] = {
+                    'platform': platform,
+                    'accessToken': accessToken,
+                    'creationTime': datetime.now(),
+                    'lastAccessedTime': datetime.now(),
+                }
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
                 return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
@@ -209,7 +235,7 @@ class BADBroker:
                 self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId] = channelSubscriptions[0]
 
     @tornado.gen.coroutine
-    def logoff(self, dataverseName, userId):
+    def logout(self, dataverseName, userId, accessToken):
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
             del self.sessions[dataverseName][userId]
 
@@ -417,8 +443,8 @@ class BADBroker:
         whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
                       'and $t.channelExecutionTime > datetime(\"{1}\") ' \
                       'and $t.channelExecutionTime <= datetime(\"{2}\")'.format(channelSubscriptionId,
-                                                                               latestDeliveredResultTime,
-                                                                               channelExecutionTime)
+                                                                                latestDeliveredResultTime,
+                                                                                channelExecutionTime)
 
         orderbyClause = '$t.channelExecutionTime asc'
         aql_stmt = 'for $t in dataset %s ' \
@@ -436,40 +462,41 @@ class BADBroker:
 
         channelExecutionTimes = json.loads(response)
 
-        if channelExecutionTimes:
-            if len(channelExecutionTimes) > 0:
-                resultToUser = []
+        if channelExecutionTimes and len(channelExecutionTimes) > 0:
+            resultToUser = []
 
-                # Get results for all channelExecutionTimes
-                for channelExecutionTime in channelExecutionTimes:
-                    # First check in the cache, if not retrieve from Asterix store
-                    resultFromCache = self.getResultsFromCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTime)
+            # Get results only the first channelExecutionTimes
+            channelExecutionTimeToReturn = channelExecutionTimes[0]
+            # First check in the cache, if not retrieve from the Asterix
+            resultFromCache = self.getResultsFromCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
-                    if resultFromCache:
-                        log.info('Cache HIT for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTime)))
-                        log.debug(resultFromCache)
-                        resultToUser.extend(resultFromCache)
-                    else:
-                        log.info('Cache MISS for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTime)))
-                        resultFromAsterix = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, channelExecutionTime)
+            if resultFromCache:
+                log.info('Cache HIT for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
+                log.debug(resultFromCache)
+                resultToUser.extend(resultFromCache)
+            else:
+                log.info('Cache MISS for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
+                resultFromAsterix = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
-                        # Cache the results
-                        if resultFromAsterix:
-                            self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTime, resultFromAsterix)
-                            log.debug(resultFromAsterix)
-                            resultToUser.extend(resultFromAsterix)
+                # Cache the results
+                if resultFromAsterix:
+                    self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn, resultFromAsterix)
+                    log.debug(resultFromAsterix)
+                    resultToUser.extend(resultFromAsterix)
 
-                # Update last delivery timestamp of this subscription
-                userSubscription.latestDeliveredResultTime = channelExecutionTimes[-1]
-                yield userSubscription.save(dataverseName)
+            # Update last delivery timestamp of this subscription
+            userSubscription.latestDeliveredResultTime = channelExecutionTimeToReturn
+            yield userSubscription.save(dataverseName)
 
-                return {'status': 'success',
-                        'channelName': channelName,
-                        'userSubscriptionId': userSubscriptionId,
-                        'channelExecutionTime': channelExecutionTime,
-                        'results': resultToUser}
-
-        return {'status' : 'failed', 'error': 'No result to retrieve'}
+            return {'status': 'success',
+                    'channelName': channelName,
+                    'userSubscriptionId': userSubscriptionId,
+                    'channelExecutionTime': channelExecutionTime,
+                    'channelExecutionTimeReturned': channelExecutionTimeToReturn,
+                    'resultsetsRemaining': len(channelExecutionTimes) - 1,
+                    'results': resultToUser}
+        else:
+            return {'status': 'failed', 'error': 'No result to retrieve'}
 
     def getResultKey(self, dataverseName, channelName, channelSubscriptionId, channelExecutionTime):
         return dataverseName + '::' + channelName + '::' + channelSubscriptionId + '::' + channelExecutionTime
@@ -665,11 +692,11 @@ class BADBroker:
                    }
 
         if dataverseName not in self.sessions or userId not in self.sessions[dataverseName]:
-            log.error('User %s is not logged in to receive notifications' % userId)
+            log.error('User %s is not logged in to receive notifications' %userId)
         else:
             platform = self.sessions[dataverseName][userId]['platform']
             if platform not in self.notifiers:
-                log.error('Platform %s is NOT supported yet!!' % platform)
+                log.error('Platform %s is NOT supported yet!!' %platform)
             else:
                 if platform == 'web':
                     mutex.acquire()
@@ -742,13 +769,18 @@ class BADBroker:
     def _checkAccess(self, dataverseName, userId, accessToken):
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
             if accessToken == self.sessions[dataverseName][userId]['accessToken']:
+                self.sessions[dataverseName][userId]['lastAccessedTime'] = datetime.now()
                 return {'status': 'success'}
             else:
-                return {'status': 'failed',
-                        'error': 'Invalid access token'}
+                return {
+                    'status': 'failed',
+                    'error': 'Invalid access token'
+                }
         else:
-            return {'status': 'failed',
-                    'error': 'User not authenticated'}
+            return {
+                'status': 'failed',
+                'error': 'User is not authenticated'
+            }
 
 
     @tornado.gen.coroutine

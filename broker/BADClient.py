@@ -1,50 +1,52 @@
 #!/usr/bin/env python3
 
 import requests
+
 import simplejson as json
 import time
 import threading
 import pika
 import sys
 import random
+import logging
 
-#brokerUrl = "http://cert24.ics.uci.edu:8989"
-brokerUrl = "http://localhost:8989"
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 class BADClient:
-    def __init__(self, brokerUrl):
+    def __init__(self, brokerServer, brokerPort=8989):
         self.dataverseName = None
         self.userName = None
         self.email = None
         self.password = None
 
-        self.userId = ""
-        self.accessToken = ""
-        self.brokerUrl = brokerUrl
-        self.onNewResultCallback = None
+        self.userId = None
+        self.accessToken = None
+        self.brokerPort = brokerPort
+        self.brokerServer = brokerServer
+        self.rabbitMQServer = brokerServer
+        self.brokerUrl = 'http://{}:{}'.format(self.brokerServer, self.brokerPort)
+        self.subscriptions = {}
 
-        self.rqthread = None
         self.rqchannel = None
 
-    def runRabbitQM(self, userId, callback, host='localhost'):
-        def rabbitRun(host, userId):
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
-            self.rqchannel = connection.channel()
+        self.on_channelresults = None
+        self.on_error = self._on_error
 
-            self.rqchannel.queue_declare(queue=userId)
+    def runRabbitMQ(self, userId, callback, host):
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=host))
+        self.rqchannel = connection.channel()
+        self.rqchannel.queue_declare(queue=userId)
 
-            self.rqchannel.basic_consume(callback,
-                                  queue=userId,
-                                  no_ack=True)
+        self.rqchannel.basic_consume(callback,
+                              queue=userId,
+                              no_ack=True)
 
-            print('[*] Waiting for messages. To exit press CTRL+C')
-            self.rqchannel.start_consuming()
-
-        self.rqthread = threading.Thread(target=rabbitRun, args=(host, userId))
-        self.rqthread.start()
+        log.info('[*] Waiting for messages. To exit press CTRL+C')
+        self.rqchannel.start_consuming()
 
     def register(self, dataverseName, userName, password, email=None):
-        print('Register')
+        log.info('Register')
 
         self.dataverseName = dataverseName
         self.userName = userName
@@ -53,40 +55,68 @@ class BADClient:
 
         post_data = {'dataverseName': self.dataverseName, 'userName': self.userName, 'email': self.email, 'password': self.password}
         #response = service_call(URL, "register", post_data)
+
         r = requests.post(self.brokerUrl + '/register', data=json.dumps(post_data))
 
         if r.status_code == 200:
             response = r.json()
             if response:
-                if response['status'] != 'success':
-                    print('Error:', response['error'])
-                else:
+                if response['status'] == 'success':
                     self.userId = response['userId']
-                    print(self.userName, 'Register', json.dumps(response))
+                    log.info('User `%s` registered.' % self.userName)
+                else:
+                    log.error('Registration failed for user `%s`' %self.userName)
+                    self.on_error('register', 'Registration failed %s' %response)
         else:
-            print(r)
-            print('Registration failed for %s' %userName)            
+            log.debug(r)
+            self.on_error('register', 'Registration failed for %s' %userName)
 
     def login(self):
-        print('Login')
+        log.info('Login')
         post_data = {'dataverseName': self.dataverseName, 'userName': self.userName, 'password': self.password}
-        #response = service_call(URL, "login", post_data)
+
         r = requests.post(self.brokerUrl + '/login', data=json.dumps(post_data))
 
         if r.status_code == 200:
             response = r.json()
             if response:
-                if response['status'] != 'success':
-                    print('Error:', response['error'])
-                    return False
-                else:
+                if response['status'] == 'success':
                     self.userId = response['userId']
                     self.accessToken = response['accessToken']
-                    print(self.userName, 'Login', json.dumps(response))
+                    log.info('Login successful')
                     return True
+                else:
+                    log.error('Login failed %s' %response)
+                    self.on_error('login', 'Login failed %s' %response)
+                    return False
         else:
-            print('Login failed for %s' %self.userName) 
-            print(r)      
+            log.debug(r)
+            self.on_error('login', 'Login failed for %s' %self.userName)
+            return False
+
+    def logout(self):
+        log.info('Logging out')
+
+        if self.userId is None:
+            return
+
+        post_data = {
+            'dataverseName': self.dataverseName, 'userId': self.userId, 'accessToken': self.accessToken
+        }
+
+        r = requests.post(self.brokerUrl + '/logout', data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            response = r.json()
+            if response:
+                if response['status'] == 'success':
+                    log.info('User %s is logged out.' %self.userName)
+                else:
+                    log.debug(r)
+                    self.on_error('logout', 'logout for usre %s failed due to %s' %(self.userName, r))
+        else:
+            log.debug(r)
+            self.on_error('logout', 'Login failed for %s' %self.userName)
             return False
 
     def listchannels(self):
@@ -96,27 +126,34 @@ class BADClient:
 
         if r.status_code == 200:
             response = r.json()
-            print(response)
+            log.debug(response)
         else:
-            print('listchannels failed, call returned %s' % r)
-
+            log.debug(r)
+            self.on_error('listchannels', 'listchannels failed, call returned %s' % r)
 
     def listsubscriptions(self):
         post_data = {'dataverseName': self.dataverseName, 'userId': self.userId, 'accessToken': self.accessToken}
+
         r = requests.post(self.brokerUrl + "/listsubscriptions", data=json.dumps(post_data))
 
         if r.status_code == 200:
             response = r.json()
-            print(response)
+            log.debug(response)
         else:
-            print('listsubscriptions failed, call returned %s' % r)
+            log.debug(r)
+            self.on_error('listsubscriptions', 'listsubscriptions failed, call returned %s' % r)
 
     def subscribe(self, channelName, parameters):
-        print('Subscribe')
+        log.info('Subscribe')
 
         if (channelName is None or parameters is None):
-            print('Subscription failed: Empty channelname or callback')
+            log.info('Subscription failed: Empty channelname or callback')
             return
+
+        if not self.on_channelresults:
+            log.info('Subscription failed as no channel results callback is set')
+            self.on_error('Subscription failed as no channel results callback is set')
+            return None
 
         if parameters is None:
             parameters = []
@@ -133,29 +170,39 @@ class BADClient:
             response = r.json()
             if response:
                 if response['status'] != 'success':
-                    print('Error:', response['error'])
+                    log.info('Error:' +  response['error'])
                     return False
                 else:
                     subscriptionId = response['userSubscriptionId']
                     timestamp = response['timestamp']
 
-                    print(self.userName, 'Subscribe', json.dumps(response))
-                    return True
-        else:
-            print('Subscription failed for channel %s with params %s' % (channelName, parameters))
-            return False
+                    if subscriptionId not in self.subscriptions:
+                        self.subscriptions[subscriptionId] = {}
 
-    def onNotifiedFromBroker(self, channel, method, properties, body):
-        print('Notified from broker', str(body, encoding='utf-8'))
+                    self.subscriptions[subscriptionId]['channelName'] = channelName
+                    self.subscriptions[subscriptionId]['parameters'] = parameters
+                    self.subscriptions[subscriptionId]['timestamp'] = timestamp
+
+                    log.info('Subscription successful')
+                    return subscriptionId
+        else:
+            log.debug(r)
+            self.on_error('subscribe', 'Subscription failed for channel %s with params %s' % (channelName, parameters))
+            return None
+
+    def _onNotifiedFromBroker(self, channel, method, properties, body):
+        log.info('Notified from the broker')
+        log.debug(str(body, encoding='utf-8'))
+
         response = json.loads(body)
         channelName = response['channelName']
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
 
-        self.getresults(channelName, userSubscriptionId, latestChannelExecutionTime)
+        self._getresults(channelName, userSubscriptionId, latestChannelExecutionTime)
 
     def insertrecords(self, datasetName, records):
-        print('Insert records into %s' %datasetName)
+        log.info('Insert records into %s' %datasetName)
 
         post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
@@ -170,12 +217,13 @@ class BADClient:
             response = r.json()
             if response:
                 if response['status'] == 'success':
-                    print('Insert successful')
+                    log.info('Insert successful')
                 else:
-                    print('Error:', response['error'])
+                    log.debug(r)
+                    self.on_error('insertrecords', 'Error:', response['error'])
 
     def feedrecords(self, portNo, records):
-        print('Feed records into port %s' %portNo)
+        log.info('Feed records into port %s' %portNo)
 
         post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
@@ -190,12 +238,13 @@ class BADClient:
             response = r.json()
             if response:
                 if response['status'] == 'success':
-                    print('Insert successful')
+                    log.info('Insert successful')
                 else:
-                    print('Error:', response['error'])
+                    log.debug(r)
+                    self.on_error('feedrecords', 'Error:', response['error'])
 
-    def getresults(self, channelName, subscriptionId, channelExecutionTime):
-        print('Getresults for %s' % subscriptionId)
+    def _getresults(self, channelName, subscriptionId, channelExecutionTime):
+        log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
@@ -210,76 +259,88 @@ class BADClient:
         if r.status_code == 200:
             results = r.json()
             if results and results['status'] == 'success':
-                callback = self.onNewResultCallback
-                callback(channelName, subscriptionId, results['channelExecutionTime'], results['results'])
+                log.info('Retrived resultset for %s' %results['channelExecutionTimeReturned'])
+                self.on_channelresults(channelName, subscriptionId, results['results'])
+
+                resultsetsRemaining = results['resultsetsRemaining']
+                log.info('%d resultsets are remaining' %resultsetsRemaining)
+                if resultsetsRemaining > 0:
+                    self._getresults(channelName, subscriptionId, channelExecutionTime)
             else:
-                print('GetresultsError %s' % str(results['error']))
+                log.debug(r.text)
+        else:
+            log.debug(r.text)
+
+    def _on_error(self, where, error_msg):
+        log.error(where, ' --> ', error_msg)
 
     def run(self):
-        self.runRabbitQM(self.userId, self.onNotifiedFromBroker, host='localhost')
+        self.runRabbitMQ(self.userId, callback=self._onNotifiedFromBroker, host=self.rabbitMQServer)
 
-        if self.rqthread:
-            print('Waiting for the messaging thread to stop...')
-            try:
-                while self.rqthread.isAlive():
-                    self.rqthread.join(5)
-            except KeyboardInterrupt as error:
-                print('Closing rabbitMQ channel')
-                self.rqchannel.stop_consuming()
-                del self.rqchannel
-                sys.exit(0)
-
-    def __del__(self):
-        print('Exiting client, username %s...' % self.userName)
+    def stop(self):
+        log.info('Exiting client, username %s...' % self.userName)
+        self.logout()
         if self.rqchannel and self.rqchannel.is_open:
-            self.rqchannel.cancel()
-
+            self.rqchannel.stop_consuming()
 
 def test_client():
-    def on_result(channelName, subscriptionId, channelExecutionTime, results):
-        print(channelName, subscriptionId, channelExecutionTime)
+    def on_channelresults(channelName, subscriptionId, results):
+        print(channelName, subscriptionId)
         if results and len(results) > 0:
             for item in results:
                 print('APPDATA ' + str(item))
 
-    client = BADClient(brokerUrl=brokerUrl)
+    def on_error(where, error_msg):
+        print(where, ' ---> ', error_msg)
+
+    client = BADClient(brokerServer='localhost')
 
     dataverseName = 'demoapp'
-    userName = 'yusuf'
+    userName = sys.argv[1]
+    password = 'yusuf'
+    email = 'abc@abc.net'
 
-    client.register(dataverseName, userName, 'yusuf', 'ddds@dsd.net')
-    client.onNewResultCallback = on_result
+    client.on_channelresults = on_channelresults
+    client.on_error = on_error
+    
+    client.register(dataverseName, userName, password, email)
 
-    if client.login():
-        client.listchannels()
-        client.listsubscriptions()
-        if client.subscribe('nearbyTweetChannel', ['man']):
-            client.run()
-
-        #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_result)
-        #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
-
-        # Feed created as per file 4
-        '''
-        data = [{'recordId': str(random.random()),
-                'userId': '237',
-                'userName': '343434',
-                'password': '12245',
-                'email': 'value@abc.net'
-                },
-                {'recordId': str(random.random()),
-                'userId': '9999',
-                'userName': '343434',
-                'password': '12245',
-                'email': 'value@abc.net'
-                }
-                ]
-
-        client.feedrecords(10002, data)
-        '''
-
-    else:
+    if client.login() == False:
         print('Login failed')
+        return
+
+    client.listchannels()
+    client.listsubscriptions()
+
+    #subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+
+    #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
+    #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
+
+    # Feed created as per file 4
+    '''
+    data = [{'recordId': str(random.random()),
+            'userId': '237',
+            'userName': '343434',
+            'password': '12245',
+            'email': 'value@abc.net'
+            },
+            {'recordId': str(random.random()),
+            'userId': '9999',
+            'userName': '343434',
+            'password': '12245',
+            'email': 'value@abc.net'
+            }
+            ]
+
+    client.feedrecords(10002, data)
+    '''
+
+    try:
+        client.run() # blocking call
+    except KeyboardInterrupt:
+        client.stop()
+
 
 if __name__ == "__main__":
     test_client()
