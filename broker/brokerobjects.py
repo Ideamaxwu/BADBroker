@@ -153,8 +153,10 @@ class ChannelSubscription(BrokerObject):
     def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
         if parameters:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
-        elif channelSubscriptionId:
+        elif channelName and channelSubscriptionId:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
+        elif channelSubscriptionId:
+            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
 
         return ChannelSubscription.createFrom(objects)
 

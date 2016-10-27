@@ -198,7 +198,7 @@ class AsterixQueryManager():
             log.error('Error ' + str(e))
             log.debug(e.response.body)
         except Exception as e:
-            log.error('Erorr ', str(e))
+            log.error('Erorr '+ str(e))
 
         return 500, 'Query failed: ' + query
 

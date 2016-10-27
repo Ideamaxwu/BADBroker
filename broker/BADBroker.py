@@ -80,6 +80,7 @@ class BADBroker:
 
         self.brokerIPAddr = self._myNetAddress()
         tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
+        tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
     @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
@@ -115,7 +116,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def register(self, dataverseName, userName, password, email):
         """
-           Registers users/clients in the BAD broker.
+        Registers users/clients in the BAD broker.
         :param dataverseName: dataverse name where the user wants to join (where the application resides in)
         :param userName: user name
         :param password: password for the account
@@ -237,6 +238,10 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def logout(self, dataverseName, userId, accessToken):
+        check = self._checkAccess(userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
             del self.sessions[dataverseName][userId]
 
@@ -432,7 +437,6 @@ class BADBroker:
             log.warning(msg)
             return {'status': 'failed', 'error': msg}
 
-
         channelName = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelName
         channelSubscriptionId = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelSubscriptionId
 
@@ -467,6 +471,8 @@ class BADBroker:
             resultToUser = []
 
             # Get results only the first channelExecutionTimes
+            # and return the count of the remaining in 'resultsetsRemaining' field
+
             channelExecutionTimeToReturn = channelExecutionTimes[0]
 
             # First check in the cache, if not retrieve from the Asterix
@@ -490,7 +496,7 @@ class BADBroker:
                     log.debug(resultFromAsterix)
                 '''
 
-            # Update last delivery timestamp of this subscription
+            # Update the latest delivered result timestamp of this subscription
             userSubscription.latestDeliveredResultTime = channelExecutionTimeToReturn
             yield userSubscription.save(dataverseName)
 
@@ -639,6 +645,7 @@ class BADBroker:
                                                     latestChannelExecutionTime, channelExecutionTime)
 
             log.debug(query)
+
             status, response = yield self.asterix.executeQuery(dataverseName, query)
             log.debug(response)
 
@@ -648,7 +655,7 @@ class BADBroker:
             if status == 200 and response:
                 latestChannelExecutionTimes = json.loads(response)
 
-                if latestChannelExecutionTimes:
+                if latestChannelExecutionTimes and len(latestChannelExecutionTimes) > 0:
                     log.info('Channel %s Latest delivery time %s' %(channelName, latestChannelExecutionTimes))
 
                     # Retrieve results from Asterix and cache them
@@ -658,7 +665,7 @@ class BADBroker:
                         if results and not self.cache.hasKey(resultKey):
                             self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
 
-                        # Send notifications to all users made this channel subscription
+                        # Send notifications to all users who made subscription to this channel
                         tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
                                                                      dataverseName=dataverseName,
                                                                      channelName=channelName,
@@ -670,7 +677,7 @@ class BADBroker:
                     yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save(dataverseName)
 
                 else:
-                    log.error('Retrieving delivery time failed for channel %s' % channelName)
+                    log.error('No new results to retrieve from channel %s' % channelName)
             else:
                     log.error('Retrieving delivery time failed for channel %s' % channelName)
 
@@ -773,19 +780,86 @@ class BADBroker:
         return {'status': 'success'}
 
     @tornado.gen.coroutine
-    def dropChannelResults(self, **kwargs):
-        '''
-        Drop records from channelresults when all existing subscribers already consumed records
-        :return:
-        '''
+    def scheduleDropResultsFromChannels(self):
+        yield self.dropChannelResults()
+        tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
-        # find dataverses
-        if kwargs and 'dataverse' in kwargs:
-            pass
+    @tornado.gen.coroutine
+    def dropChannelResults(self, **kwargs):
+        """
+        Drop records from channelresults upto the mark behind which all subscribers consumed the records
+        :return:
+        """
+
+        if kwargs and 'dataverse' in kwargs and 'channelSubscriptionId' in kwargs:
+            dataverse = kwargs['dataverse']
+            channelSubscriptionId = kwargs['channelSubscriptionId']
+            latestResultDeliveryTime = kwargs['latestResultDeliveryTime']
+
+            channels = yield ChannelSubscription.load(dataverse, channelSubscriptionId=channelSubscriptionId)
+            if channels and len(channels) > 0:
+                channelName = channels[0].channelName
+
+                # Find the number of records to be deleted
+                statement = 'let $values := for $t in dataset {}Results ' \
+                            'where $t.subscriptionId = uuid("{}") ' \
+                            'and $t.channelExecutionTime <= datetime("{}") return $t ' \
+                            'return count($values)'.format(channelName, channelSubscriptionId, latestResultDeliveryTime)
+
+                status, response = yield self.asterix.executeQuery(dataverse, statement)
+
+                if status == 200 and response:
+                    count = json.loads(response)[0]
+                    if count > 0:
+                        statement = 'delete $t from dataset {}Results ' \
+                                    'where $t.subscriptionId = uuid("{}") ' \
+                                    'and $t.channelExecutionTime <= datetime(\"{}\")'.format(channelName, channelSubscriptionId,
+                                                                                             latestResultDeliveryTime)
+
+                        status, response = yield self.asterix.executeAQL(dataverse, statement)
+
+                        if status == 200:
+                            log.info('%d resultsets are deleted from Channel %s with ChannelSubscriptionId %s' %(count,
+                                                                                                             channelName,
+                                                                                                             channelSubscriptionId))
+                        else:
+                            log.error('ChannelSubscription results deletion is failed')
+                    else:
+                        log.error('ChannelSubscription NO results to delete')
+            else:
+                log.error('Channel with id %s could not be found' %channelSubscriptionId)
+
+        elif kwargs and 'dataverse' in kwargs:
+            dataverse = kwargs['dataverse']
+
+            # Find min(latestDeliveryTime) for each subscription
+            statement = 'for $t in dataset UserSubscriptionDataset ' \
+                        'let $times := $t.latestDeliveredResultTime ' \
+                        'group by $channelSubscriptionId := $t.channelSubscriptionId with $times ' \
+                        'return {"channelSubscriptionId": $channelSubscriptionId, "latestDeliveredResultTime": min($times)}'
+
+            status, response = yield self.asterix.executeAQL(dataverse, statement)
+
+            if status == 200 and response:
+                log.debug(response)
+                channelinfo = json.loads(response)
+                for channel in channelinfo:
+                    channelSubscriptionId = channel['channelSubscriptionId']
+                    latestResultDeliveryTime = channel['latestDeliveredResultTime']
+                    log.info('ChannelSubscriptionId %s has min(delivered result time) %s' %(channelSubscriptionId, latestResultDeliveryTime))
+                    yield self.dropChannelResults(dataverse=dataverse, channelSubscriptionId=channelSubscriptionId,
+                                            latestResultDeliveryTime=latestResultDeliveryTime)
+            else:
+                log.error('ChannelSubscriptionId failed.')
         else:
-            dataverses = ['demoapp']
-            for dataverse in dataverses:
-                self.dropChannelResults(dataverse=dataverse)
+            # Find all dataverses from Metadata.Channel
+            statement = 'for $t in dataset Metadata.Channel return $t.DataverseName'
+            status, response = yield self.asterix.executeQuery(None, statement)
+
+            if status == 200 and response:
+                dataverses = json.loads(response)
+                for dataverse in dataverses:
+                    yield self.dropChannelResults(dataverse=dataverse)
 
     def _checkAccess(self, dataverseName, userId, accessToken):
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
@@ -802,7 +876,6 @@ class BADBroker:
                 'status': 'failed',
                 'error': 'User is not authenticated'
             }
-
 
     @tornado.gen.coroutine
     def registerApplication(self, appName, dataverseName, email):
@@ -875,3 +948,8 @@ def set_live_web_sockets(web_socket_object):
         live_web_sockets.add(web_socket_object)
     finally:
         mutex.release()
+
+if __name__ == '__main__':
+    broker = BADBroker.getInstance()
+    tornado.ioloop.IOLoop.current().add_callback(broker.dropChannelResults())
+    tornado.ioloop.IOLoop.current().start()
