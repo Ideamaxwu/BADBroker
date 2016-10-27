@@ -21,10 +21,9 @@ import configparser
 
 from brokerobjects import *
 import BADCache
+import brokerutils
 
-
-log.getLogger(__name__)
-log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+log = brokerutils.setup_logging(__name__)
 
 #host = 'http://cacofonix-2.ics.uci.edu:19002'
 #host = 'http://128.195.52.196:19002'
@@ -169,12 +168,14 @@ class BADBroker:
                 if dataverseName not in self.sessions:
                     self.sessions[dataverseName] = {}
 
+                '''
                 # Check if the user is already logged in, that is, has an entry in sessions
                 if userId in self.sessions[dataverseName]:
                     return {
                         'status': 'failed',
                         'error': 'User `%s` is already logged in. Cannot have multiple sessions!' %userName
                     }
+                '''
 
                 # Create a new session for this user
                 self.sessions[dataverseName][userId] = {
@@ -467,6 +468,7 @@ class BADBroker:
 
             # Get results only the first channelExecutionTimes
             channelExecutionTimeToReturn = channelExecutionTimes[0]
+
             # First check in the cache, if not retrieve from the Asterix
             resultFromCache = self.getResultsFromCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
@@ -478,11 +480,15 @@ class BADBroker:
                 log.info('Cache MISS for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
                 resultFromAsterix = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
+                if resultFromAsterix:
+                    resultToUser.extend(resultFromAsterix)
+
+                '''
                 # Cache the results
                 if resultFromAsterix:
                     self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn, resultFromAsterix)
                     log.debug(resultFromAsterix)
-                    resultToUser.extend(resultFromAsterix)
+                '''
 
             # Update last delivery timestamp of this subscription
             userSubscription.latestDeliveredResultTime = channelExecutionTimeToReturn
@@ -610,7 +616,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         if dataverseName not in self.userSubscriptions or channelName not in self.userSubscriptions[dataverseName]:
-            log.error('No such dataverse %s or no such channel %s' % (dataverseName, channelName))
+            log.error('No dataverse `%s` or no active subscriptions on channel `%s`' % (dataverseName, channelName))
             return
 
         log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
@@ -765,6 +771,21 @@ class BADBroker:
 
         yield self.notifiers['android'].setRegistrationToken(self, dataverseName, userId, gcmRegistrationToken)
         return {'status': 'success'}
+
+    @tornado.gen.coroutine
+    def dropChannelResults(self, **kwargs):
+        '''
+        Drop records from channelresults when all existing subscribers already consumed records
+        :return:
+        '''
+
+        # find dataverses
+        if kwargs and 'dataverse' in kwargs:
+
+        else:
+            dataverses = ['demoapp']
+            for dataverse in dataverses:
+                self.dropChannelResults(dataverse=dataverse)
 
     def _checkAccess(self, dataverseName, userId, accessToken):
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:

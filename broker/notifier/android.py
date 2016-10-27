@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import tornado.httpclient
-import logging as log
 import tornado.gen
 import simplejson as json
+import brokerutils
 
-log.getLogger(__name__)
-log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+log = brokerutils.setup_logging()
 
 class AndroidClientNotifier():
     def __init__(self):

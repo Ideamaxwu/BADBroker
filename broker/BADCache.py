@@ -1,10 +1,9 @@
 import heapq
 import logging as log
 import time
-from queue import PriorityQueue
+import brokerutils
 
-log.getLogger(__name__)
-log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+log = brokerutils.setup_logging(__name__)
 
 class EmptyCache:
     def get(self, key):

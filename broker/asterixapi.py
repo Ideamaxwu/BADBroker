@@ -5,9 +5,9 @@ import urllib.parse
 import tornado.httpclient
 import logging as log
 import configparser
+import brokerutils
 
-log.getLogger(__name__)
-log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+log = brokerutils.setup_logging(__name__)
 
 class AsterixQueryManager():
     asterixInstance = None
@@ -148,7 +148,7 @@ class AsterixQueryManager():
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
-            log.debug(response.body)
+            log.debug(e.response.body)
         except Exception as e:
             log.error('Error ' + str(e))
 

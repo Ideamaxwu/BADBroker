@@ -4,6 +4,9 @@ import tornado.iostream
 
 import simplejson as json
 from asterixapi import *
+import brokerutils
+
+log = brokerutils.setup_logging(__name__)
 
 class BrokerObject:
     @tornado.gen.coroutine

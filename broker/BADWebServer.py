@@ -17,8 +17,9 @@ from asterixapi import AsterixQueryManager
 import logging as log
 from threading import Lock
 
-log.getLogger(__name__)
-log.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=log.DEBUG)
+import brokerutils
+
+log = brokerutils.setup_logging(__name__)
 
 mutex = Lock()
 condition_variable = False
