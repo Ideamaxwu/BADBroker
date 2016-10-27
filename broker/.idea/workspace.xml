@@ -5,20 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/brokerutils.py" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Client.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ClientInterface.py" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/app-demoapp.aql" afterPath="$PROJECT_DIR$/../BADPythonClient/app-demoapp.aql" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADApplication.py" afterPath="$PROJECT_DIR$/BADApplication.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADBroker.py" afterPath="$PROJECT_DIR$/BADBroker.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADCache.py" afterPath="$PROJECT_DIR$/BADCache.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADWebServer.py" afterPath="$PROJECT_DIR$/BADWebServer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/asterixapi.py" afterPath="$PROJECT_DIR$/asterixapi.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/brokerobjects.py" afterPath="$PROJECT_DIR$/brokerobjects.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/notifier/android.py" afterPath="$PROJECT_DIR$/notifier/android.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/rabbitmq.py" afterPath="$PROJECT_DIR$/rabbitmq.py" />
     </list>
     <ignored path="broker.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -74,8 +62,8 @@
       <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BADBroker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8226351">
-              <caret line="783" column="12" selection-start-line="783" selection-start-column="12" selection-end-line="783" selection-end-column="12" />
+            <state vertical-scroll-proportion="0.20608108">
+              <caret line="784" column="13" selection-start-line="784" selection-start-column="13" selection-end-line="784" selection-end-column="13" />
               <folding>
                 <element signature="e#24#45#0" expanded="true" />
               </folding>
@@ -536,12 +524,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00005" summary="changes.">
-      <created>1464118169820</created>
-      <option name="number" value="00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1464118169820</updated>
-    </task>
     <task id="LOCAL-00006" summary="changes.">
       <created>1464120020809</created>
       <option name="number" value="00006" />
@@ -830,7 +812,13 @@
       <option name="project" value="LOCAL" />
       <updated>1477518830569</updated>
     </task>
-    <option name="localTasksCounter" value="54" />
+    <task id="LOCAL-00054" summary="Python client changes.">
+      <created>1477526414329</created>
+      <option name="number" value="00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1477526414330</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1292,8 +1280,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BADBroker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8226351">
-          <caret line="783" column="12" selection-start-line="783" selection-start-column="12" selection-end-line="783" selection-end-column="12" />
+        <state vertical-scroll-proportion="0.20608108">
+          <caret line="784" column="13" selection-start-line="784" selection-start-column="13" selection-end-line="784" selection-end-column="13" />
           <folding>
             <element signature="e#24#45#0" expanded="true" />
           </folding>

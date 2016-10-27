@@ -781,7 +781,7 @@ class BADBroker:
 
         # find dataverses
         if kwargs and 'dataverse' in kwargs:
-
+            pass
         else:
             dataverses = ['demoapp']
             for dataverse in dataverses:
