@@ -8,6 +8,7 @@ import brokerutils
 
 log = brokerutils.setup_logging(__name__)
 
+
 class BrokerObject:
     @tornado.gen.coroutine
     def delete(self, dataverseName):
@@ -80,7 +81,6 @@ class BrokerObject:
         else:
             return None
 
-
     @classmethod
     def createFrom(cls, objects):
         if not objects:
@@ -139,6 +139,7 @@ class User(BrokerObject):
     def __str__(self):
         return self.userName + ' ID ' + self.userId
 
+
 class ChannelSubscription(BrokerObject):
     def __init__(self, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.recordId = recordId
@@ -159,6 +160,7 @@ class ChannelSubscription(BrokerObject):
             objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
 
         return ChannelSubscription.createFrom(objects)
+
 
 class UserSubscription(BrokerObject):
     def __init__(self, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
@@ -192,6 +194,7 @@ class UserSubscription(BrokerObject):
             return None
 
         return UserSubscription.createFrom(objects)
+
 
 class BADException(Exception):
     pass

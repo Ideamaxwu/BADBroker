@@ -17,7 +17,11 @@ if setupAQL is None:
     print('The setup file app-%s.aql does not exist or reading from the failed' %appName)
     sys.exit(0)
 
-post_data = {'appName': 'demoapp', 'dataverseName': 'demoapp', 'email': 'demoapp@gmail.com', 'setupAQL': setupAQL}
+post_data = {'appName': 'demoapp',
+             'dataverseName': 'demoapp',
+             'email': 'demoapp@gmail.com',
+             'setupAQL': setupAQL
+             }
 
 r = requests.post(brokerUrl + "/registerapplication", data=json.dumps(post_data))
 

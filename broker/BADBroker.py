@@ -879,8 +879,9 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def registerApplication(self, appName, dataverseName, email, setupAQL):
-        # Check if there is already a dataverse exists with the same name
         """
+        # Check if there is already a dataverse exists with the same name, currently ignored.
+
         command = 'use dataverse {};'.format(dataverseName)
         status, response = yield self.asterix.executeAQL(None, command);
 
