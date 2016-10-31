@@ -1,3 +1,6 @@
+drop dataverse demoapp if exists;
+create dataverse demoapp;
+
 use dataverse demoapp;
 
 create type TweetMessageTypeuuid as closed {

@@ -80,7 +80,7 @@ class BADBroker:
 
         self.brokerIPAddr = self._myNetAddress()
         tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
-        tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
+        #tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
     @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
@@ -238,7 +238,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def logout(self, dataverseName, userId, accessToken):
-        check = self._checkAccess(userId, accessToken)
+        check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
@@ -878,8 +878,9 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def registerApplication(self, appName, dataverseName, email):
+    def registerApplication(self, appName, dataverseName, email, setupAQL):
         # Check if there is already a dataverse exists with the same name
+        """
         command = 'use dataverse {};'.format(dataverseName)
         status, response = yield self.asterix.executeAQL(None, command);
 
@@ -894,9 +895,8 @@ class BADBroker:
             else:
                 log.info('Create new app {} in dataverse {}'.format(appName, dataverseName))
                 apiKey = str(hashlib.sha224((dataverseName + appName + str(datetime.now())).encode()).hexdigest())
-                app = Application(recordId=appName, appName=appName, email=email, apiKey=apiKey)
-                yield app.save(dataverseName)
-                apiKey = app.apiKey
+                #app = Application(recordId=appName, appName=appName, email=email, apiKey=apiKey)
+                #yield app.save(dataverseName)
 
             return {
                 'status': 'success',
@@ -904,22 +904,35 @@ class BADBroker:
                 'appName': appName,
                 'apiKey': apiKey
             }
+        """
 
-        log.info('No dataverse {} exists for new app {}. creating one...'.format(dataverseName, appName))
+        log.info('Setting up dataverse {} for new app {}....'.format(dataverseName, appName))
 
-        commands = 'drop dataverse {} if exists;\n'.format(dataverseName)
-        commands = commands + 'create dataverse {}; \n use dataverse {};'.format(dataverseName, dataverseName)
+        status, response = yield self.asterix.executeAQL(None, setupAQL)
 
+        if status != 200:
+            log.error('Registration failed. Dataverse setup failed')
+            log.debug(response)
+            return {
+                'status': 'success',
+                'appName': appName,
+                'error': 'Dataverse setup failed'
+            }
+
+        log.info('Dataverse setup for app %s is succcessful' %appName)
+        log.info('Now setting up broker datasets...')
+
+        commands = ''
         with open("brokersetupforapp.aql") as f:
             for line in f.readlines():
                 if not line.startswith('#'):
                     commands = commands + line
         commands = commands + '\n'
-        commands = commands + 'create broker {} at "http://{}:{}/notifybroker";'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
+        commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
 
         log.info('Executing commands: ' + commands)
 
-        status, response = yield self.asterix.executeAQL(None, commands)
+        status, response = yield self.asterix.executeAQL(dataverseName, commands)
 
         if status == 200:
             log.info('Broker setup succeeded for app {}'.format(appName))
@@ -928,6 +941,7 @@ class BADBroker:
             apiKey = str(hashlib.sha224((dataverseName + appName + str(datetime.now())).encode()).hexdigest())
             app = Application(recordId=appName, appName=appName, email=email, apiKey=apiKey)
             yield app.save(dataverseName)
+
             apiKey = app.apiKey
 
             return {
