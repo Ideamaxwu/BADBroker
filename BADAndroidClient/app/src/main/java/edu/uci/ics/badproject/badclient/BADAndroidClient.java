@@ -1,5 +1,7 @@
 package edu.uci.ics.badproject.badclient;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.Preference;
@@ -25,20 +27,31 @@ import java.net.URL;
  * Created by ysarwar on 9/22/16.
  */
 
+
 public abstract class BADAndroidClient {
     public final static String TAG = "BADAndroidClient";
+    public final static String Preference_TAG = "Badclient.Preference";
 
     private String brokerUrl = null;
     private String dataverseName = null;
-    public String userName, email, password, userId, accessToken;
-    public String gcmRegistrationToken = null;
+    private String userName, email, password, userId, accessToken;
+    private String gcmRegistrationToken = null;
 
-    public BADAndroidClient() {
-    }
+    private Context context = null;
 
-    public BADAndroidClient(String brokerUrl, String dataverseName) {
+    public BADAndroidClient(Context context, String brokerUrl, String dataverseName) {
+        this.context = context;
         this.brokerUrl = brokerUrl;
         this.dataverseName = dataverseName;
+
+        if (context.getSharedPreferences(Preference_TAG, Context.MODE_PRIVATE).contains("userId")) {
+            Log.d(TAG, "Loading activity state from shared preference");
+            SharedPreferences preferences = context.getSharedPreferences(Preference_TAG, Context.MODE_PRIVATE);
+            userId = preferences.getString("userId", "");
+            userName = preferences.getString("userName", "");
+            accessToken = preferences.getString("accessToken", "");
+            gcmRegistrationToken = preferences.getString("gcmRegistration", "");
+        }
     }
 
 
@@ -85,7 +98,7 @@ public abstract class BADAndroidClient {
         }
     }
 
-    public void login(String userName, String password) {
+    public void login(final String userName, String password) {
         JSONObject postData = new JSONObject();
 
         try {
@@ -108,7 +121,19 @@ public abstract class BADAndroidClient {
                     if (s != null) {
                         try {
                             JSONObject result = new JSONObject(s);
+                            userId = result.getString("userId");
+                            accessToken = result.getString("accessToken");
+
+                            context.getSharedPreferences(Preference_TAG, Context.MODE_PRIVATE).edit()
+                                    .putString("userName", userName)
+                                    .putString("userId", userId)
+                                    .putString("accessToken", accessToken)
+                                    .putString("gcmRegistrationToken", gcmRegistrationToken)
+                                    .apply();
                             onLogin(result);
+
+                            setFCMRegistrationToken(gcmRegistrationToken);
+
                         } catch (JSONException jex) {
                             jex.printStackTrace();
                             Log.e(TAG, "Malformated result " + s);
@@ -173,14 +198,73 @@ public abstract class BADAndroidClient {
         }
     }
 
-    class PostCallTask extends AsyncTask<String, Void, String> {
+    public void setFCMRegistrationToken(String token) {
+        this.gcmRegistrationToken = token;
+        context.getSharedPreferences(Preference_TAG, Context.MODE_PRIVATE).edit()
+                .putString("userName", userName)
+                .putString("userId", userId)
+                .putString("accessToken", accessToken)
+                .putString("gcmRegistrationToken", gcmRegistrationToken)
+                .apply();
+
+        if (this.userId == null || this.accessToken == null) {
+            JSONObject result;
+            try{
+                result = new JSONObject().put("status", "failed").put("error", "Perhaps, User is not logged in");
+                onSubscription(result);
+            } catch (JSONException jex){
+                jex.printStackTrace();
+            }
+            return;
+        }
+
+        JSONObject postData = new JSONObject();
+
+        try {
+            postData.put("dataverseName", this.dataverseName);
+            postData.put("userId", this.userId);
+            postData.put("accessToken", this.accessToken);
+            postData.put("gcmRegistrationToken", token);
+
+            PostCallTask task = new PostCallTask() {
+                @Override
+                protected void onPostExecute(String s) {
+                    if (s != null) {
+                        try {
+                            JSONObject result = new JSONObject(s);
+                            if (result.getString("status").equals("success")) {
+                                Log.i(TAG, "GCM registration is set for the client");
+                            }
+                            else {
+                                Log.i(TAG, "GCM registration is failed");
+                            }
+                        } catch (JSONException jex) {
+                            jex.printStackTrace();
+                            Log.e(TAG, "Malformatted result " + s);
+                            onSubscription(null);
+                        }
+                    } else {
+                        Log.e(TAG, "Empty result is returned");
+                        onSubscription(null);
+                    }
+                }
+            };
+
+            task.execute(brokerUrl, "gcmregistration", postData.toString());
+
+        } catch (JSONException jex){
+            jex.printStackTrace();
+        }
+    }
+
+    private class PostCallTask extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... strings) {
             return postCall(strings[0], strings[1], strings[2]);
         }
     }
 
-    public void fetchResults(String channelName, String userSubscriptionId, String channelExecutionTime) {
+    public void fetchResults(final String channelName, final String userSubscriptionId, final String channelExecutionTime) {
         if (this.userId == null || this.accessToken == null) {
             JSONObject result;
             try{
@@ -206,7 +290,11 @@ public abstract class BADAndroidClient {
                 protected void onPostExecute(String s) {
                     if (s != null) {
                         try {
-                            onNewResultsRetrieved(new JSONObject(s));
+                            JSONObject result = new JSONObject(s);
+                            onNewResultsRetrieved(result);
+                            if (result.getInt("resultsetsRemaining") > 0) {
+                                fetchResults(channelName, userSubscriptionId, channelExecutionTime);
+                            }
                         } catch (JSONException jex) {
                             jex.printStackTrace();
                             Log.e(TAG, "Malformatted result " + s);
@@ -227,7 +315,7 @@ public abstract class BADAndroidClient {
     }
 
     // Taken from http://stackoverflow.com/questions/20279195/android-post-request-using-httpurlconnection
-    public String postCall(String url, String servicePoint, String params){
+    private String postCall(String url, String servicePoint, String params){
         InputStream is = null;
         String response = null;
         HttpURLConnection urlConn = null;
@@ -270,7 +358,8 @@ public abstract class BADAndroidClient {
             while ((line = reader.readLine()) != null) {
                 sb.append(line + "\n");
             }
-            is.close();
+
+            if (is != null) is.close();
             response = sb.toString();
             Log.d(TAG, response);
         } catch (Exception e) {

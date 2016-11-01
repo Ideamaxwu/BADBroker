@@ -1,10 +1,12 @@
 package edu.uci.ics.badproject.badclient;
 
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -15,9 +17,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
     private static final String TAG = "MainActivity";
     public final static String Preference_TAG = "Badclient.Preference";
+    public static final String FCM_INTENT = "edu.uci.ics.badclient.OBTAINED_FCMREGISTRATION_TOKEN";
 
     private TextView txtViewStatus = null;
     private EditText editText = null;
@@ -31,17 +34,8 @@ public class MainActivity extends AppCompatActivity {
         String brokerUrl = getResources().getString(R.string.broker_url);
         String dataverseName = getResources().getString(R.string.dataverseName);
 
-        client = new MyBADClient(brokerUrl, dataverseName);
+        client = new MyBADClient(this.getApplicationContext(), brokerUrl, dataverseName);
         Log.d(TAG, "Activity is being created");
-
-        if (getSharedPreferences(Preference_TAG, MODE_PRIVATE).contains("userId")) {
-            Log.d(TAG, "Loading activity state from shared preference");
-            SharedPreferences preferences = getSharedPreferences(Preference_TAG, MODE_PRIVATE);
-            client.userId = preferences.getString("userId", "");
-            client.userName = preferences.getString("userName", "");
-            client.accessToken = preferences.getString("accessToken", "");
-            client.gcmRegistrationToken = preferences.getString("gcmRegistration", "");
-        }
 
         setContentView(R.layout.activity_main);
         txtViewStatus = (TextView)findViewById(R.id.txtViewStatus);
@@ -54,6 +48,17 @@ public class MainActivity extends AppCompatActivity {
             }
             this.onNoticationForNewResultsInChannel(getIntent().getExtras());
         }
+
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                System.out.println("Received Broadcast " + intent.getAction());
+                if (intent.getAction().equals(FCM_INTENT)) {
+                    String token = intent.getStringExtra("TOKEN");
+                    client.setFCMRegistrationToken(token);
+                }
+            }
+        }, new IntentFilter(FCM_INTENT));
     }
 
     @Override
@@ -70,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void registerUser(View v) {
-        this.client.register("channels", "yusuf", "yusuf@abc.net", "pass");
+        this.client.register("demoapp", "yusuf", "yusuf@abc.net", "pass");
     }
 
     public void loginUser(View v) {
@@ -91,8 +96,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class MyBADClient extends BADAndroidClient {
-        public MyBADClient(String brokerUrl, String dataverseName) {
-            super(brokerUrl, dataverseName);
+
+        MyBADClient(Context context, String userName, String dataverseName) {
+            super(context, userName, dataverseName);
         }
 
         @Override
@@ -109,22 +115,18 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, result.toString(), Toast.LENGTH_SHORT).show();
                 try {
                     if (result.getString("status").equals("success")) {
-                        client.userId = result.getString("userId");
-                        client.accessToken = result.getString("accessToken");
-
-                        getSharedPreferences(Preference_TAG, MODE_PRIVATE).edit()
-                                .putString("userName", client.userName)
-                                .putString("userId", client.userId)
-                                .putString("accessToken", client.accessToken)
-                                .putString("gcmRegistrationToken", client.gcmRegistrationToken)
-                                .commit();
+                        Toast.makeText(MainActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
+                    }
+                    else {
+                        Toast.makeText(MainActivity.this, "Login Failed", Toast.LENGTH_SHORT).show();
                     }
                 } catch (JSONException jex) {
+                    jex.printStackTrace();
                 }
-
             }
-            else
+            else {
                 Toast.makeText(MainActivity.this, "Login Failed", Toast.LENGTH_SHORT).show();
+            }
         }
 
         @Override
@@ -142,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
             else
                 Toast.makeText(MainActivity.this, "Getresults Failed", Toast.LENGTH_SHORT).show();
 
-            Log.i(TAG, result.toString());
+            Log.i(TAG, result != null ? result.toString() : null);
         }
     }
 }

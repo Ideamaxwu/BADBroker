@@ -1,6 +1,7 @@
 package edu.uci.ics.badproject.badclient;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
 
@@ -27,7 +28,7 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
         Log.d(TAG, "Refreshed token: " + refreshedToken);
 
         SharedPreferences.Editor editor = getSharedPreferences(MainActivity.Preference_TAG, Context.MODE_PRIVATE).edit();
-        editor.putString("gcmRegistrationToken", refreshedToken).commit();
+        editor.putString("gcmRegistrationToken", refreshedToken).apply();
 
         // TODO: Implement this method to send any registration to your app's servers.
         sendRegistrationToServer(refreshedToken);
@@ -44,5 +45,8 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
      */
     private void sendRegistrationToServer(String token) {
         // Add custom implementation, as needed.
+        Intent intent = new Intent(MainActivity.FCM_INTENT);
+        intent.putExtra("TOKEN", token);
+        sendBroadcast(intent);
     }
 }
