@@ -275,6 +275,12 @@ public abstract class BADAndroidClient {
             return;
         }
 
+        if (channelName == null || userSubscriptionId == null || channelExecutionTime == null) {
+            Log.i(TAG, "Null entry for " + channelName + " " + userSubscriptionId + " " + channelExecutionTime);
+            return;
+        }
+        Log.i(TAG, "Fetching results for subscription " + userSubscriptionId);
+
         JSONObject postData = new JSONObject();
 
         try {
@@ -292,7 +298,7 @@ public abstract class BADAndroidClient {
                         try {
                             JSONObject result = new JSONObject(s);
                             onNewResultsRetrieved(result);
-                            if (result.getInt("resultsetsRemaining") > 0) {
+                            if (result.getString("status").equals("success") && result.getInt("resultsetsRemaining") > 0) {
                                 fetchResults(channelName, userSubscriptionId, channelExecutionTime);
                             }
                         } catch (JSONException jex) {

@@ -770,13 +770,12 @@ class BADBroker:
         iostream.close()
         sock.close()
 
-    @tornado.gen.coroutine
     def gcmRegistration(self, dataverseName, userId, accessToken, gcmRegistrationToken):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
 
-        yield self.notifiers['android'].setRegistrationToken(self, dataverseName, userId, gcmRegistrationToken)
+        self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
         return {'status': 'success'}
 
     @tornado.gen.coroutine

@@ -334,7 +334,6 @@ class GCMRegistrationHandler(tornado.web.RequestHandler):
     def get(self):
         print(str(self.request.body, encoding='utf-8'))
 
-    @tornado.gen.coroutine
     def post(self):
         log.info('Broker received gcmregistration')
         log.info(str(self.request.body, encoding='utf-8'))
@@ -347,7 +346,7 @@ class GCMRegistrationHandler(tornado.web.RequestHandler):
         accessToken = post_data['accessToken']
         gcmRegistrationToken = post_data['gcmRegistrationToken']
 
-        response = yield self.broker.gcmRegistration(dataverseName, userId, accessToken, gcmRegistrationToken)
+        response = self.broker.gcmRegistration(dataverseName, userId, accessToken, gcmRegistrationToken)
 
         self.write(json.dumps(response))
         self.flush()

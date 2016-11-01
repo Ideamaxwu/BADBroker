@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
     private EditText editText = null;
 
     BADAndroidClient client;
-
+    BroadcastReceiver receiver = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +49,12 @@ public class MainActivity extends Activity {
             this.onNoticationForNewResultsInChannel(getIntent().getExtras());
         }
 
-        registerReceiver(new BroadcastReceiver() {
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerReceiver(receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 System.out.println("Received Broadcast " + intent.getAction());
@@ -59,6 +64,12 @@ public class MainActivity extends Activity {
                 }
             }
         }, new IntentFilter(FCM_INTENT));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (receiver != null) unregisterReceiver(receiver);
     }
 
     @Override
@@ -94,6 +105,7 @@ public class MainActivity extends Activity {
         String channelExecutionTime = notification.getString("channelExecutionTime");
         this.client.fetchResults(channelName, userSubscriptionId, channelExecutionTime);
     }
+
 
     class MyBADClient extends BADAndroidClient {
 
@@ -144,7 +156,7 @@ public class MainActivity extends Activity {
             else
                 Toast.makeText(MainActivity.this, "Getresults Failed", Toast.LENGTH_SHORT).show();
 
-            Log.i(TAG, result != null ? result.toString() : null);
+            Log.i(TAG, result != null ? result.toString() : "");
         }
     }
 }
