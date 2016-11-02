@@ -45,16 +45,18 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
 
         try:
             appName = post_data['appName']
-            dataverseName = post_data['dataverseName']
+            appDataverse = post_data['appDataverse']
+            adminUser = post_data['adminUser']
+            adminPasseword = post_data['adminPassword']
             email = post_data['email']
             dropExisting = post_data['dropExisting'] if 'dropExisting' in post_data else 0
 
-            response = yield self.broker.registerApplication(appName, dataverseName, email, dropExisting)
+            response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
 
         except KeyError as e:
-            print('Parse error for ' + str(e) + ' in ' + str(post_data))
-            print(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -80,9 +82,9 @@ class SetupApplicationHandler(tornado.web.RequestHandler):
             response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
-            print('Parse error for ' + str(e) + ' in ' + str(post_data))
-            print(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -108,9 +110,37 @@ class UpdateApplicationHandler(tornado.web.RequestHandler):
             response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
-            print('Parse error for ' + str(e) + ' in ' + str(post_data))
-            print(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class ApplicationAdminLoginHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            appName = post_data['appName']
+            adminUser = post_data['adminUser']
+            adminPassword = post_data['adminPassword']
+
+            response = yield self.broker.applicationAdminLogin(appName, adminUser, adminPassword)
+
+        except KeyError as e:
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -128,7 +158,6 @@ class RegistrationHandler(tornado.web.RequestHandler):
 
         log.debug(post_data)
 
-        dataverseName = 'channels'
         try:
             dataverseName = post_data['dataverseName']
             userName = post_data['userName']
@@ -138,9 +167,9 @@ class RegistrationHandler(tornado.web.RequestHandler):
             response = yield self.broker.register(dataverseName, userName, password, email)
 
         except KeyError as e:
-            print('Parse error for ' + str(e) + ' in ' + str(post_data))
-            print(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -167,7 +196,7 @@ class LoginHandler (tornado.web.RequestHandler):
             response = yield self.broker.login(dataverseName, userName, password, platform)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         log.debug(response)
 
@@ -195,7 +224,7 @@ class LogoutHandler (tornado.web.RequestHandler):
             response = yield self.broker.logout(dataverseName, userId, accessToken)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -261,7 +290,7 @@ class GetResultsHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(self.request.body)
+        log.info(self.request.body)
 
     @tornado.gen.coroutine
     def post(self):
@@ -280,9 +309,9 @@ class GetResultsHandler(tornado.web.RequestHandler):
 
             response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
-        print(json.dumps(response))
+        log.info(json.dumps(response))
         self.write(json.dumps(response))
         self.flush()
         self.finish()
@@ -293,7 +322,7 @@ class InsertRecordsHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(self.request.body)
+        log.info(self.request.body)
 
     @tornado.gen.coroutine
     def post(self):
@@ -313,7 +342,7 @@ class InsertRecordsHandler(tornado.web.RequestHandler):
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
-        print(json.dumps(response))
+        log.info(json.dumps(response))
         self.write(json.dumps(response))
         self.flush()
         self.finish()
@@ -324,7 +353,7 @@ class FeedRecordsHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(self.request.body)
+        log.info(self.request.body)
 
     @tornado.gen.coroutine
     def post(self):
@@ -344,7 +373,7 @@ class FeedRecordsHandler(tornado.web.RequestHandler):
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
-        print(json.dumps(response))
+        log.info(json.dumps(response))
         self.write(json.dumps(response))
         self.flush()
         self.finish()
@@ -355,7 +384,7 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(str(self.request.body, encoding='utf-8'))
+        log.info(str(self.request.body, encoding='utf-8'))
 
     @tornado.gen.coroutine
     def post(self):
@@ -388,7 +417,7 @@ class GCMRegistrationHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(str(self.request.body, encoding='utf-8'))
+        log.info(str(self.request.body, encoding='utf-8'))
 
     def post(self):
         log.info('Broker received gcmregistration')
@@ -434,7 +463,7 @@ class ListChannelsHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(str(self.request.body, encoding='utf-8'))
+        log.info(str(self.request.body, encoding='utf-8'))
 
     @tornado.gen.coroutine
     def post(self):
@@ -466,7 +495,7 @@ class BrowserWebSocketHandler(tornado.websocket.WebSocketHandler):
             mutex.release()
 
     def on_message(self, message):
-        print('Message incoming:', message)
+        log.info('Message incoming:', message)
 
     def on_close(self):
         log.info("WebSocket closed")
@@ -491,7 +520,7 @@ class ListSubscriptionsHandler(tornado.web.RequestHandler):
         self.broker = broker
 
     def get(self):
-        print(str(self.request.body, encoding='utf-8'))
+        log.info(str(self.request.body, encoding='utf-8'))
 
     @tornado.gen.coroutine
     def post(self):
@@ -523,6 +552,7 @@ def start_server():
         (r'/registerapplication', RegisterApplicationHandler, dict(broker=broker)),
         (r'/setupapplication', SetupApplicationHandler, dict(broker=broker)),
         (r'/updateapplication', UpdateApplicationHandler, dict(broker=broker)),
+        (r'/appadminlogin', ApplicationAdminLoginHandler, dict(broker=broker)),
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
         (r'/logout', LogoutHandler, dict(broker=broker)),

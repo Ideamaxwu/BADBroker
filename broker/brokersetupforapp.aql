@@ -1,15 +1,6 @@
-create type ApplicationType as closed {
-    recordId: string,
-    appName: string,
-    email: string,
-    apiKey: string
-}
-
-create dataset ApplicationDataset (ApplicationType)
-primary key recordId;
-
 create type UserType as closed {
     recordId: string,
+    dataverseName: string,
     userId: string,
     userName: string,
     password: string,
@@ -21,6 +12,7 @@ primary key recordId;
 
 create type UserSubscriptionType as closed {
     recordId: string,
+    dataverseName: string,
     userSubscriptionId: string,
     channelSubscriptionId: string,
     userId: string,
@@ -35,6 +27,7 @@ primary key recordId;
 
 create type ChannelSubscriptionType as closed{
     recordId: string,
+    dataverseName: string,
     channelName:string,
     brokerName: string,
     parameters: string,

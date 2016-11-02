@@ -13,8 +13,8 @@ def on_error(where, error_msg):
 
 client = badclient.BADClient(brokerServer='localhost')
 
-dataverseName = 'demoapp'
-userName = sys.argv[1]
+dataverseName = sys.argv[1]
+userName = sys.argv[2]
 password = 'yusuf'
 email = 'abc@abc.net'
 
@@ -30,8 +30,8 @@ if client.login() == False:
 client.listchannels()
 client.listsubscriptions()
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-#print ('Subscribed with ID %s' %subcriptionId)
+subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+print ('Subscribed with ID %s' %subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

@@ -138,8 +138,8 @@ class BADBroker:
 
         else:
             userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
-            user = User(userId, userId, userName, password, email)
-            yield user.save(dataverseName)
+            user = User(dataverseName, userId, userId, userName, password, email)
+            yield user.save()
             self.users[userName] = user
 
             log.debug('Registered user %s with id %s' % (userName, userId))
@@ -292,7 +292,19 @@ class BADBroker:
         status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
 
         if status_code != 200:
-            raise BADException(response)
+            log.debug(response)
+            if 'There is no broker with this name' in response:
+                log.info('Broker `%s` is not registered. Registering..' %self.brokerName)
+                command = 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
+                status_code, response = yield self.asterix.executeAQL(dataverseName, command)
+                if status_code != 200:
+                    raise BADException(response)
+                else:
+                    status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+                    if status_code != 200:
+                        raise BADException(response)
+            else:
+                raise BADException(response)
 
         response = response.replace('\n', '').replace(' ', '')
         log.debug(response)
@@ -302,9 +314,9 @@ class BADBroker:
 
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
         currentDateTime = yield self.getCurrentDateTime()
-        channelSubscription = ChannelSubscription(uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
+        channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
 
-        yield channelSubscription.save(dataverseName)
+        yield channelSubscription.save()
 
         return channelSubscription
 
@@ -314,9 +326,9 @@ class BADBroker:
 
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId)
 
-        userSubscription = UserSubscription(userSubscriptionId, userSubscriptionId, userId,
+        userSubscription = UserSubscription(dataverseName, userSubscriptionId, userSubscriptionId, userId,
                                     channelSubscriptionId, channelName, timestamp, resultsDataset)
-        yield userSubscription.save(dataverseName)
+        yield userSubscription.save()
 
         if channelName not in self.userSubscriptions[dataverseName]:
             self.userSubscriptions[dataverseName][channelName] = {}
@@ -412,7 +424,7 @@ class BADBroker:
             if status_code != 200:
                 raise BADException(response)
 
-            yield userSubscription.delete(dataverseName)
+            yield userSubscription.delete()
 
             del self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             del self.userToSubscriptionMap[dataverseName][userSubscriptionId]
@@ -498,7 +510,7 @@ class BADBroker:
 
             # Update the latest delivered result timestamp of this subscription
             userSubscription.latestDeliveredResultTime = channelExecutionTimeToReturn
-            yield userSubscription.save(dataverseName)
+            yield userSubscription.save()
 
             return {'status': 'success',
                     'channelName': channelName,
@@ -674,7 +686,7 @@ class BADBroker:
 
                     # set latestChannelExecutionTime to the subscription
                     self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime = latestChannelExecutionTimes[-1]
-                    yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save(dataverseName)
+                    yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save()
 
                 else:
                     log.error('No new results to retrieve from channel %s' % channelName)
@@ -877,35 +889,37 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def registerApplication(self, appName, dataverseName, email, dropExisting=0):
+    def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0):
         # Check if there is already an app exists with the same name, currently ignored.
 
         if dropExisting == 0:
-            applications = yield Application.load(appName=appName)
+            applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
             if applications and len(applications) > 0:
-                log.info('Obtained application with the same name {} in dataverse {}'.format(appName, dataverseName))
+                log.info('Obtained application with the same name {} in dataverse {}'.format(appName, appDataverse))
                 return {
                     'status': 'success',
                     'appName': appName,
-                    'dataverseName': applications[0].dataverseName,
+                    'appDataverse': applications[0].appDataverse,
                     'apiKey': applications[0].apiKey
                 }
 
-        log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, dataverseName))
+        log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, appDataverse))
 
-        command = 'drop dataverse {} if exists; create dataverse {};'.format(dataverseName, dataverseName)
+        command = 'drop dataverse {} if exists; create dataverse {};'.format(appDataverse, appDataverse)
         status, response = yield self.asterix.executeAQL(None, command);
 
-        if status == 200 and response:
-            log.info('Creating new app {} in dataverse {}'.format(appName, dataverseName))
-            apiKey = str(hashlib.sha224((dataverseName + appName + str(datetime.now())).encode()).hexdigest())
+        log.debug(response)
 
-            app = Application(recordId=appName, appName=appName, dataverseName=dataverseName, email=email, apiKey=apiKey)
-            yield app.save(dataverseName)
+        if status == 200:
+            log.info('Creating new app {} in dataverse {}'.format(appName, appDataverse))
+            apiKey = str(hashlib.sha224((appDataverse+ appName + str(datetime.now())).encode()).hexdigest())
+
+            app = Application(Application.dataverseName, appName, appName, appDataverse, adminUser, adminPassword, email, apiKey)
+            yield app.save()
 
             return {
                 'status': 'success',
-                'dataverseName': dataverseName,
+                'appDataverse': appDataverse,
                 'appName': appName,
                 'apiKey': apiKey
             }
@@ -916,14 +930,43 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def setupApplication(self, appName, apiKey, dataverseName, setupAQL=None):
+    def applicationAdminLogin(self, appName, adminUser, adminPassword):
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
 
-        # Check if application exists, if so match ApiKey
-        if not Application.matchApiKey(appName, apiKey):
+        if not applications or len(applications) == 0:
             return {
-                'stauts': 'failed',
-                'error': 'No application or ApiKey does not match'
+                'status': 'failed',
+                'error': 'No application exists with name `%s`' %appName
             }
+
+        app = applications[0]
+        if (adminUser, adminPassword) == (app.adminUser, app.adminPassword):
+            return {
+                'status': 'success',
+                'appName': appName,
+                'adminUser': adminUser,
+                'apiKey': app.apiKey
+            }
+        else:
+            log.error('Password does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or Passord does not match '
+            }
+
+    @tornado.gen.coroutine
+    def setupApplication(self, appName, apiKey, setupAQL=None):
+        # Check if application exists, if so match ApiKey
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
+            }
+
+        dataverseName = applications[0].appDataverse
 
         log.info('Setting up dataverse {} for new app {}....'.format(dataverseName, appName))
 
@@ -962,14 +1005,19 @@ class BADBroker:
             return {'status': 'failed', 'error': response}
 
     @tornado.gen.coroutine
-    def UpdateApplication(self, appName, apiKey, dataverseName, setupAQL=None):
+    def UpdateApplication(self, appName, apiKey, setupAQL=None):
         # Check if application exists, if so match ApiKey
-        if not Application.matchApiKey(appName, apiKey):
+
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
             return {
-                'stauts': 'failed',
-                'error': 'No application or ApiKey does not match'
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
             }
 
+        dataverseName = applications[0].appDataverse
         log.info('Updating dataverse {} for app {}....'.format(dataverseName, appName))
 
         status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)

@@ -6,6 +6,7 @@ import tornado.httpclient
 import logging as log
 import configparser
 import brokerutils
+import simplejson as json
 
 log = brokerutils.setup_logging(__name__)
 
@@ -140,6 +141,7 @@ class AsterixQueryManager():
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
 
         log.info('Executing... ' + query)
+        errorMessage = 'Error'
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
@@ -149,10 +151,19 @@ class AsterixQueryManager():
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response.body)
+            if e.response and len(e.response.body) > 0:
+                log.debug(e.response.body)
+                errorResponse = json.loads(str(e.response.body, 'utf-8'))
+                log.debug(errorResponse['summary'])
+                errorMessage = errorResponse['summary']
+            else:
+                errorMessage = 'Query failed ' + str(e)
+
         except Exception as e:
             log.error('Error ' + str(e))
+            errorMessage = 'Query failed ' + str(e)
 
-        return 500, 'Query failed: ' + query
+        return 500, 'Query failed due to ' + str(errorMessage)
 
     @tornado.gen.coroutine
     def executeUpdate(self, dataverseName, query):
@@ -179,14 +190,14 @@ class AsterixQueryManager():
     def executeAQL(self, dataverseName, query):
         request_url = self.asterixBaseURL + "/" + "aql"
         if dataverseName:
-            query = "use dataverse " + dataverseName + "; " + query + ";"
+            query = "use dataverse " + dataverseName + "; " + query
         params = {'aql': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
 
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
         log.info(request_url)
-        response = None
+        errorMessage = 'Error'
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
@@ -196,10 +207,18 @@ class AsterixQueryManager():
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response.body)
+            if e.response and len(e.response.body) > 0:
+                log.debug(e.response.body)
+                errorResponse = json.loads(str(e.response.body, 'utf-8'))
+                log.debug(errorResponse['error-code'])
+                errorMessage = errorResponse['error-code']
+            else:
+                errorMessage = str(e)
         except Exception as e:
-            log.error('Error '+ str(e))
+            log.error('Error ' + str(e))
+            errorMessage = str(e)
 
-        return 500, 'Query failed: ' + query
+        return 500, 'Query failed ' + str(errorMessage)
 
     @tornado.gen.coroutine
     def executeDDL(self, dataverseName, ddlStatement):

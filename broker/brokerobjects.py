@@ -11,13 +11,13 @@ log = brokerutils.setup_logging(__name__)
 
 class BrokerObject:
     @tornado.gen.coroutine
-    def delete(self, dataverseName):
+    def delete(self):
         asterix = AsterixQueryManager.getInstance()
         cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
         cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
 
-        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
+        status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
         if status == 200:
             log.info('Delete succeeded')
             return True
@@ -26,7 +26,7 @@ class BrokerObject:
             raise Exception('Delete failed ' + response)
 
     @tornado.gen.coroutine
-    def save(self, dataverseName):
+    def save(self):
         asterix = AsterixQueryManager.getInstance()
         cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
@@ -34,7 +34,7 @@ class BrokerObject:
         cmd_stmt = cmd_stmt + ')'
         log.debug(cmd_stmt)
 
-        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
+        status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
         if status == 200:
             log.info('Object %s Id %s saved' % (self.__class__.__name__, self.recordId))
             return True
@@ -109,19 +109,23 @@ class BrokerObject:
 
 
 class Application(BrokerObject):
-    _DATAVERSE = "BrokerMetadata"
+    dataverseName = "BrokerMetadata"
 
-    def __init__(self, recordId=None, appName=None, dataverseName=None, email=None, apiKey=None):
+    def __init__(self, dataverseName=None, recordId=None, appName=None, appDataverse=None, adminUser=None,
+                 adminPassword=None, email=None, apiKey=None):
+        self.dataverseName = dataverseName
         self.recordId = recordId
         self.appName = appName
-        self.dataverseName = dataverseName
+        self.appDataverse = appDataverse
+        self.adminUser = adminUser
+        self.adminPassword = adminPassword
         self.email = email
         self.apiKey = apiKey
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, appName=None):
-        objects = yield BrokerObject.load(Application._DATAVERSE, cls.__name__, appName=appName)
+    def load(cls, dataverseName=None, appName=None):
+        objects = yield BrokerObject.load(dataverseName, cls.__name__, appName=appName)
         return Application.createFrom(objects)
 
     @classmethod
@@ -137,7 +141,8 @@ class Application(BrokerObject):
 
 
 class User(BrokerObject):
-    def __init__(self, recordId=None, userId=None, userName=None, password=None, email=None):
+    def __init__(self, dataverseName=None, recordId=None, userId=None, userName=None, password=None, email=None):
+        self.dataverseName = dataverseName
         self.recordId = recordId
         self.userId = userId
         self.userName = userName
@@ -155,7 +160,8 @@ class User(BrokerObject):
 
 
 class ChannelSubscription(BrokerObject):
-    def __init__(self, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
+    def __init__(self, dataverseName=None, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
+        self.dataverseName = dataverseName
         self.recordId = recordId
         self.channelName = channelName
         self.brokerName = brokerName
@@ -177,8 +183,9 @@ class ChannelSubscription(BrokerObject):
 
 
 class UserSubscription(BrokerObject):
-    def __init__(self, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
+    def __init__(self, dataverseName=None, recordId=None, userSubscriptionId=None, userId=None, channelSubscriptionId=None,
                  channelName=None, timestamp=None, resultsDataset=None):
+        self.dataverseName = dataverseName
         self.recordId = recordId
         self.userSubscriptionId = userSubscriptionId
         self.userId = userId

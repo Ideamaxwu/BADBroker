@@ -4,7 +4,7 @@ import sys
 
 brokerUrl = "http://localhost:8989"
 appName = sys.argv[1]
-dataverseName = sys.argv[2]
+dataverseName = sys.argv[1]
 setupAQL = ''
 
 with open('app-%s.aql' %appName) as f:
@@ -13,13 +13,17 @@ with open('app-%s.aql' %appName) as f:
             print(line)
             setupAQL += line
 
+print(setupAQL)
 if setupAQL is None:
     print('The setup file app-%s.aql does not exist or reading from the failed' %appName)
     sys.exit(0)
 
-post_data = {'appName': 'demoapp',
-             'dataverseName': 'demoapp',
+post_data = {'appName': appName,
+             'appDataverse': dataverseName,
+             'adminUser': 'admin',
+             'adminPassword': 'admin',
              'email': 'demoapp@gmail.com',
+             'dropExisting': 1
              }
 
 r = requests.post(brokerUrl + "/registerapplication", data=json.dumps(post_data))
@@ -39,7 +43,7 @@ if r.status_code == 200:
             'setupAQL': setupAQL
         }
         r = requests.post(brokerUrl + "/setupapplication", data=json.dumps(post_data))
-        print(r)
+        print(r.text)
 
     else:
         print('Application registration failed ' + response['error'])

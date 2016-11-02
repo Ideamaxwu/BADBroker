@@ -1,6 +1,3 @@
-drop dataverse demoapp if exists;
-create dataverse demoapp;
-
 use dataverse demoapp;
 
 create type TweetMessageTypeuuid as closed {
@@ -30,4 +27,3 @@ insert into dataset TweetMessageuuids(
 {"message-text":"Walking man"},
 {"message-text":"Good man"}]
 );
-
