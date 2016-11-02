@@ -185,20 +185,19 @@ class AsterixQueryManager():
 
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
-        print(request_url)
+        log.info(request_url)
         response = None
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='GET')
             response = yield httpclient.fetch(request)
-
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response.body)
         except Exception as e:
-            log.error('Erorr '+ str(e))
+            log.error('Error '+ str(e))
 
         return 500, 'Query failed: ' + query
 

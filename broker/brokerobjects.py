@@ -109,17 +109,31 @@ class BrokerObject:
 
 
 class Application(BrokerObject):
-    def __init__(self, recordId=None, appName=None, email=None, apiKey=None):
+    _DATAVERSE = "BrokerMetadata"
+
+    def __init__(self, recordId=None, appName=None, dataverseName=None, email=None, apiKey=None):
         self.recordId = recordId
         self.appName = appName
+        self.dataverseName = dataverseName
         self.email = email
         self.apiKey = apiKey
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, appName=None):
-        objects = yield BrokerObject.load(dataverseName, cls.__name__, appName=appName)
+    def load(cls, appName=None):
+        objects = yield BrokerObject.load(Application._DATAVERSE, cls.__name__, appName=appName)
         return Application.createFrom(objects)
+
+    @classmethod
+    @tornado.gen.coroutine
+    def matchApiKey(self, appName, apiKey):
+        applications = yield Application.load(appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application or ApiKey does not match')
+            return False
+        else:
+            return True
 
 
 class User(BrokerObject):

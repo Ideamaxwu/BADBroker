@@ -47,9 +47,65 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
             appName = post_data['appName']
             dataverseName = post_data['dataverseName']
             email = post_data['email']
+            dropExisting = post_data['dropExisting'] if 'dropExisting' in post_data else 0
+
+            response = yield self.broker.registerApplication(appName, dataverseName, email, dropExisting)
+
+        except KeyError as e:
+            print('Parse error for ' + str(e) + ' in ' + str(post_data))
+            print(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class SetupApplicationHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            appName = post_data['appName']
+            apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.registerApplication(appName, dataverseName, email, setupAQL)
+            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
+
+        except KeyError as e:
+            print('Parse error for ' + str(e) + ' in ' + str(post_data))
+            print(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class UpdateApplicationHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            appName = post_data['appName']
+            apiKey = post_data['apiKey']
+            setupAQL = post_data['setupAQL']
+
+            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             print('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -465,6 +521,8 @@ def start_server():
     application = tornado.web.Application([
         (r'/', MainHandler),
         (r'/registerapplication', RegisterApplicationHandler, dict(broker=broker)),
+        (r'/setupapplication', SetupApplicationHandler, dict(broker=broker)),
+        (r'/updateapplication', UpdateApplicationHandler, dict(broker=broker)),
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
         (r'/logout', LogoutHandler, dict(broker=broker)),

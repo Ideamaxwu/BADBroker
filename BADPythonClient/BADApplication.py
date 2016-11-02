@@ -20,7 +20,6 @@ if setupAQL is None:
 post_data = {'appName': 'demoapp',
              'dataverseName': 'demoapp',
              'email': 'demoapp@gmail.com',
-             'setupAQL': setupAQL
              }
 
 r = requests.post(brokerUrl + "/registerapplication", data=json.dumps(post_data))
@@ -32,5 +31,15 @@ if r.status_code == 200:
     if response['status'] == 'success':
         print('Application registration successful')
         print('Got ApiKey ' + response['apiKey'])
+        apiKey = response['apiKey']
+
+        post_data = {
+            'appName': appName,
+            'apiKey': apiKey,
+            'setupAQL': setupAQL
+        }
+        r = requests.post(brokerUrl + "/setupapplication", data=json.dumps(post_data))
+        print(r)
+
     else:
         print('Application registration failed ' + response['error'])

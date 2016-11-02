@@ -11,17 +11,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3fe01b07-49b2-44af-9045-923b3722ac2b" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/generated/mockable-android-23.jar" afterPath="$PROJECT_DIR$/build/generated/mockable-android-23.jar" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/app.iml" afterPath="$PROJECT_DIR$/app/app.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/src/main/java/edu/uci/ics/badproject/badclient/BADAndroidClient.java" afterPath="$PROJECT_DIR$/app/src/main/java/edu/uci/ics/badproject/badclient/BADAndroidClient.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/src/main/java/edu/uci/ics/badproject/badclient/MainActivity.java" afterPath="$PROJECT_DIR$/app/src/main/java/edu/uci/ics/badproject/badclient/MainActivity.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/build/intermediates/dex-cache/cache.xml" afterPath="$PROJECT_DIR$/build/intermediates/dex-cache/cache.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../broker/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/BADBroker.py" afterPath="$PROJECT_DIR$/../broker/BADBroker.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/BADWebServer.py" afterPath="$PROJECT_DIR$/../broker/BADWebServer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/notifier/android.py" afterPath="$PROJECT_DIR$/../broker/notifier/android.py" />
     </list>
     <ignored path="BADAndroidClient.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -2600,7 +2590,14 @@
       <option name="project" value="LOCAL" />
       <updated>1477991626398</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Some changes to Android client.">
+      <created>1478037506087</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1478037506087</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -2653,7 +2650,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Some changes." />
-    <option name="LAST_COMMIT_MESSAGE" value="Some changes." />
+    <MESSAGE value="Some changes to Android client." />
+    <option name="LAST_COMMIT_MESSAGE" value="Some changes to Android client." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
