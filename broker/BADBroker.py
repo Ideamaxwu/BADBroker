@@ -326,7 +326,7 @@ class BADBroker:
 
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId)
 
-        userSubscription = UserSubscription(dataverseName, userSubscriptionId, userSubscriptionId, userId,
+        userSubscription = UserSubscription(dataverseName, self.brokerName, userSubscriptionId, userSubscriptionId, userId,
                                     channelSubscriptionId, channelName, timestamp, resultsDataset)
         yield userSubscription.save()
 
@@ -508,10 +508,6 @@ class BADBroker:
                     log.debug(resultFromAsterix)
                 '''
 
-            # Update the latest delivered result timestamp of this subscription
-            userSubscription.latestDeliveredResultTime = channelExecutionTimeToReturn
-            yield userSubscription.save()
-
             return {'status': 'success',
                     'channelName': channelName,
                     'userSubscriptionId': userSubscriptionId,
@@ -521,6 +517,29 @@ class BADBroker:
                     'results': resultToUser}
         else:
             return {'status': 'failed', 'error': 'No result to retrieve'}
+
+    @tornado.gen.coroutine
+    def ackresults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        if userSubscriptionId not in self.userToSubscriptionMap[dataverseName]:
+            msg = 'No subscription %s is found for user %s' % (userSubscriptionId, userId)
+            log.warning(msg)
+            return {'status': 'failed', 'error': msg}
+
+        channelName = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelName
+        channelSubscriptionId = self.userToSubscriptionMap[dataverseName][userSubscriptionId].channelSubscriptionId
+
+        # retrieve user subscription for this channel
+        userSubscription = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
+        latestDeliveredResultTime = userSubscription.latestDeliveredResultTime
+
+        # Update the latest delivered result timestamp of this subscription
+        userSubscription.latestDeliveredResultTime = channelExecutionTime
+        yield userSubscription.save()
+        return {'status': 'success'}
 
     def getResultKey(self, dataverseName, channelName, channelSubscriptionId, channelExecutionTime):
         return dataverseName + '::' + channelName + '::' + channelSubscriptionId + '::' + channelExecutionTime

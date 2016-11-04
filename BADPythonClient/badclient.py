@@ -258,13 +258,29 @@ class BADClient:
         if r.status_code == 200:
             results = r.json()
             if results and results['status'] == 'success':
-                log.info('Retrived resultset for %s' %results['channelExecutionTimeReturned'])
+                channelExecutionTimeReturned = results['channelExecutionTimeReturned']
+                log.info('Retrieved resultset for %s' %channelExecutionTimeReturned)
                 self.on_channelresults(channelName, subscriptionId, results['results'])
 
-                resultsetsRemaining = results['resultsetsRemaining']
-                log.info('%d resultsets are remaining' %resultsetsRemaining)
-                if resultsetsRemaining > 0:
-                    self._getresults(channelName, subscriptionId, channelExecutionTime)
+                # ACK results
+                post_data = {'dataverseName': self.dataverseName,
+                     'userId': self.userId,
+                     'accessToken': self.accessToken,
+                     'channelName': channelName,
+                     'userSubscriptionId': subscriptionId,
+                     'channelExecutionTime': channelExecutionTimeReturned
+                     }
+
+                log.info('ACK resultset for %s' %channelExecutionTimeReturned)
+                r = requests.post(self.brokerUrl + '/ackresults', data=json.dumps(post_data))
+
+                if r.status_code == 200:
+                    resultsetsRemaining = results['resultsetsRemaining']
+                    log.info('%d resultsets are remaining' %resultsetsRemaining)
+                    if resultsetsRemaining > 0:
+                        self._getresults(channelName, subscriptionId, channelExecutionTime)
+                else:
+                    log.debug(r.text)
             else:
                 log.debug(r.text)
         else:

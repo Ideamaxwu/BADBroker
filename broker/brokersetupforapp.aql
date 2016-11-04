@@ -13,6 +13,7 @@ primary key recordId;
 create type UserSubscriptionType as closed {
     recordId: string,
     dataverseName: string,
+    brokerName: string,
     userSubscriptionId: string,
     channelSubscriptionId: string,
     userId: string,

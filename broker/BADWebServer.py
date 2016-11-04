@@ -317,6 +317,38 @@ class GetResultsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class AckResultsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            channelName = post_data['channelName']
+            userSubscriptionId = post_data['userSubscriptionId']
+            channelExecutionTime = post_data['channelExecutionTime']
+
+            response = yield self.broker.ackresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 class InsertRecordsHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -559,6 +591,7 @@ def start_server():
         (r'/subscribe', SubscriptionHandler, dict(broker=broker)),
         (r'/unsubscribe', UnsubscriptionHandler, dict(broker=broker)),
         (r'/getresults', GetResultsHandler, dict(broker=broker)),
+        (r'/ackresults', AckResultsHandler, dict(broker=broker)),
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
