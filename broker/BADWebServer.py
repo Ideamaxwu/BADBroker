@@ -28,8 +28,8 @@ live_web_sockets = set()
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        log.info("SAFIR")
-        self.render("index.html")
+        log.info("MAIN")
+        self.render("htmlpages/registerapp.html")
 
 
 class RegisterApplicationHandler(tornado.web.RequestHandler):
@@ -39,24 +39,45 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         log.info(str(self.request.body, encoding='utf-8'))
-        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+        response = None
 
-        log.debug(post_data)
+        if len(self.get_body_arguments('fromForm')) > 0:
+            try:
+                appName = self.get_body_argument('appName')
+                appDataverse = self.get_body_argument('appDataverse')
+                adminUser = self.get_body_argument('adminUser')
+                adminPasseword = self.get_body_argument('adminPassword')
+                email = self.get_body_argument('email')
+                dropExisting = self.get_body_argument('dropExisting')
+                dropExisting = 1 if dropExisting == 'yes' else 0
 
-        try:
-            appName = post_data['appName']
-            appDataverse = post_data['appDataverse']
-            adminUser = post_data['adminUser']
-            adminPasseword = post_data['adminPassword']
-            email = post_data['email']
-            dropExisting = post_data['dropExisting'] if 'dropExisting' in post_data else 0
+                response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
+            except tornado.web.MissingArgumentError as e:
+                log.error(e.with_traceback)
+                response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            except Exception as e:
+                log.error(response)
+                response = {'status': 'failed', 'error': str(e)}
+        else:
 
-            response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
+            post_data = json.loads(str(self.request.body, encoding='utf-8'))
 
-        except KeyError as e:
-            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
-            log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            log.debug(post_data)
+
+            try:
+                appName = post_data['appName']
+                appDataverse = post_data['appDataverse']
+                adminUser = post_data['adminUser']
+                adminPasseword = post_data['adminPassword']
+                email = post_data['email']
+                dropExisting = post_data['dropExisting'] if 'dropExisting' in post_data else 0
+
+                response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
+
+            except KeyError as e:
+                log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+                log.info(e.with_traceback())
+                response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()

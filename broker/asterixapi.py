@@ -206,7 +206,7 @@ class AsterixQueryManager():
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
-            log.debug(e.response.body)
+            log.debug(e.response)
             if e.response and len(e.response.body) > 0:
                 log.debug(e.response.body)
                 errorResponse = json.loads(str(e.response.body, 'utf-8'))

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+<form action="registerapplication" method = 'POST'>
+  <input type="hidden" name="fromForm">
+  Application name:<br>
+  <input type="text" name="appName" value="">
+  <br>
+  Dataverse Name:<br>
+  <input type="text" name="appDataverse" value="">
+  <br>
+    Admin User:<br>
+  <input type="text" name="adminUser" value="">
+  <br>
+    Admin Password:<br>
+  <input type="text" name="adminPassword" value="">
+  <br>
+    Email:<br>
+  <input type="text" name="email" value="">
+  <br>
+  Drop existing application?:
+  <input type="checkbox" name="dropExisting" value="yes">
+  <br><br>
+  Setup AQLs:<br>
+  <textarea name="setupAQL" cols="60" rows="20"></textarea>
+
+  <br><br>
+  <input type="submit" value="Register application">
+</form>
+
+</body>
+</html>
