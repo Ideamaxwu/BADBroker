@@ -908,7 +908,7 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0):
+    def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0, setupAQL=None):
         # Check if there is already an app exists with the same name, currently ignored.
 
         if dropExisting == 0:
@@ -936,12 +936,16 @@ class BADBroker:
             app = Application(Application.dataverseName, appName, appName, appDataverse, adminUser, adminPassword, email, apiKey)
             yield app.save()
 
-            return {
-                'status': 'success',
-                'appDataverse': appDataverse,
-                'appName': appName,
-                'apiKey': apiKey
-            }
+            if setupAQL:
+                response = yield self.setupApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
+                return response
+            else:
+                return {
+                    'status': 'success',
+                    'appDataverse': appDataverse,
+                    'appName': appName,
+                    'apiKey': apiKey
+                }
         else:
             return {
                 'status': 'failed',

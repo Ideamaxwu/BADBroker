@@ -29,7 +29,8 @@ live_web_sockets = set()
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("MAIN")
-        self.render("htmlpages/registerapp.html")
+        self.render("htmlpages/index.html")
+        #self.render("htmlpages/registerapp.html")
 
 
 class RegisterApplicationHandler(tornado.web.RequestHandler):
