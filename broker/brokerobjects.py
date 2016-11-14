@@ -73,7 +73,7 @@ class BrokerObject:
 
         if status == 200 and response:
             response = response.replace('\n', ' ').replace(' ', '')
-            print(response)
+            log.info(response)
             if len(response) > 0:
                 return json.loads(response, encoding='utf-8')
             else:

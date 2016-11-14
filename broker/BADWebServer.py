@@ -29,7 +29,7 @@ live_web_sockets = set()
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("MAIN")
-        self.render("htmlpages/index.html")
+        self.render("static/index.html")
         #self.render("htmlpages/registerapp.html")
 
 
@@ -49,10 +49,18 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
                 adminUser = self.get_body_argument('adminUser')
                 adminPasseword = self.get_body_argument('adminPassword')
                 email = self.get_body_argument('email')
-                dropExisting = self.get_body_argument('dropExisting')
-                dropExisting = 1 if dropExisting == 'yes' else 0
+                dropExisting = self.get_body_arguments('dropExisting')
+                setupAQL = self.get_body_arguments('setupAQL')
 
-                response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
+                if len(dropExisting) > 0 and len(setupAQL) > 0:
+                    response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting=1, setupAQL=setupAQL[0])
+                elif len(dropExisting):
+                    response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting=1)
+                elif len(setupAQL) > 0:
+                    response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, setupAQL=setupAQL[0])
+                else:
+                    response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email)
+
             except tornado.web.MissingArgumentError as e:
                 log.error(e.with_traceback)
                 response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}

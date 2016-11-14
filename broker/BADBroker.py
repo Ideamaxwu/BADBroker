@@ -914,12 +914,10 @@ class BADBroker:
         if dropExisting == 0:
             applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
             if applications and len(applications) > 0:
-                log.info('Obtained application with the same name {} in dataverse {}'.format(appName, appDataverse))
+                log.info('Obtained application with the same name `{}` in dataverse `{}`'.format(appName, appDataverse))
                 return {
-                    'status': 'success',
-                    'appName': appName,
-                    'appDataverse': applications[0].appDataverse,
-                    'apiKey': applications[0].apiKey
+                    'status': 'failed',
+                    'error': 'Obtained application with the same name {} in dataverse {}'.format(appName, appDataverse)
                 }
 
         log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, appDataverse))
@@ -936,6 +934,13 @@ class BADBroker:
             app = Application(Application.dataverseName, appName, appName, appDataverse, adminUser, adminPassword, email, apiKey)
             yield app.save()
 
+            # Setting up broker for this application, creating broker datasets
+            result = yield self._setupBrokerForApp(appDataverse, appName)
+
+            if result['status'] == 'failed':
+                return result
+
+            # Setting up application dataverse, creating broker datasets
             if setupAQL:
                 response = yield self.setupApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
                 return response
@@ -978,35 +983,8 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def setupApplication(self, appName, apiKey, setupAQL=None):
-        # Check if application exists, if so match ApiKey
-        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
-
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
-            return {
-                'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
-            }
-
-        dataverseName = applications[0].appDataverse
-
-        log.info('Setting up dataverse {} for new app {}....'.format(dataverseName, appName))
-
-        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
-
-        if status != 200:
-            log.error('Dataverse setup failed')
-            log.debug(response)
-            return {
-                'status': 'success',
-                'appName': appName,
-                'error': 'Dataverse setup failed'
-            }
-
-        log.info('Dataverse setup for app %s is successful' %appName)
-
-        log.info('Now setting up broker datasets for this dataverse...')
+    def _setupBrokerForApp(self, dataverseName, appName):
+        log.info('Setting up broker datasets for this dataverse...')
         commands = ''
         with open("brokersetupforapp.aql") as f:
             for line in f.readlines():
@@ -1028,9 +1006,8 @@ class BADBroker:
             return {'status': 'failed', 'error': response}
 
     @tornado.gen.coroutine
-    def UpdateApplication(self, appName, apiKey, setupAQL=None):
+    def setupApplication(self, appName, apiKey, setupAQL=None):
         # Check if application exists, if so match ApiKey
-
         applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
 
         if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
@@ -1041,23 +1018,33 @@ class BADBroker:
             }
 
         dataverseName = applications[0].appDataverse
-        log.info('Updating dataverse {} for app {}....'.format(dataverseName, appName))
+
+        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
+
+        # The setup AQL MUST not contain use dataverse or create dataverse commands
+        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
+            return {
+                'status': 'failed',
+                'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
+            }
 
         status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
+        log.debug(response)
 
         if status == 200:
-            log.info('Update successful')
+            log.info('Setup for app %s is successful' %appName)
             return {
                 'status': 'success',
+                'appName': appName,
+                'apiKey': apiKey,
             }
         else:
-            log.error('Update failed.')
-            log.debug(response)
+            log.info('Setup faile app %s is successful' %appName)
             return {
                 'status': 'success',
-                'error': response
+                'appName': appName,
+                'error': 'Setup failed, possible reason %s' %response
             }
-
 
 def set_live_web_sockets(web_socket_object):
     global live_web_sockets
