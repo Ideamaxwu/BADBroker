@@ -54,7 +54,7 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
 
                 if len(dropExisting) > 0 and len(setupAQL) > 0:
                     response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting=1, setupAQL=setupAQL[0])
-                elif len(dropExisting):
+                elif len(dropExisting) > 0:
                     response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting=1)
                 elif len(setupAQL) > 0:
                     response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, setupAQL=setupAQL[0])
@@ -68,11 +68,8 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
                 log.error(response)
                 response = {'status': 'failed', 'error': str(e)}
         else:
-
             post_data = json.loads(str(self.request.body, encoding='utf-8'))
-
             log.debug(post_data)
-
             try:
                 appName = post_data['appName']
                 appDataverse = post_data['appDataverse']
@@ -80,8 +77,9 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
                 adminPasseword = post_data['adminPassword']
                 email = post_data['email']
                 dropExisting = post_data['dropExisting'] if 'dropExisting' in post_data else 0
+                setupAQL = post_data['setupAQL'] if 'setupAQL' in post_data else None
 
-                response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting)
+                response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email, dropExisting, setupAQL)
 
             except KeyError as e:
                 log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -137,7 +135,7 @@ class UpdateApplicationHandler(tornado.web.RequestHandler):
             apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
+            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -166,6 +164,43 @@ class ApplicationAdminLoginHandler(tornado.web.RequestHandler):
             adminPassword = post_data['adminPassword']
 
             response = yield self.broker.applicationAdminLogin(appName, adminUser, adminPassword)
+
+        except KeyError as e:
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class AdminQueryHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            appName = post_data['appName']
+            apiKey = post_data['apiKey']
+            query = post_data['query']
+
+            if query == 'listchannels':
+                response = yield self.broker.adminQueryListChannels(appName, apiKey)
+            elif query == 'listsubscriptions':
+                channelName = post_data['channelName']
+                response = yield self.broker.adminQueryListSubscriptions(appName, apiKey, channelName)
+            else:
+                response = {
+                    'status': 'failed',
+                    'error': 'Invalid query'
+                }
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -474,6 +509,7 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         self.flush()
         self.finish()
 
+
 class GCMRegistrationHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -505,6 +541,7 @@ class NotificationsPageHandler(tornado.web.RequestHandler):
         log.info("Entered notifications")
         self.render("notifications.html")
 
+
 class PreferencePageHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("Entered preferences")
@@ -515,10 +552,12 @@ class SubscriptionPageHandler(tornado.web.RequestHandler):
         log.info("Entered subscriptions")
         self.render("subscriptions.html")
 
+
 class LocationSubscriptionPageHandler(tornado.web.RequestHandler):
     def get(self):
         log.info("Entered location subscriptions")
         self.render("locationsubs.html")
+
 
 class ListChannelsHandler(tornado.web.RequestHandler):
     def initialize(self, broker):
@@ -615,6 +654,7 @@ def start_server():
         (r'/setupapplication', SetupApplicationHandler, dict(broker=broker)),
         (r'/updateapplication', UpdateApplicationHandler, dict(broker=broker)),
         (r'/appadminlogin', ApplicationAdminLoginHandler, dict(broker=broker)),
+        (r'/adminquery', AdminQueryHandler, dict(broker=broker)),
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
         (r'/logout', LogoutHandler, dict(broker=broker)),

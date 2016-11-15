@@ -778,6 +778,7 @@ class BADBroker:
             raise BADException(response)
 
         log.info('Records added into %s' %datasetName)
+        return {'status': 'success'}
 
     @tornado.gen.coroutine
     def feedrecords(self, dataverseName, userId, accessToken, portNo, records):
@@ -800,6 +801,7 @@ class BADBroker:
 
         iostream.close()
         sock.close()
+        return {'status': 'success'}
 
     def gcmRegistration(self, dataverseName, userId, accessToken, gcmRegistrationToken):
         check = self._checkAccess(dataverseName, userId, accessToken)
@@ -983,6 +985,61 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
+    def adminQueryListChannels(self, appName, apiKey):
+        # Check if application exists, if so match ApiKey
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
+            }
+        dataverseName = applications[0].appDataverse
+
+        aql = 'for $t in dataset Channel where $t.DataverseName = \"{}\" return $t'.format(dataverseName)
+        status, response = yield self.asterix.executeAQL('Metadata', aql)
+
+        log.debug(response)
+        if status == 200 and response:
+            return {
+                'status': 'success',
+                'channels': json.loads(str(response, 'utf-8'))
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': 'No channel exists in the app dataverse'
+            }
+
+    @tornado.gen.coroutine
+    def adminQueryListSubscriptions(self, appName, apiKey, channelName):
+        # Check if application exists, if so match ApiKey
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
+            }
+
+        dataverseName = applications[0].appDataverse
+        subscriptions = yield UserSubscription.load(dataverseName, channelName=channelName)
+
+        log.debug(subscriptions)
+        if subscriptions and len(subscriptions) > 0:
+            return {
+                'status': 'success',
+                'subscriptions': subscriptions
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': 'No subscription exists in this channel'
+            }
+
+    @tornado.gen.coroutine
     def _setupBrokerForApp(self, dataverseName, appName):
         log.info('Setting up broker datasets for this dataverse...')
         commands = ''
@@ -1039,12 +1096,13 @@ class BADBroker:
                 'apiKey': apiKey,
             }
         else:
-            log.info('Setup faile app %s is successful' %appName)
+            log.info('Setup for app `%s` is failed' %appName)
             return {
-                'status': 'success',
+                'status': 'failed',
                 'appName': appName,
                 'error': 'Setup failed, possible reason %s' %response
             }
+
 
 def set_live_web_sockets(web_socket_object):
     global live_web_sockets

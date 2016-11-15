@@ -207,11 +207,15 @@ class UserSubscription(BrokerObject):
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, userId=None, userSubscriptionId=None):
+    def load(cls, dataverseName=None, userId=None, userSubscriptionId=None, channelName=None, channelSubscriptionId=None):
         if userId:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, userId=userId)
         elif userSubscriptionId:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
+        elif channelName:
+            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName)
+        elif channelSubscriptionId:
+            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
         else:
             return None
 
