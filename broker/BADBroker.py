@@ -653,7 +653,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def retrieveLatestResultsAndNotifyUsers(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
         if dataverseName not in self.userSubscriptions or channelName not in self.userSubscriptions[dataverseName]:
-            log.error('No dataverse `%s` or no active subscriptions on channel `%s`' % (dataverseName, channelName))
+            log.error('No dataverse `%s` or no active subscriptions on channel `%s`' %(dataverseName, channelName))
             return
 
         log.debug('Current subscriptions: %s' % self.userSubscriptions[dataverseName])
@@ -1114,5 +1114,6 @@ def set_live_web_sockets(web_socket_object):
 
 if __name__ == '__main__':
     broker = BADBroker.getInstance()
-    tornado.ioloop.IOLoop.current().add_callback(broker.dropChannelResults())
+    #tornado.ioloop.IOLoop.current().add_callback(broker.dropChannelResults())
+    tornado.ioloop.IOLoop.current().add_callback(broker.adminQueryListChannels('demoapp'))
     tornado.ioloop.IOLoop.current().start()
