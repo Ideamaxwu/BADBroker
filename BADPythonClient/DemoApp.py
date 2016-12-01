@@ -1,9 +1,10 @@
 import badclient
 import sys
 
-def on_channelresults(channelName, subscriptionId, results):
+def on_channelresults(channelName, subscriptionId, channelExecutionTime, results):
     print(channelName, subscriptionId)
     if results and len(results) > 0:
+        print('Results for %s' %channelExecutionTime)
         for item in results:
             print('APPDATA ' + str(item))
 
@@ -30,8 +31,8 @@ if client.login() == False:
 client.listchannels()
 client.listsubscriptions()
 
-subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-print ('Subscribed with ID %s' %subcriptionId)
+#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+#print ('Subscribed with ID %s' %subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

@@ -456,6 +456,8 @@ class BADBroker:
         userSubscription = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
         latestDeliveredResultTime = userSubscription.latestDeliveredResultTime
 
+        log.debug('Check %s --- %s' %(latestDeliveredResultTime, channelExecutionTime))
+
         # Retrieve all executiontimes from current to the last delivered time
         whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
                       'and $t.channelExecutionTime > datetime(\"{1}\") ' \
@@ -482,38 +484,33 @@ class BADBroker:
         if channelExecutionTimes and len(channelExecutionTimes) > 0:
             resultToUser = []
 
-            # Get results only the first channelExecutionTimes
-            # and return the count of the remaining in 'resultsetsRemaining' field
+            # Currently returns all pending results
+            for channelExecutionTimeToReturn in channelExecutionTimes:
+                # First check in the cache, if not retrieve from the Asterix
+                resultFromCache = self.getResultsFromCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
-            channelExecutionTimeToReturn = channelExecutionTimes[0]
+                if resultFromCache:
+                    log.info('Cache HIT for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
+                    log.debug(resultFromCache)
+                    resultToUser.extend(resultFromCache)
+                else:
+                    log.info('Cache MISS for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
+                    resultFromAsterix = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
 
-            # First check in the cache, if not retrieve from the Asterix
-            resultFromCache = self.getResultsFromCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
+                    if resultFromAsterix:
+                        resultToUser.extend(resultFromAsterix)
 
-            if resultFromCache:
-                log.info('Cache HIT for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
-                log.debug(resultFromCache)
-                resultToUser.extend(resultFromCache)
-            else:
-                log.info('Cache MISS for %s' % (self.getResultKey(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)))
-                resultFromAsterix = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn)
-
-                if resultFromAsterix:
-                    resultToUser.extend(resultFromAsterix)
-
-                '''
-                # Cache the results
-                if resultFromAsterix:
-                    self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn, resultFromAsterix)
-                    log.debug(resultFromAsterix)
-                '''
+                    '''
+                    # Cache the results
+                    if resultFromAsterix:
+                        self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, channelExecutionTimeToReturn, resultFromAsterix)
+                        log.debug(resultFromAsterix)
+                    '''
 
             return {'status': 'success',
                     'channelName': channelName,
                     'userSubscriptionId': userSubscriptionId,
                     'channelExecutionTime': channelExecutionTime,
-                    'channelExecutionTimeReturned': channelExecutionTimeToReturn,
-                    'resultsetsRemaining': len(channelExecutionTimes) - 1,
                     'results': resultToUser}
         else:
             return {'status': 'failed', 'error': 'No result to retrieve'}
@@ -534,7 +531,6 @@ class BADBroker:
 
         # retrieve user subscription for this channel
         userSubscription = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
-        latestDeliveredResultTime = userSubscription.latestDeliveredResultTime
 
         # Update the latest delivered result timestamp of this subscription
         userSubscription.latestDeliveredResultTime = channelExecutionTime
