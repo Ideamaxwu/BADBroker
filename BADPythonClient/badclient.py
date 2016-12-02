@@ -198,7 +198,7 @@ class BADClient:
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
 
-        self._getresults(channelName, userSubscriptionId, latestChannelExecutionTime)
+        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime)
 
     def insertrecords(self, datasetName, records):
         log.info('Insert records into %s' %datasetName)
@@ -242,7 +242,7 @@ class BADClient:
                     log.debug(r)
                     self.on_error('feedrecords', 'Error:', response['error'])
 
-    def _getresults(self, channelName, subscriptionId, channelExecutionTime):
+    def getresults(self, channelName, subscriptionId, channelExecutionTime=None):
         log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
@@ -260,28 +260,52 @@ class BADClient:
             if results and results['status'] == 'success':
                 channelExecutionTime = results['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                self.on_channelresults(channelName, subscriptionId, channelExecutionTime, results['results'])
+                return results['results']
+            else:
+                log.debug(r.text)
+        else:
+            log.debug(r.text)
 
-                # ACK results
-                post_data = {'dataverseName': self.dataverseName,
+    def getlatestresults(self, channelName, subscriptionId):
+        log.info('Getresults for %s' % subscriptionId)
+
+        post_data = {'dataverseName': self.dataverseName,
+                     'userId': self.userId,
+                     'accessToken': self.accessToken,
+                     'channelName': channelName,
+                     'userSubscriptionId': subscriptionId,
+                     }
+
+        r = requests.post(self.brokerUrl + '/getlatestresults', data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            results = r.json()
+            if results and results['status'] == 'success':
+                channelExecutionTime = results['channelExecutionTime']
+                log.info('Retrieved resultset for %s' %channelExecutionTime)
+                return results['results']
+            else:
+                log.debug(r.text)
+        else:
+            log.debug(r.text)
+
+    def ackresults(self, channelName, subscriptionId, channelExecutionTime):
+        post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
                      'channelExecutionTime': channelExecutionTime
                      }
+        log.info('ACK resultset for %s' %channelExecutionTime)
+        r = requests.post(self.brokerUrl + '/ackresults', data=json.dumps(post_data))
 
-                log.info('ACK resultset for %s' %channelExecutionTime)
-                r = requests.post(self.brokerUrl + '/ackresults', data=json.dumps(post_data))
-
-                if r.status_code == 200:
-                    log.info('Results upto %s ACKed' %channelExecutionTime)
-                else:
-                    log.debug(r.text)
-            else:
-                log.debug(r.text)
+        if r.status_code == 200:
+            log.info('Results upto %s ACKed' %channelExecutionTime)
+            return True
         else:
             log.debug(r.text)
+            return False
 
     def _on_error(self, where, error_msg):
         log.error(where, ' --> ', error_msg)

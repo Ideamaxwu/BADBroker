@@ -370,9 +370,40 @@ class GetResultsHandler(tornado.web.RequestHandler):
             accessToken = post_data['accessToken']
             channelName = post_data['channelName']
             userSubscriptionId = post_data['userSubscriptionId']
-            channelExecutionTime = post_data['channelExecutionTime']
+            channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
 
             response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+
+        log.info(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class GetLatestResultsHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        log.info(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            channelName = post_data['channelName']
+            userSubscriptionId = post_data['userSubscriptionId']
+
+            response = yield self.broker.getlatestresults(dataverseName, userId, accessToken, channelName, userSubscriptionId)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
@@ -661,6 +692,7 @@ def start_server():
         (r'/subscribe', SubscriptionHandler, dict(broker=broker)),
         (r'/unsubscribe', UnsubscriptionHandler, dict(broker=broker)),
         (r'/getresults', GetResultsHandler, dict(broker=broker)),
+        (r'/getlatestresults', GetLatestResultsHandler, dict(broker=broker)),
         (r'/ackresults', AckResultsHandler, dict(broker=broker)),
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),

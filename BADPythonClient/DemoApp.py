@@ -1,16 +1,17 @@
 import badclient
 import sys
 
-def on_channelresults(channelName, subscriptionId, channelExecutionTime, results):
+def on_channelresults(channelName, subscriptionId, channelExecutionTime):
     print(channelName, subscriptionId)
+    print('Results for %s' %channelExecutionTime)
+    results = client.getresults(channelName, subscriptionId, channelExecutionTime)
     if results and len(results) > 0:
-        print('Results for %s' %channelExecutionTime)
         for item in results:
             print('APPDATA ' + str(item))
+        client.ackresults(channelName, subscriptionId, channelExecutionTime)
 
 def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
-
 
 client = badclient.BADClient(brokerServer='localhost')
 
