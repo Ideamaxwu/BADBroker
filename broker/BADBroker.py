@@ -34,6 +34,7 @@ log = brokerutils.setup_logging(__name__)
 mutex = Lock()
 live_web_sockets = set()
 
+
 class BADBroker:
     brokerInstance = None
 
@@ -439,7 +440,7 @@ class BADBroker:
         return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId
 
     @tornado.gen.coroutine
-    def getresults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
+    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -520,7 +521,7 @@ class BADBroker:
             return {'status': 'failed', 'error': 'No result to retrieve'}
 
     @tornado.gen.coroutine
-    def getlatestresults(self, dataverseName, userId, accessToken, channelName, userSubscriptionId):
+    def getLatestResults(self, dataverseName, userId, accessToken, channelName, userSubscriptionId):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -560,7 +561,7 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def ackresults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
+    def ackResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -805,7 +806,46 @@ class BADBroker:
         log.info('Subscription {0} on channel {1} moved to broker {2}'.format(channelSubscriptionId, channelName, brokerB))
 
     @tornado.gen.coroutine
-    def insertrecords(self, dataverseName, userId, accessToken, datasetName, records):
+    def callFunction(self, dataverseName, userId, accessToken, functionName, parameters):
+        '''
+        :param dataverseName: dataverse name
+        :param userId: userId
+        :param accessToken: access token
+        :param functionName: function to be called
+        :param args: arguments need to be passed to the call
+        :return: results
+        '''
+
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        params = ''
+        for value in parameters:
+            if len(params) > 0:
+                params = params + ', '
+            if isinstance(value, str):
+                params = params + '\"{}\"'.format(value)
+            else:
+                params = params + "{}".format(value)
+
+        aql_stmt = 'for $t in {}({}) return $t'.format(functionName, params)
+        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+
+        if status_code == 200 and response:
+            result = json.loads(response)
+            return {
+                'status': 'success',
+                'results': result
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': 'Call execution failed ' + response
+            }
+
+    @tornado.gen.coroutine
+    def insertRecords(self, dataverseName, userId, accessToken, datasetName, records):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -820,7 +860,7 @@ class BADBroker:
         return {'status': 'success'}
 
     @tornado.gen.coroutine
-    def feedrecords(self, dataverseName, userId, accessToken, portNo, records):
+    def feedRecords(self, dataverseName, userId, accessToken, portNo, records):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check

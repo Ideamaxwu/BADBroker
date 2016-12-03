@@ -39,6 +39,9 @@ client.listsubscriptions()
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
 
 # Feed created as per file 4
+result = client.callfunction('NearbyTweetsContainingText', ['man'])
+print(result)
+
 '''
 data = [{'recordId': str(random.random()),
         'userId': '237',

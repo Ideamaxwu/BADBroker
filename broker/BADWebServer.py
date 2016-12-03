@@ -372,7 +372,7 @@ class GetResultsHandler(tornado.web.RequestHandler):
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
 
-            response = yield self.broker.getresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
@@ -403,7 +403,7 @@ class GetLatestResultsHandler(tornado.web.RequestHandler):
             channelName = post_data['channelName']
             userSubscriptionId = post_data['userSubscriptionId']
 
-            response = yield self.broker.getlatestresults(dataverseName, userId, accessToken, channelName, userSubscriptionId)
+            response = yield self.broker.getLatestResults(dataverseName, userId, accessToken, channelName, userSubscriptionId)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
@@ -435,7 +435,38 @@ class AckResultsHandler(tornado.web.RequestHandler):
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime']
 
-            response = yield self.broker.ackresults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+            response = yield self.broker.ackResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
+class CallFunctionHandler(tornado.web.RequestHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            functionName = post_data['functionName']
+            parameters = post_data['parameters'] if 'parameters' in post_data else None
+
+            response = yield self.broker.callFunction(dataverseName, userId, accessToken, functionName, parameters)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
 
@@ -466,7 +497,7 @@ class InsertRecordsHandler(tornado.web.RequestHandler):
             datasetName = post_data['datasetName']
             records = post_data['records']
 
-            response = yield self.broker.insertrecords(dataverseName, userId, accessToken, datasetName, records)
+            response = yield self.broker.insertRecords(dataverseName, userId, accessToken, datasetName, records)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -497,7 +528,7 @@ class FeedRecordsHandler(tornado.web.RequestHandler):
             portNo = post_data['portNo']
             records = post_data['records']
 
-            response = yield self.broker.feedrecords(dataverseName, userId, accessToken, portNo, records)
+            response = yield self.broker.feedRecords(dataverseName, userId, accessToken, portNo, records)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request'}
 
@@ -694,6 +725,7 @@ def start_server():
         (r'/getresults', GetResultsHandler, dict(broker=broker)),
         (r'/getlatestresults', GetLatestResultsHandler, dict(broker=broker)),
         (r'/ackresults', AckResultsHandler, dict(broker=broker)),
+        (r'/callfunction', CallFunctionHandler, dict(broker=broker)),
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),

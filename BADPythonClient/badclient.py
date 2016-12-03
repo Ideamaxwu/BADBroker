@@ -307,6 +307,24 @@ class BADClient:
             log.debug(r.text)
             return False
 
+    def callfunction(self, functionName, parameters):
+        post_data = {'dataverseName': self.dataverseName,
+                     'userId': self.userId,
+                     'accessToken': self.accessToken,
+                     'functionName': functionName,
+                     'parameters': parameters
+                     }
+
+        log.info('Invoking function %s' %functionName)
+        r = requests.post(self.brokerUrl + '/callfunction', data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            log.info('Function called ' + r.text)
+            return r.json()
+        else:
+            log.debug(r.text)
+            return None
+
     def _on_error(self, where, error_msg):
         log.error(where, ' --> ', error_msg)
 
