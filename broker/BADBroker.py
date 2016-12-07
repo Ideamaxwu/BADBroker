@@ -1,27 +1,22 @@
 #!/usr/bin/env python3
 
-import tornado.ioloop
-import tornado.web
+import hashlib
+import re
+import socket
+from datetime import datetime
+from threading import Lock
+
 import tornado.gen
 import tornado.httpclient
+import tornado.ioloop
 import tornado.iostream
+import tornado.web
 
-import notifier.web
 import notifier.android
 import notifier.desktop
-
-import socket
-import hashlib
-from datetime import datetime
-import re
-import logging as log
-from threading import Lock
-import requests
-import configparser
-
+import notifier.web
 from brokerobjects import *
-import BADCache
-import brokerutils
+from cachingschemes import BADLRUCache
 
 log = brokerutils.setup_logging(__name__)
 
@@ -70,7 +65,7 @@ class BADBroker:
 
         self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
         self.initializeNotifiers()
-        self.cache = BADCache.BADLruCache()
+        self.cache = BADLRUCache(100)
 
         if config.has_section('BCS'):
             server = config.get('BCS', 'server')
@@ -463,7 +458,7 @@ class BADBroker:
 
         log.debug('Check %s --- %s' %(latestDeliveredResultTime, channelExecutionTime))
 
-        # Retrieve all executiontimes from current to the last delivered time
+        # Retrieve all execution times from current to the last delivered time
         whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
                       'and $t.channelExecutionTime > datetime(\"{1}\") ' \
                       'and $t.channelExecutionTime <= datetime(\"{2}\")'.format(channelSubscriptionId,
@@ -626,7 +621,12 @@ class BADBroker:
 
                 resultToUser = []
                 for item in results:
-                    resultToUser.append(item['result'])
+                    resultToUser.append(
+                        {
+                            'channelExecutionTime': item['channelExecutionTime'],
+                            'resultId': item['resultId'],
+                            'result': item['result']
+                        })
                 return resultToUser
             else:
                 return None
@@ -807,14 +807,14 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def callFunction(self, dataverseName, userId, accessToken, functionName, parameters):
-        '''
+        """
         :param dataverseName: dataverse name
         :param userId: userId
         :param accessToken: access token
         :param functionName: function to be called
         :param args: arguments need to be passed to the call
         :return: results
-        '''
+        """
 
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':

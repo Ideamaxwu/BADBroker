@@ -32,8 +32,8 @@ if client.login() == False:
 client.listchannels()
 client.listsubscriptions()
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-#print ('Subscribed with ID %s' %subcriptionId)
+subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+print ('Subscribed with ID %s' %subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
