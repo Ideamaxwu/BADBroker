@@ -16,7 +16,7 @@ import notifier.android
 import notifier.desktop
 import notifier.web
 from brokerobjects import *
-from cachingschemes import BADLRUCache
+from cachingschemes import lrucache
 
 log = brokerutils.setup_logging(__name__)
 
@@ -65,7 +65,7 @@ class BADBroker:
 
         self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
         self.initializeNotifiers()
-        self.cache = BADLRUCache(100)
+        self.cache = lrucache.BADLRUCache(100)
 
         if config.has_section('BCS'):
             server = config.get('BCS', 'server')
