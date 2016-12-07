@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 
-import tornado.ioloop
-import tornado.web
-import tornado.httpclient
-import tornado.websocket
-import os
-
-import socket
-import hashlib
-import simplejson as json
-import sys
-from datetime import datetime
-from BADBroker import BADBroker, set_live_web_sockets
-from asterixapi import AsterixQueryManager
-
 import logging as log
+import os
 from threading import Lock
 
+import simplejson as json
+import tornado.httpclient
+import tornado.ioloop
+import tornado.web
+import tornado.websocket
+
 import brokerutils
+from BADBroker import BADBroker, set_live_web_sockets
 
 log = brokerutils.setup_logging(__name__)
 
@@ -25,15 +19,25 @@ mutex = Lock()
 condition_variable = False
 live_web_sockets = set()
 
+class BaseHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', ' POST, OPTIONS')
 
-class MainHandler(tornado.web.RequestHandler):
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+
+class MainHandler(BaseHandler):
     def get(self):
         log.info("MAIN")
         self.render("static/index.html")
         #self.render("htmlpages/registerapp.html")
 
 
-class RegisterApplicationHandler(tornado.web.RequestHandler):
+class RegisterApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -91,7 +95,7 @@ class RegisterApplicationHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class SetupApplicationHandler(tornado.web.RequestHandler):
+class SetupApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -119,7 +123,7 @@ class SetupApplicationHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class UpdateApplicationHandler(tornado.web.RequestHandler):
+class UpdateApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -147,7 +151,7 @@ class UpdateApplicationHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class ApplicationAdminLoginHandler(tornado.web.RequestHandler):
+class ApplicationAdminLoginHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -175,7 +179,7 @@ class ApplicationAdminLoginHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class AdminQueryHandler(tornado.web.RequestHandler):
+class AdminQueryHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -212,7 +216,7 @@ class AdminQueryHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class RegistrationHandler(tornado.web.RequestHandler):
+class RegistrationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -241,7 +245,7 @@ class RegistrationHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class LoginHandler (tornado.web.RequestHandler):
+class LoginHandler (BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -270,7 +274,7 @@ class LoginHandler (tornado.web.RequestHandler):
         self.finish()
 
 
-class LogoutHandler (tornado.web.RequestHandler):
+class LogoutHandler (BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -296,7 +300,7 @@ class LogoutHandler (tornado.web.RequestHandler):
         self.finish()
 
 
-class SubscriptionHandler(tornado.web.RequestHandler):
+class SubscriptionHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -324,7 +328,7 @@ class SubscriptionHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class UnsubscriptionHandler(tornado.web.RequestHandler):
+class UnsubscriptionHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -350,7 +354,7 @@ class UnsubscriptionHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class GetResultsHandler(tornado.web.RequestHandler):
+class GetResultsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -382,7 +386,7 @@ class GetResultsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class GetLatestResultsHandler(tornado.web.RequestHandler):
+class GetLatestResultsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -413,7 +417,7 @@ class GetLatestResultsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class AckResultsHandler(tornado.web.RequestHandler):
+class AckResultsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -445,7 +449,7 @@ class AckResultsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class CallFunctionHandler(tornado.web.RequestHandler):
+class CallFunctionHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -476,7 +480,7 @@ class CallFunctionHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class InsertRecordsHandler(tornado.web.RequestHandler):
+class InsertRecordsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -507,7 +511,7 @@ class InsertRecordsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class FeedRecordsHandler(tornado.web.RequestHandler):
+class FeedRecordsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -538,7 +542,7 @@ class FeedRecordsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class NotifyBrokerHandler(tornado.web.RequestHandler):
+class NotifyBrokerHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -572,7 +576,7 @@ class NotifyBrokerHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class GCMRegistrationHandler(tornado.web.RequestHandler):
+class GCMRegistrationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -597,31 +601,31 @@ class GCMRegistrationHandler(tornado.web.RequestHandler):
         self.flush()
         self.finish()
 
-
-class NotificationsPageHandler(tornado.web.RequestHandler):
+'''
+class NotificationsPageHandler(BaseHandler):
     def get(self):
         log.info("Entered notifications")
         self.render("notifications.html")
 
 
-class PreferencePageHandler(tornado.web.RequestHandler):
+class PreferencePageHandler(BaseHandler):
     def get(self):
         log.info("Entered preferences")
         self.render("preferences.html")
 
-class SubscriptionPageHandler(tornado.web.RequestHandler):
+class SubscriptionPageHandler(BaseHandler):
     def get(self):
         log.info("Entered subscriptions")
         self.render("subscriptions.html")
 
 
-class LocationSubscriptionPageHandler(tornado.web.RequestHandler):
+class LocationSubscriptionPageHandler(BaseHandler):
     def get(self):
         log.info("Entered location subscriptions")
         self.render("locationsubs.html")
+'''
 
-
-class ListChannelsHandler(tornado.web.RequestHandler):
+class ListChannelsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -678,7 +682,7 @@ def webSocketSendMessage(message):
     finally:
         mutex.release()
 
-class ListSubscriptionsHandler(tornado.web.RequestHandler):
+class ListSubscriptionsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
 
@@ -730,11 +734,6 @@ def start_server():
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
         (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
-        (r'/notifications', NotificationsPageHandler),
-        (r'/preferences', PreferencePageHandler),
-        (r'/websocketlistener', BrowserWebSocketHandler),
-        (r'/subscriptions', SubscriptionPageHandler),
-        (r'/locationsubs', LocationSubscriptionPageHandler),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker))
     ], **settings)

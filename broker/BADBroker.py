@@ -57,7 +57,7 @@ class BADBroker:
         self.users = {}               # indexed by dataverse, userId
         self.channelSubscriptions = {}  # indexed by dataverseName, channelname, channelSubscriptionId
 
-        self.userSubscriptions = {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId-> userId
+        self.userSubscriptions = {}  # susbscription indexed by dataverseName->channelName -> channelSubscriptionId -> userId
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userSubscriptionId
 
         self.sessions = {}                  # keep accesstokens of logged in users
@@ -734,19 +734,20 @@ class BADBroker:
                     self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime = latestChannelExecutionTimes[-1]
                     yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save()
 
-                    # Retrieve results from Asterix, cache them and notify users
-                    for latestChannelExecutionTime in latestChannelExecutionTimes:
-                        results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                        resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                        if results and not self.cache.hasKey(resultKey):
-                            self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
+                    # If there are more than one user attached to this subscription, retrieve results from the Asterix and cache them
+                    if len(self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]) > 1:
+                        for latestChannelExecutionTime in latestChannelExecutionTimes:
+                            results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                            resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                            if results and not self.cache.hasKey(resultKey):
+                                self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
 
-                        # Send notifications to all users who made subscription to this channel
-                        tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
+                    # Send notifications to all users who subscribed to this channel, ONLY the latest executionTime is notified
+                    tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
                                                                      dataverseName=dataverseName,
                                                                      channelName=channelName,
                                                                      channelSubscriptionId=channelSubscriptionId,
-                                                                     latestChannelExecutionTime=latestChannelExecutionTime)
+                                                                     latestChannelExecutionTime=latestChannelExecutionTimes[-1])
                 else:
                     log.error('No new results to retrieve from channel %s' % channelName)
             else:
@@ -780,7 +781,7 @@ class BADBroker:
         else:
             platform = self.sessions[dataverseName][userId]['platform']
             if platform not in self.notifiers:
-                log.error('Platform %s is NOT supported yet!!' %platform)
+                log.error('Platform `%s` is NOT supported yet!!' %platform)
             else:
                 if platform == 'web':
                     mutex.acquire()
