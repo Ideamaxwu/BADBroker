@@ -76,7 +76,7 @@ class BADBroker:
 
         self.brokerIPAddr = self._myNetAddress()
         tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
-        #tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
+        tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
     @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
