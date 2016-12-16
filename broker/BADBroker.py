@@ -744,10 +744,10 @@ class BADBroker:
 
                     # Send notifications to all users who subscribed to this channel, ONLY the latest executionTime is notified
                     tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
-                                                                     dataverseName=dataverseName,
-                                                                     channelName=channelName,
-                                                                     channelSubscriptionId=channelSubscriptionId,
-                                                                     latestChannelExecutionTime=latestChannelExecutionTimes[-1])
+                                                                 dataverseName=dataverseName,
+                                                                 channelName=channelName,
+                                                                 channelSubscriptionId=channelSubscriptionId,
+                                                                 latestChannelExecutionTime=latestChannelExecutionTime)
                 else:
                     log.error('No new results to retrieve from channel %s' % channelName)
             else:
@@ -761,18 +761,38 @@ class BADBroker:
         for userId in self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]:
             sub = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             userSubcriptionId = sub.userSubscriptionId
-            yield self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId, latestChannelExecutionTime)
+            latestDeliveredResultTime = sub.latestDeliveredResultTime
+            resultCount = yield self.getResultCount(dataverseName, channelName, userId, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
+            yield self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId,
+                                  latestChannelExecutionTime, resultCount)
 
     @tornado.gen.coroutine
-    def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime):
-        log.info('Channel %s: sending notification to user %s for %s' % (channelName, userId, userSubscriptionId))
+    def getResultCount(self, dataverseName, channelName, userId, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime):
+        statement = "let $times := " \
+                    "for $t in dataset {}Results " \
+                    "distinct by $t.channelExecutionTime " \
+                    "where $t.subscriptionId = uuid(\"{}\") and " \
+                    "$t.channelExecutionTime > datetime(\"{}\") and " \
+                    "$t.channelExecutionTime <= datetime(\"{}\") return $t.channelExecutionTime " \
+                    "return count($times)".format(channelName, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
+
+        status, response = yield self.asterix.executeQuery(dataverseName, statement)
+        if status == 200 and response:
+            resultCount = json.loads(response)[0]
+            return resultCount
+        else:
+            return -1 # Something wrong
+
+    @tornado.gen.coroutine
+    def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime, resultCount):
+        log.info('Channel %s: sending notification to user %s for %s with resultcount %d' % (channelName, userId, userSubscriptionId, resultCount))
 
         message = {'userId': userId,
                    'dataverseName': dataverseName,
                    'channelName':  channelName,
                    'channelSubscriptionId': channelSubscriptionId,
                    'userSubscriptionId': userSubscriptionId,
-                   'recordCount': 0,
+                   'resultCount': resultCount,
                    'channelExecutionTime': latestChannelExecutionTime
                    }
 
@@ -847,9 +867,9 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def insertRecords(self, dataverseName, userId, accessToken, datasetName, records):
-        check = self._checkAccess(dataverseName, userId, accessToken)
-        if check['status'] == 'failed':
-            return check
+        #check = self._checkAccess(dataverseName, userId, accessToken)
+        #if check['status'] == 'failed':
+        #    return check
 
         aql_stmt = 'insert into dataset {0} {1}'.format(datasetName, records)
         status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
@@ -1024,6 +1044,7 @@ class BADBroker:
 
             # Setting up application dataverse, creating broker datasets
             if setupAQL:
+                log.debug(setupAQL)
                 response = yield self.setupApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
                 return response
             else:

@@ -197,8 +197,9 @@ class BADClient:
         channelName = response['channelName']
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
+        resultCount = response['resultCount']
 
-        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime)
+        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime, resultCount)
 
     def insertrecords(self, datasetName, records):
         log.info('Insert records into %s' %datasetName)

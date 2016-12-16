@@ -1,10 +1,10 @@
 import badclient
 import sys
 
-def on_channelresults(channelName, subscriptionId, channelExecutionTime):
+def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultCount):
     print(channelName, subscriptionId)
-    print('Results for %s' %channelExecutionTime)
-    results = client.getresults(channelName, subscriptionId, channelExecutionTime)
+    print('Results for %s: result count %d, latest execution time %s' %(channelName, resultCount, channelExecutionTime))
+    results = client.getlatestresults(channelName, subscriptionId)
     if results and len(results) > 0:
         for item in results:
             print('APPDATA ' + str(item))
