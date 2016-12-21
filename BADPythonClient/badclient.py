@@ -197,7 +197,6 @@ class BADClient:
         channelName = response['channelName']
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
-        returnedChannelExecutionTime = response['returnedChannelExecutionTime']
         resultCount = response['resultCount']
 
         self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime, resultCount)

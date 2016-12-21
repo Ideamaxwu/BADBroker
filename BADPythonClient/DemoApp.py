@@ -20,7 +20,7 @@ def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultC
 def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
-client = badclient.BADClient(brokerServer='localhost') #'cert24.ics.uci.edu')
+client = badclient.BADClient(brokerServer='cert24.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
