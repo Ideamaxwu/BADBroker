@@ -197,6 +197,7 @@ class BADClient:
         channelName = response['channelName']
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
+        returnedChannelExecutionTime = response['returnedChannelExecutionTime']
         resultCount = response['resultCount']
 
         self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime, resultCount)
@@ -243,7 +244,7 @@ class BADClient:
                     log.debug(r)
                     self.on_error('feedrecords', 'Error:', response['error'])
 
-    def getresults(self, channelName, subscriptionId, channelExecutionTime=None):
+    def getresults(self, channelName, subscriptionId, resultSize=None):
         log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
@@ -251,7 +252,7 @@ class BADClient:
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
-                     'channelExecutionTime': channelExecutionTime
+                     'resultSize': resultSize
                      }
 
         r = requests.post(self.brokerUrl + '/getresults', data=json.dumps(post_data))

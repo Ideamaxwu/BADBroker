@@ -75,6 +75,8 @@ class BADBroker:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
         self.brokerIPAddr = self._myNetAddress()
+        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '')
+
         tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
         tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
@@ -435,7 +437,7 @@ class BADBroker:
         return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId
 
     @tornado.gen.coroutine
-    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
+    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -468,8 +470,12 @@ class BADBroker:
         orderbyClause = '$t.channelExecutionTime asc'
         aql_stmt = 'for $t in dataset %s ' \
                    'distinct by $t.channelExecutionTime ' \
-                   'where %s order by %s return $t.channelExecutionTime' \
-                   % ((channelName + 'Results'), whereClause, orderbyClause)
+                   'where %s ' \
+                   'order by %s ' \
+                   '%s ' \
+                   'return $t.channelExecutionTime' \
+                   % ((channelName + 'Results'), whereClause, orderbyClause,
+                      'limit {}'.format(resultSize) if resultSize and resultSize > 0 else '')
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -511,6 +517,7 @@ class BADBroker:
                     'channelName': channelName,
                     'userSubscriptionId': userSubscriptionId,
                     'channelExecutionTime': channelExecutionTime,
+                    'returnedChannelExecutionTime': channelExecutionTimes[-1],
                     'results': resultToUser}
         else:
             return {'status': 'failed', 'error': 'No result to retrieve'}

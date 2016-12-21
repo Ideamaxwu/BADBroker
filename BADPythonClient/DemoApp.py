@@ -3,17 +3,24 @@ import sys
 
 def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultCount):
     print(channelName, subscriptionId)
-    print('Results for %s: result count %d, latest execution time %s' %(channelName, resultCount, channelExecutionTime))
-    results = client.getlatestresults(channelName, subscriptionId)
-    if results and len(results) > 0:
+    print('Results for %s: result count %d, latest execution time %s' % (channelName, resultCount, channelExecutionTime))
+
+    return
+
+    results = client.getresults(channelName, subscriptionId, 100)
+    while results and len(results) > 0:
         for item in results:
             print('APPDATA ' + str(item))
-        client.ackresults(channelName, subscriptionId, channelExecutionTime)
+
+        returnedChannelExecutionTime = results['returnedChannelExecutionTime']
+
+        client.ackresults(channelName, subscriptionId, returnedChannelExecutionTime)
+        results = client.getresults(channelName, subscriptionId, 100)
 
 def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
-client = badclient.BADClient(brokerServer='localhost')
+client = badclient.BADClient(brokerServer='localhost') #'cert24.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
@@ -32,8 +39,8 @@ if client.login() == False:
 client.listchannels()
 client.listsubscriptions()
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-#print ('Subscribed with ID %s' %subcriptionId)
+subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+print ('Subscribed with ID %s' %subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

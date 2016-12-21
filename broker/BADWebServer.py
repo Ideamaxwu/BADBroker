@@ -384,8 +384,9 @@ class GetResultsHandler(BaseHandler):
             channelName = post_data['channelName']
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
+            resultSize = post_data['resultSize'] if 'resultSize' in post_data else None
 
-            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
