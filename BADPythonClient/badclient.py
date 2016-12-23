@@ -10,7 +10,7 @@ import random
 import logging
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class BADClient:
@@ -261,7 +261,7 @@ class BADClient:
             if results and results['status'] == 'success':
                 channelExecutionTime = results['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                return results['results']
+                return results
             else:
                 log.debug(r.text)
         else:
@@ -280,11 +280,11 @@ class BADClient:
         r = requests.post(self.brokerUrl + '/getlatestresults', data=json.dumps(post_data))
 
         if r.status_code == 200:
-            results = r.json()
-            if results and results['status'] == 'success':
-                channelExecutionTime = results['channelExecutionTime']
+            resultObject = r.json()
+            if resultObject and resultObject['status'] == 'success':
+                channelExecutionTime = resultObject['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                return results['results']
+                return resultObject
             else:
                 log.debug(r.text)
         else:

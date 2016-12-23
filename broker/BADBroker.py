@@ -517,7 +517,7 @@ class BADBroker:
                     'channelName': channelName,
                     'userSubscriptionId': userSubscriptionId,
                     'channelExecutionTime': channelExecutionTime,
-                    'returnedChannelExecutionTime': channelExecutionTimes[-1],
+                    'latestChannelExecutionTimeInResults': channelExecutionTimes[-1],
                     'results': resultToUser}
         else:
             return {'status': 'failed', 'error': 'No result to retrieve'}
