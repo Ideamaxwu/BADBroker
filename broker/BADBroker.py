@@ -741,13 +741,12 @@ class BADBroker:
                     self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime = latestChannelExecutionTimes[-1]
                     yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save()
 
-                    # If there are more than one user attached to this subscription, retrieve results from the Asterix and cache them
-                    if len(self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]) > 1:
-                        for latestChannelExecutionTime in latestChannelExecutionTimes:
-                            results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                            resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                            if results and not self.cache.hasKey(resultKey):
-                                self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
+                    # Retrieve results from the Asterix and cache them
+                    for latestChannelExecutionTime in latestChannelExecutionTimes:
+                        results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                        resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                        if results and not self.cache.hasKey(resultKey):
+                            self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
 
                     # Send notifications to all users who subscribed to this channel, ONLY the latest executionTime is notified
                     tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
@@ -1016,9 +1015,10 @@ class BADBroker:
                 'error': 'User is not authenticated'
             }
 
+    # Application Management routines
     @tornado.gen.coroutine
     def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0, setupAQL=None):
-        # Check if there is already an app exists with the same name, currently ignored.
+        # Check if there is already an app exist with the same name, currently ignored.
 
         if dropExisting == 0:
             applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
@@ -1052,7 +1052,7 @@ class BADBroker:
             # Setting up application dataverse, creating broker datasets
             if setupAQL:
                 log.debug(setupAQL)
-                response = yield self.setupApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
+                response = yield self.updateApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
                 return response
             else:
                 return {
@@ -1065,6 +1065,47 @@ class BADBroker:
             return {
                 'status': 'failed',
                 'error': response
+            }
+
+    @tornado.gen.coroutine
+    def updateApplication(self, appName, apiKey, setupAQL=None):
+        # Check if application exists, if so match ApiKey
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
+            }
+
+        dataverseName = applications[0].appDataverse
+
+        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
+
+        # The setup AQL MUST not contain use dataverse or create dataverse commands
+        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
+            return {
+                'status': 'failed',
+                'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
+            }
+
+        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
+        log.debug(response)
+
+        if status == 200:
+            log.info('Setup for app %s is successful' %appName)
+            return {
+                'status': 'success',
+                'appName': appName,
+                'apiKey': apiKey,
+            }
+        else:
+            log.info('Setup for app `%s` is failed' %appName)
+            return {
+                'status': 'failed',
+                'appName': appName,
+                'error': 'Setup failed, possible reason %s' %response
             }
 
     @tornado.gen.coroutine
@@ -1169,47 +1210,6 @@ class BADBroker:
         else:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
-
-    @tornado.gen.coroutine
-    def setupApplication(self, appName, apiKey, setupAQL=None):
-        # Check if application exists, if so match ApiKey
-        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
-
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
-            return {
-                'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
-            }
-
-        dataverseName = applications[0].appDataverse
-
-        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
-
-        # The setup AQL MUST not contain use dataverse or create dataverse commands
-        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
-            return {
-                'status': 'failed',
-                'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
-            }
-
-        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
-        log.debug(response)
-
-        if status == 200:
-            log.info('Setup for app %s is successful' %appName)
-            return {
-                'status': 'success',
-                'appName': appName,
-                'apiKey': apiKey,
-            }
-        else:
-            log.info('Setup for app `%s` is failed' %appName)
-            return {
-                'status': 'failed',
-                'appName': appName,
-                'error': 'Setup failed, possible reason %s' %response
-            }
 
 
 def set_live_web_sockets(web_socket_object):

@@ -120,7 +120,7 @@ class SetupApplicationHandler(BaseHandler):
             apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
+            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -148,7 +148,7 @@ class UpdateApplicationHandler(BaseHandler):
             apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
+            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
