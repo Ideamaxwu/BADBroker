@@ -77,7 +77,7 @@ class BADBroker:
         self.brokerIPAddr = self._myNetAddress()
         self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '')
 
-        tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
+        #tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
         tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
     @tornado.gen.coroutine
@@ -89,13 +89,19 @@ class BADBroker:
         }
 
         log.info(post_request)
-        
-        r = requests.post(self.bcsUrl + "/registerbroker", json=post_request)
-        if r.status_code == 200:
-            log.info('Broker registered successfully')
-            log.info(r.text)
-        else:
-            log.debug('Broker registration with BCS failed')
+
+        try:
+            r = requests.post(self.bcsUrl + "/registerbroker", json=post_request)
+            if r and r.status_code == 200:
+                log.info('Broker registered successfully')
+                log.info(r.text)
+            else:
+                log.debug('Broker registration with BCS failed, Exiting!!')
+                exit(0)
+        except Exception as e:
+            log.debug('Broker registration with BCS failed for reason %s' %(e))
+            log.debug('Exiting broker!')
+            exit(0)
 
     def _myNetAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
