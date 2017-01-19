@@ -1,33 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
+	<title>Register App</title>
+	<head>
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdn.rawgit.com/gdi2290/angular-websocket/v1.0.9/angular-websocket.min.js"></script>
+        <script src="http://rawgit.com/angular-ui/angular-google-maps/2.0.X/dist/angular-google-maps.js"></script>
 
-<body>
-<form action="/registerapplication" method = 'POST'>
-  <input type="hidden" name="fromForm">
-  Application name:<br>
-  <input type="text" name="appName" value="">
-  <br>
-  Dataverse Name:<br>
-  <input type="text" name="appDataverse" value="">
-  <br>
-    Admin User:<br>
-  <input type="text" name="adminUser" value="">
-  <br>
-    Admin Password:<br>
-  <input type="text" name="adminPassword" value="">
-  <br>
-    Email:<br>
-  <input type="text" name="email" value="">
-  <br>
-  Drop existing application?:
-  <input type="checkbox" name="dropExisting" value="yes">
-  <br><br>
-  Setup AQLs:<br>
-  <textarea name="setupAQL" cols="60" rows="20"></textarea>
 
-  <br><br>
-  <input type="submit" value="Register application">
+    </head>
+<body ng-app="myApp" ng-init="dropExisting=false">
+<div ng-controller="RegisterAppController">
+<div class="container">
+                <div class="row">
+                    <div id="main-content">
+                        <div class="col-md-4 col-md-offset-4">
+                            <h2>Register App HERE</h2>
+<form>
+	<div class="form-group">
+       <label for="name">Application name:</label>
+       <input type="text" class="form-control" id="appName" placeholder="AppName" ng-model="newAppName">
+    </div>
+	<div class="form-group">
+       <label for="name">Dataverse Name:</label>
+       <input type="text" class="form-control" id="appDataverse" placeholder="AppDataverse" ng-model="newAppDataverse">
+    </div>
+	<div class="form-group">
+       <label for="name">Admin User:</label>
+       <input type="text" class="form-control" id="adminUser" placeholder="AdminUser" ng-model="newAdminUser">
+    </div>
+	<div class="form-group">
+       <label for="name">Admin Password:</label>
+       <input type="text" class="form-control" id="adminPassword" placeholder="AdminPassword" ng-model="newAdminPassword">
+    </div>
+	<div class="form-group">
+       <label for="name">Email:</label>
+       <input type="text" class="form-control" id="email" placeholder="Email" ng-model="newEmail">
+    </div>
+	<div class="form-group">
+       <label for="name">Drop existing application?:</label>
+       <input type="checkbox" ng-model="dropExisting" ng-click="onClickDrop()">
+    </div>
+	<!--
+	<div class="form-group">
+       <label for="name">Setup AQLs:</label>
+       <input type="text" class="form-control" id="setupAQL" placeholder="SetupAQL" ng-model="newSetupAQL">
+    </div>
+	-->
+	<div class="form-group">
+		<label for="name">Setup AQLs:</label>
+		<textarea rows="10" class="query" id="setupAQL" placeholder="Type your query ..." ng-model="newSetupAQL"></textarea>
+	</div>
+	<button type="submit" class="btn btn-primary" ng-model="newAppClicked"
+    	ng-init="newAppClicked=false"
+    	ng-click="registerUser(newAppName, newAppDataverse, newAdminUser, newAdminPassword, newEmail, dropExisting, newSetupAQL); newAppClicked=true">
+    	Register Application
+    </button>
+
 </form>
 
+	</div>
+	</div>
+	</div>
+	</div>
+</div>
+
+		<script type="text/javascript" src="/static/js/app.js"></script>
+        <script type="text/javascript" src="/static/js/RegisterAppController.js"></script>
+        <script type="text/javascript" src="/static/js/RegisterAppGetter.js"></script>
+        <script type="text/javascript" src="/static/js/SessionStorage.js"></script>
+        <script type="text/javascript" src="/static/js/ng-infinite-scroll.min.js"></script> 
+        <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 </body>
 </html>

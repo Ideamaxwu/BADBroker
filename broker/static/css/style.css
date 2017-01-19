@@ -44,3 +44,17 @@ div#notifications {
     right: 0;
     left: 0;
 }
+textarea.query { 
+-webkit-box-sizing: border-box;    
+-moz-box-sizing: border-box;    
+-ms-box-sizing: border-box;    
+box-sizing: border-box;    
+font-size: 16px;    
+line-height: 20px;    
+font-family: bitter, helvetica;    
+width: 100%;    
+padding: 10px;    
+color: #333;    
+resize: none;    
+border: 10px solid #eee;
+}

@@ -22,13 +22,19 @@ live_web_sockets = set()
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.set_header('Access-Control-Allow-Methods', ' POST, OPTIONS')
-
+        self.set_header("Access-Control-Allow-Headers", "Content-Type")
+        self.set_header('Access-Control-Allow-Methods', "GET, POST, OPTIONS")
+	
+    def get(self):
+        log.info("get")
+    def post(self):
+        log.info("post")
     def options(self):
-        self.set_status(204)
-        self.finish()
+        log.info("options")
 
+class BaseWebSocketHandler(tornado.websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
 
 class MainHandler(BaseHandler):
     def get(self):
@@ -650,7 +656,7 @@ class ListChannelsHandler(BaseHandler):
         self.flush()
         self.finish()
 
-class BrowserWebSocketHandler(tornado.websocket.WebSocketHandler):
+class BrowserWebSocketHandler(BaseWebSocketHandler):
     def open(self):
         global live_web_sockets
         log.info("WebSocket opened")
@@ -734,6 +740,7 @@ def start_server():
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
         (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
+		(r'/websocketlistener', BrowserWebSocketHandler),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker))
     ], **settings)

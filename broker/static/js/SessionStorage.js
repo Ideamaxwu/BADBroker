@@ -4,7 +4,7 @@ app.factory('SessionStorage', function($window) {
 		if(key == 'subscriptionId' || key == 'timestamp') {
 			if($window.sessionStorage.getItem(key)) {
 				var keyList = JSON.parse($window.sessionStorage.getItem(key));
-				console.log(keyList);
+				//console.log(keyList);
 				keyList.push(data);
 				$window.sessionStorage.setItem(key, JSON.stringify(keyList));
 			}
@@ -17,7 +17,7 @@ app.factory('SessionStorage', function($window) {
 			$window.sessionStorage.setItem(key, data)	
 		}
 		
-		console.log($window.sessionStorage.getItem(key));
+		//console.log($window.sessionStorage.getItem(key));
 	}
 
 	function get(key) {
@@ -36,12 +36,16 @@ app.factory('SessionStorage', function($window) {
 			console.log("Key is not present in local storage: " + key);
 		}
 	}
-
+	function conf(){
+		//$window.sessionStorage.setItem('brokerUrl','128.195.52.128:8989')
+		$window.sessionStorage.setItem('brokerUrl','cert24.ics.uci.edu:8989')
+	}
 	return {
 		set : set,
 		get : get,
 		remove : remove, 
-		removeElement : removeElement
+		removeElement : removeElement,
+		conf : conf
 	}
 
 });

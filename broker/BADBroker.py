@@ -134,6 +134,7 @@ class BADBroker:
 
         else:
             userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
+            log.info("========================================"+userId)
             user = User(dataverseName, userId, userId, userName, password, email)
             yield user.save()
             self.users[userName] = user
