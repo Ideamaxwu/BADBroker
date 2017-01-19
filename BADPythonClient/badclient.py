@@ -64,12 +64,14 @@ class BADClient:
                 if response['status'] == 'success':
                     self.userId = response['userId']
                     log.info('User `%s` registered.' % self.userName)
+                    return True
                 else:
                     log.error('Registration failed for user `%s`' %self.userName)
                     self.on_error('register', 'Registration failed %s' %response)
         else:
             log.debug(r)
             self.on_error('register', 'Registration failed for %s' %userName)
+        return False
 
     def login(self):
         log.info('Login')

@@ -34,14 +34,12 @@ email = 'abc@abc.net'
 client.on_channelresults = on_channelresults
 client.on_error = on_error
 
-client.register(dataverseName, userName, password, email)
-
-if client.login() == False:
-    print('Login failed')
+if client.register(dataverseName, userName, password, email) and client.login():
+    client.listchannels()
+    client.listsubscriptions()
+else:
+    print('Registration or Login failed')
     sys.exit(0)
-
-client.listchannels()
-client.listsubscriptions()
 
 #subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
 #print ('Subscribed with ID %s' %subcriptionId)
