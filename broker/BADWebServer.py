@@ -23,18 +23,35 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "Content-Type")
+<<<<<<< HEAD
         self.set_header('Access-Control-Allow-Methods', "GET, POST, OPTIONS")
 	
     def get(self):
         log.info("get")
     def post(self):
         log.info("post")
+=======
+        self.set_header('Access-Control-Allow-Methods', ' POST, OPTIONS')
+
+>>>>>>> yusuf/master
     def options(self):
         log.info("options")
+
+<<<<<<< HEAD
+class BaseWebSocketHandler(tornado.websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
+=======
+    def post(self):
+        self.set_status(204)
+        self.finish()
+
 
 class BaseWebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
+
+>>>>>>> yusuf/master
 
 class MainHandler(BaseHandler):
     def get(self):
@@ -117,7 +134,7 @@ class SetupApplicationHandler(BaseHandler):
             apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
+            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -145,7 +162,7 @@ class UpdateApplicationHandler(BaseHandler):
             apiKey = post_data['apiKey']
             setupAQL = post_data['setupAQL']
 
-            response = yield self.broker.setupApplication(appName, apiKey, setupAQL)
+            response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
 
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
@@ -381,8 +398,9 @@ class GetResultsHandler(BaseHandler):
             channelName = post_data['channelName']
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
+            resultSize = post_data['resultSize'] if 'resultSize' in post_data else None
 
-            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
+            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
@@ -656,6 +674,10 @@ class ListChannelsHandler(BaseHandler):
         self.flush()
         self.finish()
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> yusuf/master
 class BrowserWebSocketHandler(BaseWebSocketHandler):
     def open(self):
         global live_web_sockets
@@ -687,6 +709,7 @@ def webSocketSendMessage(message):
             live_web_sockets.remove(ws)
     finally:
         mutex.release()
+
 
 class ListSubscriptionsHandler(BaseHandler):
     def initialize(self, broker):
@@ -740,7 +763,11 @@ def start_server():
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
         (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
+<<<<<<< HEAD
 		(r'/websocketlistener', BrowserWebSocketHandler),
+=======
+        (r'/websocketlistener', BrowserWebSocketHandler),
+>>>>>>> yusuf/master
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker))
     ], **settings)

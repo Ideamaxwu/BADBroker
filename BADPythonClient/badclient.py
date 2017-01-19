@@ -10,7 +10,7 @@ import random
 import logging
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class BADClient:
@@ -64,12 +64,14 @@ class BADClient:
                 if response['status'] == 'success':
                     self.userId = response['userId']
                     log.info('User `%s` registered.' % self.userName)
+                    return True
                 else:
                     log.error('Registration failed for user `%s`' %self.userName)
                     self.on_error('register', 'Registration failed %s' %response)
         else:
             log.debug(r)
             self.on_error('register', 'Registration failed for %s' %userName)
+        return False
 
     def login(self):
         log.info('Login')
@@ -197,8 +199,9 @@ class BADClient:
         channelName = response['channelName']
         userSubscriptionId = response['userSubscriptionId']
         latestChannelExecutionTime = response['channelExecutionTime']
+        resultCount = response['resultCount']
 
-        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime)
+        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime, resultCount)
 
     def insertrecords(self, datasetName, records):
         log.info('Insert records into %s' %datasetName)
@@ -242,7 +245,7 @@ class BADClient:
                     log.debug(r)
                     self.on_error('feedrecords', 'Error:', response['error'])
 
-    def getresults(self, channelName, subscriptionId, channelExecutionTime=None):
+    def getresults(self, channelName, subscriptionId, resultSize=None):
         log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
@@ -250,7 +253,7 @@ class BADClient:
                      'accessToken': self.accessToken,
                      'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
-                     'channelExecutionTime': channelExecutionTime
+                     'resultSize': resultSize
                      }
 
         r = requests.post(self.brokerUrl + '/getresults', data=json.dumps(post_data))
@@ -260,7 +263,7 @@ class BADClient:
             if results and results['status'] == 'success':
                 channelExecutionTime = results['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                return results['results']
+                return results
             else:
                 log.debug(r.text)
         else:
@@ -279,11 +282,11 @@ class BADClient:
         r = requests.post(self.brokerUrl + '/getlatestresults', data=json.dumps(post_data))
 
         if r.status_code == 200:
-            results = r.json()
-            if results and results['status'] == 'success':
-                channelExecutionTime = results['channelExecutionTime']
+            resultObject = r.json()
+            if resultObject and resultObject['status'] == 'success':
+                channelExecutionTime = resultObject['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                return results['results']
+                return resultObject
             else:
                 log.debug(r.text)
         else:

@@ -1,19 +1,30 @@
 import badclient
 import sys
 
-def on_channelresults(channelName, subscriptionId, channelExecutionTime):
+def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultCount):
     print(channelName, subscriptionId)
-    print('Results for %s' %channelExecutionTime)
-    results = client.getresults(channelName, subscriptionId, channelExecutionTime)
-    if results and len(results) > 0:
+    print('Results for %s: result count %d, latest execution time %s' % (channelName, resultCount, channelExecutionTime))
+
+    resultObject = client.getresults(channelName, subscriptionId, 10)
+
+    while resultObject and len(resultObject['results']) > 0:
+        latestChannelExecutionTimeInResults = resultObject['latestChannelExecutionTimeInResults']
+        channelExecutionTime = resultObject['channelExecutionTime']
+
+        results = resultObject['results']
+
+        print('Retrieved %d results' % len(results))
         for item in results:
             print('APPDATA ' + str(item))
-        client.ackresults(channelName, subscriptionId, channelExecutionTime)
+
+        client.ackresults(channelName, subscriptionId, latestChannelExecutionTimeInResults)
+        resultObject = client.getresults(channelName, subscriptionId, 10)
 
 def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
-client = badclient.BADClient(brokerServer='localhost')
+
+client = badclient.BADClient(brokerServer='cert24.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
@@ -23,14 +34,12 @@ email = 'abc@abc.net'
 client.on_channelresults = on_channelresults
 client.on_error = on_error
 
-client.register(dataverseName, userName, password, email)
-
-if client.login() == False:
-    print('Login failed')
+if client.register(dataverseName, userName, password, email) and client.login():
+    client.listchannels()
+    client.listsubscriptions()
+else:
+    print('Registration or Login failed')
     sys.exit(0)
-
-client.listchannels()
-client.listsubscriptions()
 
 #subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
 #print ('Subscribed with ID %s' %subcriptionId)

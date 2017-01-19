@@ -75,8 +75,10 @@ class BADBroker:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
         self.brokerIPAddr = self._myNetAddress()
-        tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
-        #tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
+        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '')
+
+        #tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
+        tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
 
     @tornado.gen.coroutine
     def _registerBrokerWithBCS(self):
@@ -87,13 +89,19 @@ class BADBroker:
         }
 
         log.info(post_request)
-        
-        r = requests.post(self.bcsUrl + "/registerbroker", json=post_request)
-        if r.status_code == 200:
-            log.info('Broker registered successfully')
-            log.info(r.text)
-        else:
-            log.debug('Broker registration with BCS failed')
+
+        try:
+            r = requests.post(self.bcsUrl + "/registerbroker", json=post_request)
+            if r and r.status_code == 200:
+                log.info('Broker registered successfully')
+                log.info(r.text)
+            else:
+                log.debug('Broker registration with BCS failed, Exiting!!')
+                exit(0)
+        except Exception as e:
+            log.debug('Broker registration with BCS failed for reason %s' %(e))
+            log.debug('Exiting broker!')
+            exit(0)
 
     def _myNetAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -436,7 +444,7 @@ class BADBroker:
         return dataverseName + '::' + channelName + '::' + subscriptionId + '::' + userId
 
     @tornado.gen.coroutine
-    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime):
+    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -469,8 +477,12 @@ class BADBroker:
         orderbyClause = '$t.channelExecutionTime asc'
         aql_stmt = 'for $t in dataset %s ' \
                    'distinct by $t.channelExecutionTime ' \
-                   'where %s order by %s return $t.channelExecutionTime' \
-                   % ((channelName + 'Results'), whereClause, orderbyClause)
+                   'where %s ' \
+                   'order by %s ' \
+                   '%s ' \
+                   'return $t.channelExecutionTime' \
+                   % ((channelName + 'Results'), whereClause, orderbyClause,
+                      'limit {}'.format(resultSize) if resultSize and resultSize > 0 else '')
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -512,6 +524,7 @@ class BADBroker:
                     'channelName': channelName,
                     'userSubscriptionId': userSubscriptionId,
                     'channelExecutionTime': channelExecutionTime,
+                    'latestChannelExecutionTimeInResults': channelExecutionTimes[-1],
                     'results': resultToUser}
         else:
             return {'status': 'failed', 'error': 'No result to retrieve'}
@@ -735,20 +748,19 @@ class BADBroker:
                     self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime = latestChannelExecutionTimes[-1]
                     yield self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId].save()
 
-                    # If there are more than one user attached to this subscription, retrieve results from the Asterix and cache them
-                    if len(self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]) > 1:
-                        for latestChannelExecutionTime in latestChannelExecutionTimes:
-                            results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                            resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
-                            if results and not self.cache.hasKey(resultKey):
-                                self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
+                    # Retrieve results from the Asterix and cache them
+                    for latestChannelExecutionTime in latestChannelExecutionTimes:
+                        results = yield self.getResultsFromAsterix(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                        resultKey = self.getResultKey(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime)
+                        if results and not self.cache.hasKey(resultKey):
+                            self.putResultsIntoCache(dataverseName, channelName, channelSubscriptionId, latestChannelExecutionTime, results)
 
                     # Send notifications to all users who subscribed to this channel, ONLY the latest executionTime is notified
                     tornado.ioloop.IOLoop.current().add_callback(self.notifyAllUsers,
-                                                                     dataverseName=dataverseName,
-                                                                     channelName=channelName,
-                                                                     channelSubscriptionId=channelSubscriptionId,
-                                                                     latestChannelExecutionTime=latestChannelExecutionTimes[-1])
+                                                                 dataverseName=dataverseName,
+                                                                 channelName=channelName,
+                                                                 channelSubscriptionId=channelSubscriptionId,
+                                                                 latestChannelExecutionTime=latestChannelExecutionTime)
                 else:
                     log.error('No new results to retrieve from channel %s' % channelName)
             else:
@@ -762,18 +774,38 @@ class BADBroker:
         for userId in self.userSubscriptions[dataverseName][channelName][channelSubscriptionId]:
             sub = self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             userSubcriptionId = sub.userSubscriptionId
-            yield self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId, latestChannelExecutionTime)
+            latestDeliveredResultTime = sub.latestDeliveredResultTime
+            resultCount = yield self.getResultCount(dataverseName, channelName, userId, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
+            yield self.notifyUser(dataverseName, channelName, userId, channelSubscriptionId, userSubcriptionId,
+                                  latestChannelExecutionTime, resultCount)
 
     @tornado.gen.coroutine
-    def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime):
-        log.info('Channel %s: sending notification to user %s for %s' % (channelName, userId, userSubscriptionId))
+    def getResultCount(self, dataverseName, channelName, userId, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime):
+        statement = "let $times := " \
+                    "for $t in dataset {}Results " \
+                    "distinct by $t.channelExecutionTime " \
+                    "where $t.subscriptionId = uuid(\"{}\") and " \
+                    "$t.channelExecutionTime > datetime(\"{}\") and " \
+                    "$t.channelExecutionTime <= datetime(\"{}\") return $t.channelExecutionTime " \
+                    "return count($times)".format(channelName, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
+
+        status, response = yield self.asterix.executeQuery(dataverseName, statement)
+        if status == 200 and response:
+            resultCount = json.loads(response)[0]
+            return resultCount
+        else:
+            return -1 # Something wrong
+
+    @tornado.gen.coroutine
+    def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime, resultCount):
+        log.info('Channel %s: sending notification to user %s for %s with resultcount %d' % (channelName, userId, userSubscriptionId, resultCount))
 
         message = {'userId': userId,
                    'dataverseName': dataverseName,
                    'channelName':  channelName,
                    'channelSubscriptionId': channelSubscriptionId,
                    'userSubscriptionId': userSubscriptionId,
-                   'recordCount': 0,
+                   'resultCount': resultCount,
                    'channelExecutionTime': latestChannelExecutionTime
                    }
 
@@ -848,9 +880,9 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def insertRecords(self, dataverseName, userId, accessToken, datasetName, records):
-        check = self._checkAccess(dataverseName, userId, accessToken)
-        if check['status'] == 'failed':
-            return check
+        #check = self._checkAccess(dataverseName, userId, accessToken)
+        #if check['status'] == 'failed':
+        #    return check
 
         aql_stmt = 'insert into dataset {0} {1}'.format(datasetName, records)
         status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
@@ -990,9 +1022,10 @@ class BADBroker:
                 'error': 'User is not authenticated'
             }
 
+    # Application Management routines
     @tornado.gen.coroutine
     def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0, setupAQL=None):
-        # Check if there is already an app exists with the same name, currently ignored.
+        # Check if there is already an app exist with the same name, currently ignored.
 
         if dropExisting == 0:
             applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
@@ -1025,7 +1058,8 @@ class BADBroker:
 
             # Setting up application dataverse, creating broker datasets
             if setupAQL:
-                response = yield self.setupApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
+                log.debug(setupAQL)
+                response = yield self.updateApplication(appName=appName, apiKey=apiKey, setupAQL=setupAQL)
                 return response
             else:
                 return {
@@ -1038,6 +1072,47 @@ class BADBroker:
             return {
                 'status': 'failed',
                 'error': response
+            }
+
+    @tornado.gen.coroutine
+    def updateApplication(self, appName, apiKey, setupAQL=None):
+        # Check if application exists, if so match ApiKey
+        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+
+        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
+            log.error('No application exists or ApiKey does not match')
+            return {
+                'status': 'failed',
+                'error': 'No application exists or ApiKey does not match '
+            }
+
+        dataverseName = applications[0].appDataverse
+
+        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
+
+        # The setup AQL MUST not contain use dataverse or create dataverse commands
+        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
+            return {
+                'status': 'failed',
+                'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
+            }
+
+        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
+        log.debug(response)
+
+        if status == 200:
+            log.info('Setup for app %s is successful' %appName)
+            return {
+                'status': 'success',
+                'appName': appName,
+                'apiKey': apiKey,
+            }
+        else:
+            log.info('Setup for app `%s` is failed' %appName)
+            return {
+                'status': 'failed',
+                'appName': appName,
+                'error': 'Setup failed, possible reason %s' %response
             }
 
     @tornado.gen.coroutine
@@ -1142,47 +1217,6 @@ class BADBroker:
         else:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
-
-    @tornado.gen.coroutine
-    def setupApplication(self, appName, apiKey, setupAQL=None):
-        # Check if application exists, if so match ApiKey
-        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
-
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
-            return {
-                'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
-            }
-
-        dataverseName = applications[0].appDataverse
-
-        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
-
-        # The setup AQL MUST not contain use dataverse or create dataverse commands
-        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
-            return {
-                'status': 'failed',
-                'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
-            }
-
-        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
-        log.debug(response)
-
-        if status == 200:
-            log.info('Setup for app %s is successful' %appName)
-            return {
-                'status': 'success',
-                'appName': appName,
-                'apiKey': apiKey,
-            }
-        else:
-            log.info('Setup for app `%s` is failed' %appName)
-            return {
-                'status': 'failed',
-                'appName': appName,
-                'error': 'Setup failed, possible reason %s' %response
-            }
 
 
 def set_live_web_sockets(web_socket_object):
