@@ -19,6 +19,7 @@ create type UserSubscriptionType as closed {
     userId: string,
     channelName: string,
     timestamp: string,
+    parameters: string,
     latestDeliveredResultTime: string,
     resultsDataset: string
 }

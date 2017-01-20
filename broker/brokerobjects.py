@@ -184,7 +184,7 @@ class ChannelSubscription(BrokerObject):
 
 class UserSubscription(BrokerObject):
     def __init__(self, dataverseName=None, recordId=None, brokerName=None, userSubscriptionId=None, userId=None,
-                 channelSubscriptionId=None, channelName=None, timestamp=None, resultsDataset=None):
+                 channelSubscriptionId=None, channelName=None, parameters=None, timestamp=None, resultsDataset=None):
         self.dataverseName = dataverseName
         self.recordId = recordId
         self.brokerName = brokerName
@@ -192,6 +192,7 @@ class UserSubscription(BrokerObject):
         self.userId = userId
         self.channelSubscriptionId = channelSubscriptionId
         self.channelName = channelName
+        self.parameters = parameters
         self.timestamp = timestamp
         self.latestDeliveredResultTime = timestamp
         self.resultsDataset = resultsDataset

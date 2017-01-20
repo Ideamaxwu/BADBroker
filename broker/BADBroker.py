@@ -139,7 +139,6 @@ class BADBroker:
                 'error': 'User is already registered with the same name!',
                 'userId': user.userId
             }
-
         else:
             userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
             user = User(dataverseName, userId, userId, userName, password, email)
@@ -181,7 +180,6 @@ class BADBroker:
                         'error': 'User `%s` is already logged in. Cannot have multiple sessions!' %userName
                     }
                 '''
-
                 # Create a new session for this user
                 self.sessions[dataverseName][userId] = {
                     'platform': platform,
@@ -199,7 +197,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def loadSubscriptionsForUser(self, dataverseName, userId):
-        log.info('Loading userSubscriptions for user {0}'.format(userId))
+        log.info('Loading userSubscriptions for user `{0}`'.format(userId))
         userSubscriptions = yield UserSubscription.load(dataverseName, userId=userId)
 
         if userSubscriptions is None:
@@ -228,17 +226,27 @@ class BADBroker:
             self.userToSubscriptionMap[dataverseName][userSubscriptionId] = userSubscription
 
             # Load channelSubscription if not already loaded
-            if dataverseName not in self.channelSubscriptions:
-                self.channelSubscriptions[dataverseName] = {}
+            try:
+                value = self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId]
+            except KeyError as err:
+                # Channelsubscription is NOT in subscription table
+                if dataverseName not in self.channelSubscriptions:
+                    self.channelSubscriptions[dataverseName] = {}
 
-            if channelName not in self.channelSubscriptions[dataverseName]:
-                self.channelSubscriptions[dataverseName][channelName] = {}
+                if channelName not in self.channelSubscriptions[dataverseName]:
+                    self.channelSubscriptions[dataverseName][channelName] = {}
 
-            channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
-                                                                  channelSubscriptionId=channelSubscriptionId)
+                channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
+                                                                      channelSubscriptionId=channelSubscriptionId)
 
-            if channelSubscriptions and len(channelSubscriptions) > 0:
-                self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId] = channelSubscriptions[0]
+                if channelSubscriptions and len(channelSubscriptions) > 0:
+                    channelSubscription = channelSubscriptions[0]
+                    if channelSubscription.brokerName != self.brokerName:
+                        log.info('Broker changed for subscription `{0}`: from {} to {}'.format(userSubscriptionId, channelSubscription.brokerName, self.brokerName))
+                        channelSubscription = yield self.checkExistingChannelSubscription(dataverseName, channelName, channelSubscription.parameters)
+                        if not channelSubscription:
+                            channelSubscription = yield self.createChannelSubscription(dataverseName, channelName, channelSubscription.parameters)
+                    self.channelSubscriptions[dataverseName][channelName][channelSubscription.channelSubscriptionId] = channelSubscription
 
     @tornado.gen.coroutine
     def logout(self, dataverseName, userId, accessToken):
@@ -319,19 +327,18 @@ class BADBroker:
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
         currentDateTime = yield self.getCurrentDateTime()
         channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
-
         yield channelSubscription.save()
 
         return channelSubscription
 
     @tornado.gen.coroutine
-    def createUserSubscription(self, dataverseName, userId, channelName, channelSubscriptionId, timestamp):
+    def createUserSubscription(self, dataverseName, userId, channelName, parameters, channelSubscriptionId, timestamp):
         resultsDataset = channelName + 'Results'
 
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, channelSubscriptionId, userId)
 
         userSubscription = UserSubscription(dataverseName, userSubscriptionId, self.brokerName, userSubscriptionId, userId,
-                                    channelSubscriptionId, channelName, timestamp, resultsDataset)
+                                    channelSubscriptionId, channelName, parameters, timestamp, resultsDataset)
         yield userSubscription.save()
 
         if channelName not in self.userSubscriptions[dataverseName]:
@@ -405,7 +412,7 @@ class BADBroker:
             return {'status': 'failed', 'error': str(badex)}
 
         currentDateTime = yield self.getCurrentDateTime()
-        userSubscription = yield self.createUserSubscription(dataverseName, userId, channelName, channelSubscriptionId, currentDateTime)
+        userSubscription = yield self.createUserSubscription(dataverseName, userId, channelName, parameters, channelSubscriptionId, currentDateTime)
 
         if userSubscription:
             return {'status': 'success', 'userSubscriptionId': userSubscription.userSubscriptionId, 'timestamp': currentDateTime}
