@@ -201,7 +201,11 @@ class BADClient:
         latestChannelExecutionTime = response['channelExecutionTime']
         resultCount = response['resultCount']
 
-        self.on_channelresults(channelName, userSubscriptionId, latestChannelExecutionTime, resultCount)
+        # Get all pending results
+        results = self.getresults(channelName, userSubscriptionId)
+        success = self.on_channelresults(channelName, userSubscriptionId, results)
+        if success:
+            self.ackresults(channelName, userSubscriptionId, latestChannelExecutionTime)
 
     def insertrecords(self, datasetName, records):
         log.info('Insert records into %s' %datasetName)

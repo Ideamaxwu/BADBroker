@@ -12,7 +12,6 @@ create type ApplicationType as closed {
     adminPassword: string,
     email: string,
     apiKey: string
-
 }
 
 create dataset ApplicationDataset (ApplicationType)
