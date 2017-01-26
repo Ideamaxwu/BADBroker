@@ -8,7 +8,7 @@ import pika
 import sys
 import random
 import logging
-
+import threading
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -42,8 +42,24 @@ class BADClient:
                               queue=userId,
                               no_ack=True)
 
+        # Checking if broker is connected
+        #self.checkBroker()
+
         log.info('[*] Waiting for messages. To exit press CTRL+C')
         self.rqchannel.start_consuming()
+
+    def checkBroker(self):
+        try:
+            log.info('Checking broker')
+            r = requests.get('%s:%d/heartbeat')
+            if r and r.status_code == 204:
+                log.info('Broker is alive')
+                threading.Timer(10, self.checkBroker).start()
+
+        except Exception as err:
+            log.debug('Broker is not connected, quiting...')
+            if self.rqchannel and self.rqchannel.is_open:
+                self.rqchannel.stop_consuming()
 
     def register(self, dataverseName, userName, password, email=None):
         log.info('Register')
@@ -139,7 +155,11 @@ class BADClient:
 
         if r.status_code == 200:
             response = r.json()
-            log.debug(response)
+            print(response)
+            subscriptions = []
+            for item in response['subscriptions']:
+                subscriptions.append(item['userSubscriptionId'])
+            return subscriptions
         else:
             log.debug(r)
             self.on_error('listsubscriptions', 'listsubscriptions failed, call returned %s' % r)
@@ -202,10 +222,12 @@ class BADClient:
         resultCount = response['resultCount']
 
         # Get all pending results
-        results = self.getresults(channelName, userSubscriptionId)
-        success = self.on_channelresults(channelName, userSubscriptionId, results)
-        if success:
-            self.ackresults(channelName, userSubscriptionId, latestChannelExecutionTime)
+        results = self.getresults(userSubscriptionId)
+
+        if results:
+            success = self.on_channelresults(channelName, userSubscriptionId, results)
+            if success:
+                self.ackresults(channelName, userSubscriptionId, latestChannelExecutionTime)
 
     def insertrecords(self, datasetName, records):
         log.info('Insert records into %s' %datasetName)
@@ -249,13 +271,12 @@ class BADClient:
                     log.debug(r)
                     self.on_error('feedrecords', 'Error:', response['error'])
 
-    def getresults(self, channelName, subscriptionId, resultSize=None):
+    def getresults(self, subscriptionId, resultSize=None):
         log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
                      'accessToken': self.accessToken,
-                     'channelName': channelName,
                      'userSubscriptionId': subscriptionId,
                      'resultSize': resultSize
                      }
@@ -267,7 +288,7 @@ class BADClient:
             if results and results['status'] == 'success':
                 channelExecutionTime = results['channelExecutionTime']
                 log.info('Retrieved resultset for %s' %channelExecutionTime)
-                return results
+                return results['results']
             else:
                 log.debug(r.text)
         else:

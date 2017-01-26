@@ -24,7 +24,7 @@ def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultC
 '''
 
 def on_channelresults(channelName, subscriptionId, results):
-    print('Retrieved %d results' % len(results))
+    print('Retrieved results for channel `%s` with sub `%s` -- %d records' %(channelName, subscriptionId, len(results)))
     for item in results:
         print('APPDATA ' + str(item))
     return True
@@ -33,7 +33,7 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='localhost')
+client = badclient.BADClient(brokerServer='cert24.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
@@ -47,13 +47,14 @@ client.register(dataverseName, userName, password, email)
 
 if client.login():
     client.listchannels()
-    client.listsubscriptions()
+    subIds = client.listsubscriptions()
+    print(subIds)
 else:
     print('Registration or Login failed')
     sys.exit(0)
 
-subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-print ('Subscribed with ID %s' %subcriptionId)
+#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
+#print ('Subscribed with ID %s' %subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

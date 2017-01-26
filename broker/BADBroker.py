@@ -230,10 +230,15 @@ class BADBroker:
                 channelSubscriptionInTable = False
 
             if not channelSubscriptionInTable:
-                log.info('User `%s` might have swiched the broker' %userId)
+                log.info('User `%s` might have switched the broker' %userId)
                 channelSubscription = yield self.checkExistingChannelSubscription(dataverseName, channelName, userSubscription.parameters)
                 if not channelSubscription:
                     channelSubscription = yield self.createChannelSubscription(dataverseName, channelName, userSubscription.parameters)
+
+                if dataverseName not in self.channelSubscriptions:
+                    self.channelSubscriptions[dataverseName] = {}
+                if channelName not in self.channelSubscriptions[dataverseName]:
+                    self.channelSubscriptions[dataverseName][channelName] = {}
 
                 self.channelSubscriptions[dataverseName][channelName][channelSubscription.channelSubscriptionId] = channelSubscription
 
@@ -241,7 +246,6 @@ class BADBroker:
                 yield userSubscription.save()
 
                 self.userToSubscriptionMap[dataverseName][userSubscriptionId] = userSubscription
-
 
     @tornado.gen.coroutine
     def logout(self, dataverseName, userId, accessToken):
