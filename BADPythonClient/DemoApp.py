@@ -33,7 +33,7 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='cert24.ics.uci.edu')
+client = badclient.BADClient(brokerServer='radon.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
