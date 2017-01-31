@@ -33,7 +33,7 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='radon.ics.uci.edu')
+client = badclient.BADClient(brokerServer='cert24.ics.uci.edu')
 
 dataverseName = sys.argv[1]
 userName = sys.argv[2]
@@ -52,6 +52,8 @@ if client.login():
 else:
     print('Registration or Login failed')
     sys.exit(0)
+
+client.unsubcribe("demoapp::f80744ce20ce0744dbadd8d1f36d025980c10d696d1507594fcdc89b::nearbyTweetChannel::['man']'")
 
 #subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
 #print ('Subscribed with ID %s' %subcriptionId)

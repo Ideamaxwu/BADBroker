@@ -212,6 +212,24 @@ class BADClient:
             self.on_error('subscribe', 'Subscription failed for channel %s with params %s' % (channelName, parameters))
             return None
 
+    def unsubcribe(self, userSubscriptionId):
+        post_data = {
+            'dataverseName': self.dataverseName,
+            'userId': self.userId,
+            'accessToken': self.accessToken,
+            'userSubscriptionId': userSubscriptionId
+        }
+
+        r = requests.post(self.brokerUrl + "/unsubscribe", data=json.dumps(post_data))
+
+        if r.status_code == 200:
+            response = r.json()
+            if response['status'] == 'success':
+                log.info('Subscription `%s` is unsubscribed.' %userSubscriptionId)
+                return
+        log.debug(r)
+        self.on_error('unsubscribe', 'Unsubscription from `%s`failed!!' %userSubscriptionId)
+
     def _onNotifiedFromBroker(self, channel, method, properties, body):
         log.info('Notified from the broker')
         log.debug(str(body, encoding='utf-8'))
