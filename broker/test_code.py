@@ -37,11 +37,18 @@ def test():
 for x in test():
     print(x)
 
-user = User(3245566)
-user.load()
-user.save()
+#user = User(3245566)
+#user.load()
+#user.save()
 
 x = {'a' : 1, 'b': 2, 'c': {'t1': 1, 't2': 12}}
+try:
+    v = x['b']
+except KeyError as kerr:
+    print('error', kerr)
+
+print(v)
+
 for item in x:
     print (item)
 

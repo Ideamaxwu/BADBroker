@@ -54,8 +54,8 @@ else:
     print('Registration or Login failed')
     sys.exit(0)
 
-if len(subIds) > 0:
-    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
+#if len(subIds) > 0:
+#    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
 
 #subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
 #print ('Subscribed with ID %s' % subcriptionId)
