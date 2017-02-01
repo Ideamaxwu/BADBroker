@@ -157,10 +157,9 @@ class BADClient:
             response = r.json()
             print(response)
             subscriptions = []
-            if response['subscriptions']:
-                for item in response['subscriptions']:
-                    subscriptions.append(item['userSubscriptionId'])
-                return subscriptions
+            for item in response['subscriptions']:
+                subscriptions.append(item['userSubscriptionId'])
+            return subscriptions
         else:
             log.debug(r)
             self.on_error('listsubscriptions', 'listsubscriptions failed, call returned %s' % r)

@@ -25,6 +25,31 @@ class BrokerObject:
             log.error('Delete failed. Error ' + response)
             raise Exception('Delete failed ' + response)
 
+    @classmethod
+    @tornado.gen.coroutine
+    def deleteWhere(cls, dataverseName, **kwargs):
+        asterix = AsterixQueryManager.getInstance()
+        whereClause = None
+        if kwargs:
+            for key, value in kwargs.items():
+                if isinstance(value, str):
+                    clause = '$t.{} = \"{}\"'.format(key, value)
+                else:
+                    clause = '$t.{} = {}'.format(key, value)
+                whereClause = whereClause + ' and ' + clause if whereClause else clause
+
+        cmd_stmt = 'delete $t from dataset ' + str(cls.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' where {}'.format(whereClause)
+        log.debug(cmd_stmt)
+
+        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
+        if status == 200:
+            log.info('Delete succeeded')
+            return True
+        else:
+            log.error('Delete failed. Error ' + response)
+            raise Exception('Delete failed ' + response)
+
     @tornado.gen.coroutine
     def save(self):
         asterix = AsterixQueryManager.getInstance()
@@ -49,7 +74,7 @@ class BrokerObject:
         condition = None
         if kwargs:
             for key, value in kwargs.items():
-                if isinstance(value, str):
+                if isinstance(value, str) and key != 'parameters':
                     paramvalue = '\"{0}\"'.format(value)
                 else:
                     paramvalue = value

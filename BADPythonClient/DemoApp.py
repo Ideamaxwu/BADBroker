@@ -44,6 +44,7 @@ client.on_channelresults = on_channelresults
 client.on_error = on_error
 
 client.register(dataverseName, userName, password, email)
+subIds = []
 
 if client.login():
     client.listchannels()
@@ -53,10 +54,11 @@ else:
     print('Registration or Login failed')
     sys.exit(0)
 
-client.unsubcribe("demoapp::f80744ce20ce0744dbadd8d1f36d025980c10d696d1507594fcdc89b::nearbyTweetChannel::['man']'")
+if len(subIds) > 0:
+    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['man'])
-#print ('Subscribed with ID %s' %subcriptionId)
+#subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
+#print ('Subscribed with ID %s' % subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

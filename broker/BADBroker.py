@@ -209,12 +209,6 @@ class BADBroker:
             userSubscriptionId = userSubscription.userSubscriptionId
             channelSubscriptionId = userSubscription.channelSubscriptionId
 
-            if channelName not in self.userSubscriptions[dataverseName]:
-                self.userSubscriptions[dataverseName][channelName] = {}
-
-            if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
-                self.userSubscriptions[dataverseName][channelName][channelSubscriptionId] = {}
-
             # Check whether the channel subscription is in the table
             channelSubscriptionInTable = True
             try:
@@ -255,10 +249,14 @@ class BADBroker:
 
                 if dataverseName not in self.userSubscriptions:
                     self.userSubscriptions[dataverseName] = {}
-                if dataverseName not in self.userToSubscriptionMap:
-                    self.userToSubscriptionMap[dataverseName] = {}
+                if channelName not in self.userSubscriptions[dataverseName]:
+                    self.userSubscriptions[dataverseName][channelName] = {}
+                if channelSubscriptionId not in self.userSubscriptions[dataverseName][channelName]:
+                    self.userSubscriptions[dataverseName][channelName][channelSubscriptionId] = {}
                 self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId] = userSubscription
 
+                if dataverseName not in self.userToSubscriptionMap:
+                    self.userToSubscriptionMap[dataverseName] = {}
                 self.userToSubscriptionMap[dataverseName][userSubscriptionId] = userSubscription
 
 
@@ -297,9 +295,11 @@ class BADBroker:
         function_name = channel['Function']
         arity = int(function_name.split('@')[1])
 
+        '''
         if arity != len(parameters):
             log.warning('Channel routine takes %d arguments, given %d' % (arity, len(parameters)))
             raise BADException('Channel routine takes %d arguments, given %d' % (arity, len(parameters)))
+
 
         parameter_list = ''
         if parameters is not None:
@@ -311,8 +311,9 @@ class BADBroker:
                     parameter_list = parameter_list + '\"' + value + '\"'
                 else:
                     parameter_list = parameter_list + str(value)
+        '''
 
-        aql_stmt = 'subscribe to ' + channelName + '(' + parameter_list + ') on ' + self.brokerName
+        aql_stmt = 'subscribe to ' + channelName + '(' + parameters + ') on ' + self.brokerName
         log.debug(aql_stmt)
 
         status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
@@ -320,7 +321,7 @@ class BADBroker:
         if status_code != 200:
             log.debug(response)
             if 'There is no broker with this name' in response:
-                log.info('Broker `%s` is not registered. Registering..' %self.brokerName)
+                log.info('Broker `%s` is not registered. Registering..' % self.brokerName)
                 command = 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
                 status_code, response = yield self.asterix.executeAQL(dataverseName, command)
                 if status_code != 200:
@@ -340,7 +341,7 @@ class BADBroker:
 
         uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
         currentDateTime = yield self.getCurrentDateTime()
-        channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, str(parameters), channelSubscriptionId, currentDateTime)
+        channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, parameters, channelSubscriptionId, currentDateTime)
         yield channelSubscription.save()
 
         return channelSubscription
@@ -352,7 +353,7 @@ class BADBroker:
         userSubscriptionId = self.makeUserSubscriptionId(dataverseName, channelName, parameters, userId)
 
         userSubscription = UserSubscription(dataverseName, userSubscriptionId, self.brokerName, userSubscriptionId, userId,
-                                    channelSubscriptionId, channelName, str(parameters), timestamp, resultsDataset)
+                                    channelSubscriptionId, channelName, parameters, timestamp, resultsDataset)
         yield userSubscription.save()
 
         if channelName not in self.userSubscriptions[dataverseName]:
@@ -370,7 +371,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def checkExistingChannelSubscription(self, dataverseName, channelName, parameters):
         channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
-                                                              brokerName=self.brokerName, parameters=str(parameters))
+                                                              brokerName=self.brokerName, parameters=parameters)
         if channelSubscriptions and len(channelSubscriptions) > 0:
             if len(channelSubscriptions) > 1:
                 log.debug('Multiple subscriptions matched, picking 0-th')
@@ -405,9 +406,13 @@ class BADBroker:
         if dataverseName not in self.userToSubscriptionMap:
             self.userToSubscriptionMap[dataverseName] = {}
 
+        # Convert parameters (a list) to a string
+        parameters = json.dumps(parameters).replace('[','').replace(']','')
+
         # Check whether the channel already has a subscription with the same param values
         try:
-            channelSubscription = yield self.checkExistingChannelSubscription(dataverseName, channelName=channelName, parameters=parameters)
+            channelSubscription = yield self.checkExistingChannelSubscription(dataverseName, channelName=channelName,
+                                                                              parameters=str(hash(parameters)))
             if channelSubscription:
                 log.info('Subscription found, id = %s, channel %s with params %s' % (channelSubscription.channelSubscriptionId,
                                                                                      channelName, parameters))
@@ -444,26 +449,32 @@ class BADBroker:
             channelSubscriptionId = userSubscription.channelSubscriptionId
             channelName = userSubscription.channelName
 
-            '''
-            status_code, response = yield self.asterix.executeAQL('unsubscribe \"{0}\" from {1}'.format(channelSubscriptionId, channelName))
-
-            if status_code != 200:
-                raise BADException(response)
-            '''
-
             yield userSubscription.delete()
 
             del self.userSubscriptions[dataverseName][channelName][channelSubscriptionId][userId]
             del self.userToSubscriptionMap[dataverseName][userSubscriptionId]
 
             log.info('User %s unsubscribed from %s' % (userId, channelName))
+
+            # Check if there is other subscriptions left for this channel from this broker
+            userSubscriptions = yield UserSubscription.load(dataverseName, channelSubscriptionId=channelSubscriptionId)
+            if not userSubscriptions or len(userSubscriptions) == 0:
+                # No subscription left for this channel, so unsubscribe and remove the subscription
+                status_code, response = yield self.asterix.executeAQL(dataverseName, 'unsubscribe \"{0}\" from {1}'.format(channelSubscriptionId, channelName))
+                if status_code != 200:
+                    raise BADException(response)
+
+                del self.channelSubscriptions[dataverseName][channelName][channelSubscriptionId]
+                yield ChannelSubscription.deleteWhere(dataverseName, brokerName=self.brokerName,
+                                                 channelName=channelName, channelSubscriptionId=channelSubscriptionId)
+
             return {'status': 'success'}
         else:
             log.warning('No such subscription %s' % userSubscriptionId)
             return {'status': 'failed', 'error': 'No such subscription %s' % userSubscriptionId}
 
     def makeUserSubscriptionId(self, dataverseName, channelName, parameters, userId):
-        return dataverseName + '::' + userId + '::' + channelName + '::' + (str(parameters).replace(' ', '*'))
+        return dataverseName + '::' + userId + '::' + channelName + '::' + parameters.replace(', ', '').replace('"','')
 
     @tornado.gen.coroutine
     def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize):
@@ -675,7 +686,10 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        aql_stmt = 'for $channel in dataset Metadata.Channel return $channel'
+        aql_stmt = 'for $channel in dataset Metadata.Channel ' \
+                   'where $channel.DataverseName = \"{}\" ' \
+                   'return $channel'.format(dataverseName)
+
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
         if status == 200:
@@ -715,7 +729,7 @@ class BADBroker:
         userSubscriptions = yield UserSubscription.load(dataverseName=dataverseName, userId=userId)
         print(userSubscriptions)
 
-        return {'status': 'success', 'subscriptions': userSubscriptions}
+        return {'status': 'success', 'subscriptions': userSubscriptions if userSubscriptions else []}
 
     @tornado.gen.coroutine
     def notifyBroker(self, dataverseName, channelName, channelExecutionTime, channelSubscriptionIds):
