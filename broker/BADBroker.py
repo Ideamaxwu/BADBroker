@@ -55,7 +55,7 @@ class BADBroker:
             self.brokerPort = 8989
 
         if config.has_section('RabbitMQ'):
-            self.rabbitMQServer = config.get('server')
+            self.rabbitMQServer = config.get('RabbitMQ', 'server')
 
         self.channelSubscriptionTable = {}  # indexed by dataverseName, channelname, channelSubscriptionId
         self.userSubscriptionTable = {}  # subscription indexed by dataverseName->channelName -> channelSubscriptionId -> userId
