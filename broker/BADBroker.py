@@ -233,7 +233,10 @@ class BADBroker:
                     if not channelSubscription:
                         channelSubscription = yield self.createChannelSubscription(dataverseName, channelName, userSubscription.parameters)
 
-                    userSubscription.channelSubscriptionId = channelSubscription.channelSubscriptionId
+                    log.debug('New channelsubscription ' % (channelSubscription))
+                    channelSubscriptionId = channelSubscription.channelSubscriptionId
+
+                    userSubscription.channelSubscriptionId = channelSubscriptionId
                     yield userSubscription.save()
 
                 if dataverseName not in self.channelSubscriptionTable:
@@ -781,10 +784,9 @@ class BADBroker:
             # Check if whether there is any subscription for this channel and any of them are active
             atleastOneActive = False
             try:
-                for userId in self.userSubscriptionTable[dataverseName][channelName][channelSubscriptionId]:
-                    if userId in self.sessions[dataverseName]:
-                        atleastOneActive = True
-                        break
+                atleastOneActive = any(userId in self.sessions[dataverseName]
+                                       for userId in self.userSubscriptionTable[dataverseName][channelName][channelSubscriptionId])
+
             except KeyError as kerr:
                 log.debug('No user subscribed to this channel %s--%s' % (channelName, channelSubscriptionId))
                 pass
