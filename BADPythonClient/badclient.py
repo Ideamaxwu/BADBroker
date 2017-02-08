@@ -24,7 +24,7 @@ class BADClient:
         self.accessToken = None
         self.brokerPort = brokerPort
         self.brokerServer = brokerServer
-        self.rabbitMQServer = brokerServer
+        self.rabbitMQServer = 'cert24.ics.uci.edu'
         self.brokerUrl = 'http://{}:{}'.format(self.brokerServer, self.brokerPort)
         self.subscriptions = {}
 

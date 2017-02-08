@@ -54,7 +54,9 @@ class BADBroker:
             self.brokerIPAddr = 'localhost'
             self.brokerPort = 8989
 
-        self.users = {}               # indexed by dataverse, userId
+        if config.has_section('RabbitMQ'):
+            self.rabbitMQServer = config.get('server')
+
         self.channelSubscriptionTable = {}  # indexed by dataverseName, channelname, channelSubscriptionId
         self.userSubscriptionTable = {}  # subscription indexed by dataverseName->channelName -> channelSubscriptionId -> userId
 
@@ -131,7 +133,6 @@ class BADBroker:
 
         if users and len(users) > 0:
             user = users[0]
-            self.users[userName] = user
             log.warning('User %s is already registered' % (user.userId))
 
             return {
@@ -140,13 +141,11 @@ class BADBroker:
                 'userId': user.userId
             }
         else:
-            userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
+            userId = '{}@{}'.format(userName, dataverseName) #str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
             user = User(dataverseName, userId, userId, userName, password, email)
             yield user.save()
-            self.users[userName] = user
 
             log.debug('Registered user %s with id %s' % (userName, userId))
-
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
@@ -384,8 +383,9 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def checkExistingChannelSubscription(self, dataverseName, channelName, parameters):
+        parametersHash = str(hashlib.sha224((str(parameters)).encode()).hexdigest())
         channelSubscriptions = yield ChannelSubscription.load(dataverseName, channelName=channelName,
-                                                              brokerName=self.brokerName, parameters=parameters)
+                                                              brokerName=self.brokerName, parametersHash=parametersHash)
         if channelSubscriptions and len(channelSubscriptions) > 0:
             if len(channelSubscriptions) > 1:
                 log.debug('Multiple subscriptions matched, picking 0-th')

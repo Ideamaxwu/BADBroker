@@ -1,6 +1,7 @@
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
+import hashlib
 
 import simplejson as json
 from asterixapi import *
@@ -199,14 +200,15 @@ class ChannelSubscription(BrokerObject):
         self.channelName = channelName
         self.brokerName = brokerName
         self.parameters = parameters
+        self.parametersHash = str(hashlib.sha224((str(parameters)).encode()).hexdigest())
         self.channelSubscriptionId = channelSubscriptionId
         self.latestChannelExecutionTime = currentDateTime
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
-        if parameters:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
+    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parametersHash=None):
+        if parametersHash:
+            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
         elif channelName and channelSubscriptionId:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
         elif channelSubscriptionId:
@@ -226,6 +228,7 @@ class UserSubscription(BrokerObject):
         self.channelSubscriptionId = channelSubscriptionId
         self.channelName = channelName
         self.parameters = parameters
+        self.parametersHash = str(hashlib.sha224((str(parameters)).encode()).hexdigest())
         self.timestamp = timestamp
         self.latestDeliveredResultTime = timestamp
         self.resultsDataset = resultsDataset
