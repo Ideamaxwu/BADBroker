@@ -4,8 +4,8 @@
     <option name="SCOPE_TYPE" value="3" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/DemoApp.py" afterPath="$PROJECT_DIR$/../BADPythonClient/DemoApp.py" />
+    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="Broker movement of user subscription.">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADBroker.py" afterPath="$PROJECT_DIR$/BADBroker.py" />
     </list>
@@ -31,8 +31,8 @@
       <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BADBroker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.4357798">
-              <caret line="786" column="77" selection-start-line="786" selection-start-column="77" selection-end-line="786" selection-end-column="77" />
+            <state vertical-scroll-proportion="0.53899086">
+              <caret line="236" column="85" selection-start-line="236" selection-start-column="85" selection-end-line="236" selection-end-column="85" />
               <folding>
                 <element signature="e#24#38#0" expanded="true" />
               </folding>
@@ -573,12 +573,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00031" summary="changes.">
-      <created>1472583405714</created>
-      <option name="number" value="00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1472583405714</updated>
-    </task>
     <task id="LOCAL-00032" summary="changes.">
       <created>1472584688551</created>
       <option name="number" value="00032" />
@@ -867,7 +861,13 @@
       <option name="project" value="LOCAL" />
       <updated>1486513203591</updated>
     </task>
-    <option name="localTasksCounter" value="80" />
+    <task id="LOCAL-00080" summary="Broker movement of user subscription.">
+      <created>1486515390617</created>
+      <option name="number" value="00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1486515390618</updated>
+    </task>
+    <option name="localTasksCounter" value="81" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1325,8 +1325,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BADBroker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.4357798">
-          <caret line="786" column="77" selection-start-line="786" selection-start-column="77" selection-end-line="786" selection-end-column="77" />
+        <state vertical-scroll-proportion="0.53899086">
+          <caret line="236" column="85" selection-start-line="236" selection-start-column="85" selection-end-line="236" selection-end-column="85" />
           <folding>
             <element signature="e#24#38#0" expanded="true" />
           </folding>

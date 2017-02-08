@@ -233,7 +233,7 @@ class BADBroker:
                     if not channelSubscription:
                         channelSubscription = yield self.createChannelSubscription(dataverseName, channelName, userSubscription.parameters)
 
-                    log.debug('New channelsubscription ' % (channelSubscription))
+                    log.debug('New channelsubscription %s' % (channelSubscription.channelSubscriptionId))
                     channelSubscriptionId = channelSubscription.channelSubscriptionId
 
                     userSubscription.channelSubscriptionId = channelSubscriptionId
