@@ -902,7 +902,8 @@ class BADBroker:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         iostream = tornado.iostream.IOStream(socket=sock)
         yield iostream.connect((self.asterix.asterix_server, portNo))
-
+		
+        log.info('Feeding record to: '+self.asterix.asterix_server + ':' + str(portNo))
         if isinstance(records, list):
             for record in records:
                 log.info('Feeding record {0}'.format(record))
@@ -910,8 +911,8 @@ class BADBroker:
         else:
             record = records
             log.info('Feeding record {0}'.format(record))
-            yield iostream.write(json.dumps(record).encode('utf-8'))
-
+            yield iostream.write(record.encode('utf-8'))
+            
         iostream.close()
         sock.close()
         return {'status': 'success'}

@@ -1,0 +1,4 @@
+2017-01-19 14:57:59,170 - asterixapi.executeQuery - INFO - Executing... for $t in dataset Metadata.Channel return $t.DataverseName;
+2017-01-19 14:57:59,172 - asterixapi.executeQuery - ERROR - Error [Errno 111] Connection refused
+2017-01-19 14:58:59,233 - asterixapi.executeQuery - INFO - Executing... for $t in dataset Metadata.Channel return $t.DataverseName;
+2017-01-19 14:58:59,234 - asterixapi.executeQuery - ERROR - Error [Errno 111] Connection refused
