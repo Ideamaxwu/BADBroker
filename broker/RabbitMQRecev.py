@@ -2,7 +2,7 @@
 import pika
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='localhost'))
+        host='radon.ics.uci.edu'))
 channel = connection.channel()
 
 channel.queue_declare(queue='hello')

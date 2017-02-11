@@ -51,6 +51,13 @@ class MainHandler(BaseHandler):
         #self.render("htmlpages/registerapp.html")
 
 
+class HeartBeatHandler(BaseHandler):
+    def get(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        self.set_status(204)
+        self.finish()
+
+
 class RegisterApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -386,7 +393,6 @@ class GetResultsHandler(BaseHandler):
             dataverseName = post_data['dataverseName']
             userId = post_data['userId']
             accessToken = post_data['accessToken']
-            channelName = post_data['channelName']
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
             resultSize = post_data['resultSize'] if 'resultSize' in post_data else None
@@ -753,7 +759,8 @@ def start_server():
         (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
 		(r'/websocketlistener', BrowserWebSocketHandler),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
-        (r'/feedrecords', FeedRecordsHandler, dict(broker=broker))
+        (r'/feedrecords', FeedRecordsHandler, dict(broker=broker)),
+        (r'/heartbeat', HeartBeatHandler)
     ], **settings)
 
     application.listen(8989)

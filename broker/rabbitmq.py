@@ -5,7 +5,7 @@ import brokerutils
 log = brokerutils.setup_logging(__name__)
 
 class RabbitMQ(object):
-    def __init__(self, host='localhost'):
+    def __init__(self, host='cert24.ics.uci.edu'):
         self.host = host
         self.connection = None
         self.channel = None

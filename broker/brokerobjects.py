@@ -1,6 +1,7 @@
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
+import hashlib
 
 import simplejson as json
 from asterixapi import *
@@ -8,6 +9,14 @@ import brokerutils
 
 log = brokerutils.setup_logging(__name__)
 
+class Session:
+    def __init__(self, dataverseName, userId, accessToken, platform, creationTime, lastAccessTime):
+        self.dataverseName = dataverseName
+        self.userId = userId
+        self.accessToken = accessToken
+        self.platform = platform
+        self.creationTime = creationTime
+        self.lastAccessTime = lastAccessTime
 
 class BrokerObject:
     @tornado.gen.coroutine
@@ -18,6 +27,31 @@ class BrokerObject:
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
+        if status == 200:
+            log.info('Delete succeeded')
+            return True
+        else:
+            log.error('Delete failed. Error ' + response)
+            raise Exception('Delete failed ' + response)
+
+    @classmethod
+    @tornado.gen.coroutine
+    def deleteWhere(cls, dataverseName, **kwargs):
+        asterix = AsterixQueryManager.getInstance()
+        whereClause = None
+        if kwargs:
+            for key, value in kwargs.items():
+                if isinstance(value, str):
+                    clause = '$t.{} = \"{}\"'.format(key, value)
+                else:
+                    clause = '$t.{} = {}'.format(key, value)
+                whereClause = whereClause + ' and ' + clause if whereClause else clause
+
+        cmd_stmt = 'delete $t from dataset ' + str(cls.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' where {}'.format(whereClause)
+        log.debug(cmd_stmt)
+
+        status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
         if status == 200:
             log.info('Delete succeeded')
             return True
@@ -49,7 +83,7 @@ class BrokerObject:
         condition = None
         if kwargs:
             for key, value in kwargs.items():
-                if isinstance(value, str):
+                if isinstance(value, str) and key != 'parameters':
                     paramvalue = '\"{0}\"'.format(value)
                 else:
                     paramvalue = value
@@ -166,14 +200,15 @@ class ChannelSubscription(BrokerObject):
         self.channelName = channelName
         self.brokerName = brokerName
         self.parameters = parameters
+        self.parametersHash = str(hashlib.sha224((str(parameters)).encode()).hexdigest())
         self.channelSubscriptionId = channelSubscriptionId
         self.latestChannelExecutionTime = currentDateTime
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parameters=None):
-        if parameters:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parameters=parameters)
+    def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parametersHash=None):
+        if parametersHash:
+            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
         elif channelName and channelSubscriptionId:
             objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
         elif channelSubscriptionId:
@@ -184,7 +219,7 @@ class ChannelSubscription(BrokerObject):
 
 class UserSubscription(BrokerObject):
     def __init__(self, dataverseName=None, recordId=None, brokerName=None, userSubscriptionId=None, userId=None,
-                 channelSubscriptionId=None, channelName=None, timestamp=None, resultsDataset=None):
+                 channelSubscriptionId=None, channelName=None, parameters=None, timestamp=None, resultsDataset=None):
         self.dataverseName = dataverseName
         self.recordId = recordId
         self.brokerName = brokerName
@@ -192,6 +227,8 @@ class UserSubscription(BrokerObject):
         self.userId = userId
         self.channelSubscriptionId = channelSubscriptionId
         self.channelName = channelName
+        self.parameters = parameters
+        self.parametersHash = str(hashlib.sha224((str(parameters)).encode()).hexdigest())
         self.timestamp = timestamp
         self.latestDeliveredResultTime = timestamp
         self.resultsDataset = resultsDataset

@@ -19,6 +19,8 @@ create type UserSubscriptionType as closed {
     userId: string,
     channelName: string,
     timestamp: string,
+    parameters: string,
+    parametersHash: string,
     latestDeliveredResultTime: string,
     resultsDataset: string
 }
@@ -32,6 +34,7 @@ create type ChannelSubscriptionType as closed{
     channelName:string,
     brokerName: string,
     parameters: string,
+    parametersHash: string,
     channelSubscriptionId: string,
     latestChannelExecutionTime: string
 }
