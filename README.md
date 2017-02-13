@@ -16,7 +16,7 @@
 
 * Once, the Asterix backend is ready, start the broker by `python3 BADWebserver.py` located at directory `broker`. The broker is based on `tornado` framework in Python 3.
 
-* If you're an application developer, you need to register your application through the broker. Hit the base broker URL (e.g., localhost:8989 if the broker is installed locally, otherwise use the appropriate broker server). You will be shown a webpage with application registration option. Follow the link to provide the application name, dataverse name (currently application name and dataverse name need to be the same), and other information as well as your application setup AQL script (to be pasted into the text area in the page) to create the necessary datasets and channels. Application registration returns an API key that can be later used for managing the application (*features are currently not implemented*).
+* **NOTE**: If you're an application developer, you need to register your application through the broker. Hit the base broker URL (e.g., localhost:8989 if the broker is installed locally, otherwise use the appropriate broker server). You will be shown a webpage with application registration option. Follow the link to provide the application name, dataverse name (currently application name and dataverse name need to be the same), and other information as well as your application setup AQL script (to be pasted into the text area in the page) to create the necessary datasets and channels. Application registration returns an API key that can be later used for managing the application (*this feature is not currently implemented*).
 
 ## register ##
 ```
