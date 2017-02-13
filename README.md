@@ -128,6 +128,7 @@ Response:
 ```
 
 ## listchannels ## 
+
 * List of all available channels in the system 
 ```
 {
@@ -143,7 +144,9 @@ Response:
 	"channels" : [ object (channel) ] 
 } 
 ```
+
 ## listsubscriptions ## 
+
 * List all subscriptions of a user
 ``` 
 { 
@@ -166,6 +169,7 @@ Response:
 } 
 ```  
 ## gcmregistration ## 
+
 * Send the Android client's GCM registration token to the broker if the token is refreshed.
 ```
 {
@@ -201,6 +205,7 @@ Response:
 ```
 
 ## notification from the broker ##
+
 ```
 {
    "userId": string,
