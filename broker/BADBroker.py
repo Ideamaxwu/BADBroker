@@ -1100,15 +1100,17 @@ class BADBroker:
     # Application Management routines
     @tornado.gen.coroutine
     def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0, setupAQL=None):
-        # Check if there is already an app exist with the same name, currently ignored.
+        # Check application environment, check whether 'BrokerMetadata' dataverse exists, if not, create
+        yield Application.setupApplicationEnviroment(self.asterix)
 
+        # Check if there is already an app exist with the same name, currently ignored.
         if dropExisting == 0:
             applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
             if applications and len(applications) > 0:
                 log.info('Obtained application with the same name `{}` in dataverse `{}`'.format(appName, appDataverse))
                 return {
                     'status': 'failed',
-                    'error': 'Obtained application with the same name {} in dataverse {}'.format(appName, appDataverse)
+                    'error': 'Application exists with the same name `{}` in the same dataverse `{}`'.format(appName, appDataverse)
                 }
 
         log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, appDataverse))
@@ -1286,11 +1288,16 @@ class BADBroker:
     def _setupBrokerForApp(self, dataverseName, appName):
         log.info('Setting up broker datasets for this dataverse...')
         commands = ''
+        '''
         with open("brokersetupforapp.aql") as f:
             for line in f.readlines():
                 if not line.startswith('#'):
                     commands = commands + line
         commands = commands + '\n'
+        '''
+
+        for cls in [User, ChannelSubscription, UserSubscription]:
+            commands += cls.getCreateStatement();
 
         #commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
 

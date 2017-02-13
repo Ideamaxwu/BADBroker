@@ -1,4 +1,4 @@
-drop dataverse BrokerMetadata if exists;
+// drop dataverse BrokerMetadata if exists;
 create dataverse BrokerMetadata;
 
 use dataverse BrokerMetadata;

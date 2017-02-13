@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import simplejson as json
-import redis
 import sys
 
 
 class BADObject:
+    userName = 'abc'
+    age = '12'
+    password = 'abc'
+
     def __init__(self, objectId):
         self.objectId = objectId
     
@@ -13,13 +16,30 @@ class BADObject:
         cmd_stmt = cmd_stmt + " where $t.objectId = " + str(self.objectId) + " return $t"
         print(cmd_stmt)
         
-        
     def save(self):        
         cmd_stmt = "upsert into dataset " + self.__class__.__name__ + "Dataset"
         cmd_stmt = cmd_stmt + "("
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
         cmd_stmt = cmd_stmt + ")"
         print(cmd_stmt)
+
+    @classmethod
+    def getCreateStatement(cls):
+        statement = 'create type %sType as closed {' % (cls.__name__)
+        dataitems = None
+        for key, value in BADObject.__dict__.items():
+            if key.startswith('__') or callable(value) or isinstance(value, classmethod):
+                continue
+            if type(value) is str:
+                item = '%s: %s' % (key, 'string')
+            else:
+                raise Exception('Invalid data type for %s %s %s' % (key, value))
+
+            dataitems = (dataitems + (',\n' + item)) if dataitems else ('\n' + item)
+
+        statement += dataitems + '\n}\n'
+        statement += 'create dataset %sDataset (%sType) primary key recordId\n' % (cls.__name__, cls.__name__);
+        return statement
 
 class User(BADObject):
     def __init__(self, userId):
@@ -36,6 +56,8 @@ def test():
 
 for x in test():
     print(x)
+
+print(User.getCreateStatement())
 
 #user = User(3245566)
 #user.load()
