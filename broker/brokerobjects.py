@@ -18,7 +18,27 @@ class Session:
         self.creationTime = creationTime
         self.lastAccessTime = lastAccessTime
 
+
 class BrokerObject:
+    @classmethod
+    def getCreateStatement(cls):
+        statement = 'create type %sType as closed {' % (cls.__name__)
+        dataitems = None
+        for key, value in cls.__dict__.items():
+            if key.startswith('__') or callable(value) or isinstance(value, classmethod):
+                continue
+            if type(value) is str:
+                item = '%s: %s' % (key, 'string')
+            else:
+                raise Exception('Invalid data type for %s %s %s' % (key, value))
+
+            dataitems = (dataitems + (',\n' + item)) if dataitems else ('\n' + item)
+
+        statement += dataitems + '\n}\n'
+        statement += 'create dataset %sDataset (%sType) primary key recordId;\n' % (cls.__name__, cls.__name__);
+        log.debug(statement)
+        return statement
+
     @tornado.gen.coroutine
     def delete(self):
         asterix = AsterixQueryManager.getInstance()
@@ -143,7 +163,14 @@ class BrokerObject:
 
 
 class Application(BrokerObject):
-    dataverseName = "BrokerMetadata"
+    dataverseName = 'BrokerMetadata'
+    recordId = ''
+    appName = ''
+    appDataverse = ''
+    adminUser = ''
+    adminPassword = ''
+    email = ''
+    apiKey = ''
 
     def __init__(self, dataverseName=None, recordId=None, appName=None, appDataverse=None, adminUser=None,
                  adminPassword=None, email=None, apiKey=None):
@@ -164,6 +191,17 @@ class Application(BrokerObject):
 
     @classmethod
     @tornado.gen.coroutine
+    def setupApplicationEnviroment(cls, asterix):
+        statement = 'use dataverse %s' % (Application.dataverseName)
+        status, response = yield asterix.executeQuery(Application.dataverseName, statement)
+        if status != 200 and response and 'Unknown dataverse' in response:
+            statement = Application.getCreateStatement()
+            status, response = yield asterix.executeAQL(Application.dataverseName, statement)
+            if status == 200:
+                return
+
+    @classmethod
+    @tornado.gen.coroutine
     def matchApiKey(self, appName, apiKey):
         applications = yield Application.load(appName=appName)
 
@@ -175,6 +213,13 @@ class Application(BrokerObject):
 
 
 class User(BrokerObject):
+    dataverseName = ''
+    recordId = ''
+    userId = ''
+    userName = ''
+    password = ''
+    email = ''
+
     def __init__(self, dataverseName=None, recordId=None, userId=None, userName=None, password=None, email=None):
         self.dataverseName = dataverseName
         self.recordId = recordId
@@ -194,6 +239,15 @@ class User(BrokerObject):
 
 
 class ChannelSubscription(BrokerObject):
+    dataverseName = ''
+    recordId = ''
+    channelName = ''
+    brokerName = ''
+    parameters = ''
+    parametersHash = ''
+    channelSubscriptionId = ''
+    latestChannelExecutionTime = ''
+
     def __init__(self, dataverseName=None, recordId=None, channelName=None, brokerName=None, parameters=None, channelSubscriptionId=None, currentDateTime=None):
         self.dataverseName = dataverseName
         self.recordId = recordId
@@ -218,6 +272,19 @@ class ChannelSubscription(BrokerObject):
 
 
 class UserSubscription(BrokerObject):
+    dataverseName = ''
+    recordId = ''
+    brokerName = ''
+    userSubscriptionId = ''
+    userId = ''
+    channelSubscriptionId = ''
+    channelName = ''
+    parameters = ''
+    parametersHash = ''
+    timestamp = ''
+    latestDeliveredResultTime = ''
+    resultsDataset = ''
+
     def __init__(self, dataverseName=None, recordId=None, brokerName=None, userSubscriptionId=None, userId=None,
                  channelSubscriptionId=None, channelName=None, parameters=None, timestamp=None, resultsDataset=None):
         self.dataverseName = dataverseName
