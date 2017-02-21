@@ -127,6 +127,26 @@ Response:
 }
 ```
 
+## callfunction ##
+* Return results from a function call.
+
+```
+{
+	"dataverseName": string,
+	"userId": string,
+	"accessToken": string,
+	"functionName": string,
+	"parameters": [param1, param2, ...] (i.e.,JSON array)	
+}
+```
+Response:
+```
+{
+	"status": "success",
+	"results": [... JSON Array...]
+}
+```
+
 ## listchannels ## 
 
 * List of all available channels in the system 
