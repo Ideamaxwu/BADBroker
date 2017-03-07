@@ -163,7 +163,7 @@ class BrokerObject:
 
 
 class Application(BrokerObject):
-    dataverseName = 'BrokerMetadata'
+    dataverseName = 'BrokerMetadata2'
     recordId = ''
     appName = ''
     appDataverse = ''
@@ -195,10 +195,16 @@ class Application(BrokerObject):
         statement = 'use dataverse %s' % (Application.dataverseName)
         status, response = yield asterix.executeQuery(Application.dataverseName, statement)
         if status != 200 and response and 'Unknown dataverse' in response:
-            statement = Application.getCreateStatement()
-            status, response = yield asterix.executeAQL(Application.dataverseName, statement)
+            log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
+            status, response = yield asterix.executeAQL(None, 'create dataverse %s' % (Application.dataverseName))
             if status == 200:
-                return
+                statement = Application.getCreateStatement()
+                status, response = yield asterix.executeAQL(Application.dataverseName, statement)
+                if status == 200:
+                    return
+            else:
+                log.error('Dataverse %s creation failed!' % (Application.dataverseName))
+                raise Exception ('Dataverse %s creation failed!' % (Application.dataverseName))
 
     @classmethod
     @tornado.gen.coroutine
