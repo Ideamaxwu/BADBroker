@@ -163,7 +163,7 @@ class BrokerObject:
 
 
 class Application(BrokerObject):
-    dataverseName = 'BrokerMetadata2'
+    dataverseName = 'BrokerMetadata'
     recordId = ''
     appName = ''
     appDataverse = ''

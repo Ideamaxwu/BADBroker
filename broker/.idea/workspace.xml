@@ -4,8 +4,7 @@
     <option name="SCOPE_TYPE" value="3" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="Broker movement of user subscription.">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
+    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/brokerobjects.py" afterPath="$PROJECT_DIR$/brokerobjects.py" />
     </list>
@@ -28,10 +27,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/BADBroker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.73170733">
+            <state vertical-scroll-proportion="0.0">
               <caret line="1247" column="4" selection-start-line="1247" selection-start-column="4" selection-end-line="1247" selection-end-column="4" />
               <folding>
                 <element signature="e#24#38#0" expanded="true" />
@@ -86,11 +85,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="brokerobjects.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="brokerobjects.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/brokerobjects.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="208" column="4" selection-start-line="208" selection-start-column="4" selection-end-line="208" selection-end-column="4" />
+            <state vertical-scroll-proportion="0.18292683">
+              <caret line="165" column="35" selection-start-line="165" selection-start-column="35" selection-end-line="165" selection-end-column="35" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -184,8 +183,8 @@
         <option value="$PROJECT_DIR$/rabbitmq.py" />
         <option value="$PROJECT_DIR$/brokersetup.aql" />
         <option value="$PROJECT_DIR$/test_code.py" />
-        <option value="$PROJECT_DIR$/brokerobjects.py" />
         <option value="$PROJECT_DIR$/BADBroker.py" />
+        <option value="$PROJECT_DIR$/brokerobjects.py" />
       </list>
     </option>
   </component>
@@ -555,12 +554,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00032" summary="changes.">
-      <created>1472584688551</created>
-      <option name="number" value="00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1472584688551</updated>
-    </task>
     <task id="LOCAL-00033" summary="changes.">
       <created>1472616945150</created>
       <option name="number" value="00033" />
@@ -849,7 +842,13 @@
       <option name="project" value="LOCAL" />
       <updated>1486515390618</updated>
     </task>
-    <option name="localTasksCounter" value="81" />
+    <task id="LOCAL-00081" summary="Broker metadata problem solved.">
+      <created>1488914834746</created>
+      <option name="number" value="00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1488914834756</updated>
+    </task>
+    <option name="localTasksCounter" value="82" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -858,6 +857,7 @@
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16470589" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32947367" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
@@ -867,7 +867,6 @@
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39940387" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -923,7 +922,8 @@
     <MESSAGE value="Caching codes are added." />
     <MESSAGE value="Some changes." />
     <MESSAGE value="Broker movement of user subscription." />
-    <option name="LAST_COMMIT_MESSAGE" value="Broker movement of user subscription." />
+    <MESSAGE value="Broker metadata problem solved." />
+    <option name="LAST_COMMIT_MESSAGE" value="Broker metadata problem solved." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1292,22 +1292,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/brokerobjects.py">
+    <entry file="file://$PROJECT_DIR$/BADBroker.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="208" column="4" selection-start-line="208" selection-start-column="4" selection-end-line="208" selection-end-column="4" />
+          <caret line="1247" column="4" selection-start-line="1247" selection-start-column="4" selection-end-line="1247" selection-end-column="4" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#24#38#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/BADBroker.py">
+    <entry file="file://$PROJECT_DIR$/brokerobjects.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.73170733">
-          <caret line="1247" column="4" selection-start-line="1247" selection-start-column="4" selection-end-line="1247" selection-end-column="4" />
+        <state vertical-scroll-proportion="0.18292683">
+          <caret line="165" column="35" selection-start-line="165" selection-start-column="35" selection-end-line="165" selection-end-column="35" />
           <folding>
-            <element signature="e#24#38#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
