@@ -396,8 +396,9 @@ class GetResultsHandler(BaseHandler):
             userSubscriptionId = post_data['userSubscriptionId']
             channelExecutionTime = post_data['channelExecutionTime'] if 'channelExecutionTime' in post_data else None
             resultSize = post_data['resultSize'] if 'resultSize' in post_data else None
+            historyTime = post_data['historyTime'] if 'historyTime' in post_data else None
 
-            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize)
+            response = yield self.broker.getResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize, historyTime)
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
@@ -732,7 +733,7 @@ class ListSubscriptionsHandler(BaseHandler):
 
 def start_server():
     broker = BADBroker.getInstance()
-
+    broker.SessionInterval()
     settings = {
         "static_path": os.path.join(os.path.dirname(__file__), "static")
     }

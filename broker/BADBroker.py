@@ -3,8 +3,8 @@
 import hashlib
 import re
 import socket
-from datetime import datetime
-from threading import Lock
+from datetime import datetime, timedelta
+from threading import Lock, Timer
 
 import tornado.gen
 import tornado.httpclient
@@ -173,14 +173,14 @@ class BADBroker:
                 if dataverseName not in self.sessions:
                     self.sessions[dataverseName] = {}
 
-                '''
+                
                 # Check if the user is already logged in, that is, has an entry in sessions
                 if userId in self.sessions[dataverseName]:
                     return {
                         'status': 'failed',
                         'error': 'User `%s` is already logged in. Cannot have multiple sessions!' %userName
                     }
-                '''
+                
                 # Create a new session for this user
                 self.sessions[dataverseName][userId] = Session(dataverseName, userId, accessToken, platform,
                                                                datetime.now(), datetime.now())
@@ -499,7 +499,7 @@ class BADBroker:
         return dataverseName + '::' + userId + '::' + channelName + '::' + parameters.replace(', ', '').replace('"','')
 
     @tornado.gen.coroutine
-    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize):
+    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize, historyTime):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -530,7 +530,11 @@ class BADBroker:
                       'and $t.channelExecutionTime <= datetime(\"{2}\")'.format(channelSubscriptionId,
                                                                                 latestDeliveredResultTime,
                                                                                 channelExecutionTime)
-
+        if historyTime:
+            whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
+                          'and $t.channelExecutionTime <= datetime(\"{1}\")'.format(channelSubscriptionId,
+                                                                                    channelExecutionTime)
+                                                                                
         orderbyClause = '$t.channelExecutionTime asc'
         aql_stmt = 'for $t in dataset %s ' \
                    'distinct by $t.channelExecutionTime ' \
@@ -981,10 +985,16 @@ class BADBroker:
         log.info('Feeding record to: '+self.asterix.asterix_server + ':' + str(portNo))
         if isinstance(records, list):
             for record in records:
+                if 'datetime' in record:
+                    currentDateTime = yield self.getCurrentDateTime()
+                    record = re.sub(r'datetime\(.*?\)', 'datetime(\"' + currentDateTime +'\")', record)
                 log.info('Feeding record {0}'.format(record))
                 yield iostream.write(json.dumps(record).encode('utf-8'))
         else:
             record = records
+            if 'datetime' in record:
+                currentDateTime = yield self.getCurrentDateTime()
+                record = re.sub(r'datetime\(.*?\)', 'datetime(\"' + currentDateTime +'\")', record)
             log.info('Feeding record {0}'.format(record))
             yield iostream.write(record.encode('utf-8'))
             
@@ -1093,6 +1103,7 @@ class BADBroker:
 
         if accessToken == session.accessToken:
             session.lastAccessedTime = datetime.now()
+            self.sessions[dataverseName][userId].lastAccessTime = datetime.now()
             return {'status': 'success'}
         else:
             return {
@@ -1314,7 +1325,16 @@ class BADBroker:
         else:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
-
+    
+    def SessionInterval(self):
+        Timer(60*10, self.SessionInterval).start()
+        log.info('1deamaxwu ==================> Session Interval <===================')
+        for dataverse in list(self.sessions):
+            for userid in list(self.sessions[dataverse]):
+                #log.info(datetime.now() - self.sessions[dataverse][userid].lastAccessTime)
+                if(datetime.now() - self.sessions[dataverse][userid].lastAccessTime) >= timedelta(seconds = 60*30):
+                    self.clearStateForUser(dataverse, userid)
+                    log.info('1deamaxwu ==================> NO Activity LOGOUT: ' + userid)    
 
 def set_live_web_sockets(web_socket_object):
     global live_web_sockets
