@@ -151,7 +151,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform):
+    def login(self, dataverseName, userName, password, platform, stay):
         """
         Signs in user and creates a session for the user. Only after login, the user is able to perform operations.
         :param dataverseName: dataverse name
@@ -175,7 +175,7 @@ class BADBroker:
 
                 
                 # Check if the user is already logged in, that is, has an entry in sessions
-                if userId in self.sessions[dataverseName]:
+                if userId in self.sessions[dataverseName] and stay:
                     return {
                         'status': 'failed',
                         'error': 'User `%s` is already logged in. Cannot have multiple sessions!' %userName

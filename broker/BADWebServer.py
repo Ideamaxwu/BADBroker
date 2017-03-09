@@ -282,8 +282,9 @@ class LoginHandler (BaseHandler):
             userName = post_data['userName']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
+            stay = post_data['stay']
 
-            response = yield self.broker.login(dataverseName, userName, password, platform)
+            response = yield self.broker.login(dataverseName, userName, password, platform, stay)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
