@@ -77,7 +77,7 @@ class BADBroker:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
         self.brokerIPAddr = self._myNetAddress()
-        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '')
+        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '') + '@' +self.brokerPort
 
         #tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
         #tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
