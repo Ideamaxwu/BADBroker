@@ -142,6 +142,8 @@ class BADBroker:
             }
         else:
             userId = '{}@{}'.format(userName, dataverseName) #str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
+            password = hashlib.sha224(password.encode()).hexdigest()
+
             user = User(dataverseName, userId, userId, userName, password, email)
             yield user.save()
 
@@ -163,7 +165,7 @@ class BADBroker:
 
         if users and len(users) > 0:
             user = users[0]
-            print(user.userName, user.password, password)
+            password = hashlib.sha224(password.encode()).hexdigest()
             if password == user.password:
                 accessToken = str(hashlib.sha224((dataverseName + userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
@@ -1153,7 +1155,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def updateApplication(self, appName, apiKey, setupAQL=None):
-        # Check if application exists, if so match ApiKey
+        # Check if an application already exists, if so match ApiKey
         applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
 
         if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
