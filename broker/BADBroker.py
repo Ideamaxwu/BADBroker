@@ -277,7 +277,7 @@ class BADBroker:
         if dataverseName in self.userToSubscriptionMap and userId in self.userToSubscriptionMap[dataverseName]:
             del self.userToSubscriptionMap[dataverseName][userId]
 
-        # Clear subscriptions from subscription Table
+        # Clear subscriptions from the subscription Table
         if dataverseName in self.userSubscriptionTable:
             for channelName in self.userSubscriptionTable[dataverseName]:
                 for channelSubscriptionId in self.userSubscriptionTable[dataverseName][channelName]:

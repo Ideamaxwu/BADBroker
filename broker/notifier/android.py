@@ -8,6 +8,7 @@ import brokerutils
 
 log = brokerutils.setup_logging(__name__)
 
+
 class AndroidClientNotifier():
     def __init__(self):
         self.gcmServer = 'https://fcm.googleapis.com/fcm/send'

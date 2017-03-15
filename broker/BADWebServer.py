@@ -47,6 +47,9 @@ class MainHandler(BaseHandler):
 
 
 class HeartBeatHandler(BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
     def get(self):
         log.info(str(self.request.body, encoding='utf-8'))
         self.set_status(204)
@@ -755,7 +758,7 @@ def start_server():
         (r'/websocketlistener', BrowserWebSocketHandler),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker)),
-        (r'/heartbeat', HeartBeatHandler)
+        (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
     ], **settings)
 
     application.listen(8989)
