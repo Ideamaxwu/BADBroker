@@ -232,7 +232,7 @@ class AdminQueryHandler(BaseHandler):
             log.info(e.with_traceback())
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
 
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, for_json=True))
         self.flush()
         self.finish()
 

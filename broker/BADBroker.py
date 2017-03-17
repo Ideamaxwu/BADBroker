@@ -1251,7 +1251,8 @@ class BADBroker:
         if status == 200 and response:
             return {
                 'status': 'success',
-                'channels': json.loads(str(response, 'utf-8'))
+                #'channels': json.loads(str(response, 'utf-8'))
+                'channels': json.loads(response)
             }
         else:
             return {
