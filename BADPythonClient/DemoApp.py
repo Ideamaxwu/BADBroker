@@ -37,7 +37,7 @@ client = badclient.BADClient(brokerServer='%s.ics.uci.edu' % sys.argv[1])
 
 dataverseName = sys.argv[2]
 userName = sys.argv[3]
-password = 'yusuf'
+password = 'yusufpass'
 email = 'abc@abc.net'
 
 client.on_channelresults = on_channelresults

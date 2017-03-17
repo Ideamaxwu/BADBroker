@@ -13,6 +13,7 @@ import threading
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
+
 class BADClient:
     def __init__(self, brokerServer, brokerPort=8989):
         self.dataverseName = None

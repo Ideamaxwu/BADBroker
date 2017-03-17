@@ -41,6 +41,7 @@ class BADObject:
         statement += 'create dataset %sDataset (%sType) primary key recordId\n' % (cls.__name__, cls.__name__);
         return statement
 
+
 class User(BADObject):
     def __init__(self, userId):
         BADObject.__init__(self, userId)

@@ -77,7 +77,7 @@ class BADBroker:
             self.bcsUrl = 'http://radon.ics.uci.edu:5000'
 
         self.brokerIPAddr = self._myNetAddress()
-        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '')
+        self.brokerName = 'Broker' + self.brokerIPAddr.replace('.', '') + '@' +self.brokerPort
 
         #tornado.ioloop.IOLoop.current().add_callback(self._registerBrokerWithBCS)
         #tornado.ioloop.IOLoop.current().call_later(60, self.scheduleDropResultsFromChannels)
@@ -144,6 +144,8 @@ class BADBroker:
             userId = str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
             log.info("========================================"+userId)
             userId = '{}@{}'.format(userName, dataverseName) #str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
+            password = hashlib.sha224(password.encode()).hexdigest()
+
             user = User(dataverseName, userId, userId, userName, password, email)
             yield user.save()
 
@@ -165,7 +167,7 @@ class BADBroker:
 
         if users and len(users) > 0:
             user = users[0]
-            print(user.userName, user.password, password)
+            password = hashlib.sha224(password.encode()).hexdigest()
             if password == user.password:
                 accessToken = str(hashlib.sha224((dataverseName + userName + str(datetime.now())).encode()).hexdigest())
                 userId = user.userId
@@ -277,7 +279,7 @@ class BADBroker:
         if dataverseName in self.userToSubscriptionMap and userId in self.userToSubscriptionMap[dataverseName]:
             del self.userToSubscriptionMap[dataverseName][userId]
 
-        # Clear subscriptions from subscription Table
+        # Clear subscriptions from the subscription Table
         if dataverseName in self.userSubscriptionTable:
             for channelName in self.userSubscriptionTable[dataverseName]:
                 for channelSubscriptionId in self.userSubscriptionTable[dataverseName][channelName]:
@@ -1167,7 +1169,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def updateApplication(self, appName, apiKey, setupAQL=None):
-        # Check if application exists, if so match ApiKey
+        # Check if an application already exists, if so match ApiKey
         applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
 
         if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
