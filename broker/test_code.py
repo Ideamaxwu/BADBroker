@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 import simplejson as json
 import sys
-
+import requests
+import tornado.httpclient
+import tornado.httputil
+import tornado.ioloop
+import tornado.gen
 
 class BADObject:
     userName = 'abc'
@@ -90,6 +94,25 @@ class User():
 u = User()
 
 print(u.userName, u.age)
+
+
+url = 'http://promethium.ics.uci.edu:19002/query'
+params={'query': 'use dataverse BrokerMetadata;'}
+#response = requests.get(url=url, params=params)
+#print(response.status_code, response.text)
+
+@tornado.gen.coroutine
+def call():
+    client = tornado.httpclient.AsyncHTTPClient()
+    request = tornado.httpclient.HTTPRequest(tornado.httputil.url_concat(url, params), method='GET')
+    response = yield client.fetch(request)
+    print(response.headers)
+    print(response.body)
+
+    client.close()
+
+tornado.ioloop.IOLoop.instance().add_callback(call)
+tornado.ioloop.IOLoop.instance().start()
 
 sys.exit(0)
 

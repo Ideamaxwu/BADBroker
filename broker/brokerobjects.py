@@ -192,8 +192,8 @@ class Application(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def setupApplicationEnviroment(cls, asterix):
-        statement = 'use dataverse %s' % (Application.dataverseName)
-        status, response = yield asterix.executeQuery(Application.dataverseName, statement)
+        statement = 'use dataverse %s;' % Application.dataverseName
+        status, response = yield asterix.executeQuery(None, statement)
         if status != 200 and response and 'Unknown dataverse %s' %(Application.dataverseName) in response:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
             status, response = yield asterix.executeAQL(None, 'create dataverse %s' % (Application.dataverseName))
