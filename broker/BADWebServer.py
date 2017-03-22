@@ -44,6 +44,10 @@ class BaseWebSocketHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
 
+class IndexPageHandler(BaseHandler):
+    def get(self):
+        self.render("Web/index.html")
+        
 class MainHandler(BaseHandler):
     def get(self):
         log.info("MAIN")
@@ -738,12 +742,14 @@ class ListSubscriptionsHandler(BaseHandler):
 def start_server():
     broker = BADBroker.getInstance()
     broker.SessionInterval()
-    settings = {
-        "static_path": os.path.join(os.path.dirname(__file__), "static")
-    }
 
     application = tornado.web.Application([
-        (r'/', MainHandler),
+        (r'/(favicon.ico)', tornado.web.StaticFileHandler, {'path': "Web"}),
+    	(r'/utils/(.*)', tornado.web.StaticFileHandler, {'path': "Web/utils"}),
+    	(r'/admin/(.*)', tornado.web.StaticFileHandler, {'path': "Web/admin"}),
+    	(r'/mgr/(.*)', tornado.web.StaticFileHandler, {'path': "Web/mgr"}),
+    	(r'/user/(.*)', tornado.web.StaticFileHandler, {'path': "Web/user"}),
+        (r'/', IndexPageHandler),
         (r'/registerapplication', RegisterApplicationHandler, dict(broker=broker)),
         (r'/setupapplication', SetupApplicationHandler, dict(broker=broker)),
         (r'/updateapplication', UpdateApplicationHandler, dict(broker=broker)),
@@ -766,7 +772,7 @@ def start_server():
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker)),
         (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
-    ], **settings)
+    ])
 
     application.listen(8989)
     tornado.ioloop.IOLoop.current().start()

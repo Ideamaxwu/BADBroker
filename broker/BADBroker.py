@@ -979,7 +979,7 @@ class BADBroker:
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
-
+        log.info('Feeding record toing: '+self.asterix.asterix_server + ':' + str(portNo))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         iostream = tornado.iostream.IOStream(socket=sock)
         yield iostream.connect((self.asterix.asterix_server, portNo))

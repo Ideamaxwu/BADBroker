@@ -172,7 +172,7 @@ class AsterixQueryManager():
         params = {'statements': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
-
+        log.info('Executing... ' + query)
         httpclient = tornado.httpclient.AsyncHTTPClient()
         errorMessage = 'Error'
 
@@ -206,7 +206,7 @@ class AsterixQueryManager():
         request_url = request_url + "?" + urllib.parse.urlencode(params)
 
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
-
+        log.info('Executing... ' + query)
         log.info(request_url)
         errorMessage = 'Error'
 
