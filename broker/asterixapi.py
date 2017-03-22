@@ -73,7 +73,7 @@ class AsterixQueryManager():
             raise Exception('No dataverse name set')
 
         if len(self.queryString) == 0:
-            raise Exception("ORDER BY cann't start a query")
+            raise Exception("ORDER BY cannot start a query")
         else:
             self.queryString = self.queryString + " order by  " + clause
         
@@ -84,7 +84,7 @@ class AsterixQueryManager():
             raise Exception('No dataverse name set')
 
         if len(self.queryString) == 0:
-            raise Exception("GROUP BY cann't start a query")
+            raise Exception("GROUP BY cannot start a query")
         else:
             self.queryString = self.queryString + " group by " + clause
         
