@@ -97,7 +97,7 @@ print(u.userName, u.age)
 
 
 url = 'http://promethium.ics.uci.edu:19002/query'
-params={'query': 'use dataverse BrokerMetadata;'}
+params={'query': 'use dataverse Metadata; dataset Dataset'}
 #response = requests.get(url=url, params=params)
 #print(response.status_code, response.text)
 

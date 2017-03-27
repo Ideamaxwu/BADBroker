@@ -249,7 +249,7 @@ class RegistrationHandler(BaseHandler):
         try:
             dataverseName = post_data['dataverseName']
             userName = post_data['userName']
-            email = post_data['email']
+            email = post_data['email'] if 'email' in post_data else 'none'
             password = post_data['password']
 
             response = yield self.broker.register(dataverseName, userName, password, email)
