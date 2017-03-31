@@ -62,7 +62,7 @@ class BADBroker:
 
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userId, userSubscriptionId
 
-        self.sessions = {}                  # keep accesstokens of logged in users
+        self.sessions = {}                  # keep accesstokens of users currently logged in
         self.notifiers = {}                 # list of all possible notifiers
 
         self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
