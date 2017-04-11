@@ -14,7 +14,7 @@
 ### Run the broker ###
 * First, you need to setup the Asterix backend (install AsterixDB from a BAD enabled Asterix branch). 
 
-* Once the Asterix backend is ready, you can start the broker by `python3 BADWebserver.py` located at directory `broker`. The broker is based on `tornado` framework in Python 3.
+* Once the Asterix backend is ready, you can start the broker by `python3 BADWebserver.py` located at the `broker` directory. The broker is based on [Tornado](http://www.tornadoweb.org) framework in Python 3.
 
 * **NOTE**: If you're an application developer, you need to register your application through the broker. Hit the base broker URL (e.g., localhost:8989 if the broker is installed locally, otherwise use the appropriate broker server). You will be shown a web page with the application registration option. Follow the link to provide the application name, dataverse name (currently the application name and the dataverse name need to be the same), and other information as well as your application setup AQL script (to be pasted into the text area in the page, see sample application in BADPythonClient) to create the necessary datasets and channels. On success, the registration returns an API key that can be later used for managing the application (*this feature is not currently implemented though*).
 
@@ -228,7 +228,7 @@ Response:
 ## notification from the broker ##
 
 * Web clients receive notification through websockets.
-* Desktop clients receive notifications through RabbitMQ.
+* Desktop clients receive notifications through [RabbitMQ] (https://www.rabbitmq.com/).
 * Android clients receive notifications through GCM (Google Cloud Messaging).
 
 ```
