@@ -108,7 +108,7 @@ Response:
 ```
 
 ## getresults ##
-* Fetch results from a subscribed channel. This call is assumed to be made in response to a notification received from the broker that indicates that new results are populated for the subscription and are ready to be fetched.
+* Fetch results from a subscribed channel. This call is assumed to be made in response to a notification received from the broker indicating that new results are populated for the subscription and are ready to be fetched.
 ```
 {
 	"dataverseName": string,
@@ -188,6 +188,7 @@ Response:
 	] 
 } 
 ```  
+
 ## gcmregistration ## 
 
 * Send the Android client's GCM registration token to the broker if the token is refreshed.
