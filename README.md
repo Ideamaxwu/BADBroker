@@ -4,7 +4,7 @@
 
 * All calls are POST calls to URIs relative to the broker's URL. All calls are made from client programs except the  "notifybroker" call, which is called from the Asterix backend. Request and response body are JSON objects, and their formats are shown below. All response bodies contain a 'status' field indicating the status of the call (denoted by "success" on success). When a call is failed, "status" is set to "failed" and a corresponding "error" message is returned. 
  
-* The broker (by default) listens at port 8989.
+* The broker (by default) listens at port 8989. All configurations are given in `brokerconfig.ini` file.
 
 * The usual flow of calls from a client program to the broker is as follows. The client program registers to the broker by invoking "register" call, followed by "login". Once logged in, the client invokes "subscribe" in order to subscribe to the designated channel and then "wait" for receiving notifications from the broker (indicating that new results are available in the subscribed channel). After receiving the notification, the client makes "getresults" to retrieve the results. 
 
