@@ -228,7 +228,7 @@ Response:
 ## notification from the broker ##
 
 * Web clients receive notification through websockets.
-* Desktop clients receive notifications through [RabbitMQ] (https://www.rabbitmq.com/).
+* Desktop clients receive notifications through [RabbitMQ](https://www.rabbitmq.com/).
 * Android clients receive notifications through GCM (Google Cloud Messaging).
 
 ```
