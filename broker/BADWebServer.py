@@ -287,11 +287,12 @@ class LoginHandler (BaseHandler):
         try:
             dataverseName = post_data['dataverseName']
             userName = post_data['userName']
+            userType = post_data['userType']
             password = post_data['password']
             platform = 'desktop' if 'platform' not in post_data else post_data['platform']
             stay = post_data['stay']
 
-            response = yield self.broker.login(dataverseName, userName, password, platform, stay)
+            response = yield self.broker.login(dataverseName, userName, userType, password, platform, stay)
 
         except KeyError as e:
             response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
@@ -328,6 +329,31 @@ class LogoutHandler (BaseHandler):
         self.flush()
         self.finish()
 
+class SignalGameHandler (BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            signal = post_data['signal']
+
+            response = yield self.broker.signalGame(dataverseName, userId, accessToken, signal)
+
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
 
 class SubscriptionHandler(BaseHandler):
     def initialize(self, broker):
@@ -416,6 +442,35 @@ class GetResultsHandler(BaseHandler):
         self.finish()
 
 
+class GetGameStatHandler(BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        log.info(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+
+            response = yield self.broker.getGameStat(dataverseName, userId, accessToken)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+
+        log.info(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+
+
 class GetLatestResultsHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -478,6 +533,34 @@ class AckResultsHandler(BaseHandler):
         self.flush()
         self.finish()
 
+class BattleReportHandler(BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            batmsg = post_data['batmsg']
+
+            response = yield self.broker.battleReport(dataverseName, userId, accessToken, batmsg)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
 
 class CallFunctionHandler(BaseHandler):
     def initialize(self, broker):
@@ -758,11 +841,14 @@ def start_server():
         (r'/register', RegistrationHandler, dict(broker=broker)),
         (r'/login', LoginHandler, dict(broker=broker)),
         (r'/logout', LogoutHandler, dict(broker=broker)),
+        (r'/signalgame', SignalGameHandler, dict(broker=broker)),
         (r'/subscribe', SubscriptionHandler, dict(broker=broker)),
         (r'/unsubscribe', UnsubscriptionHandler, dict(broker=broker)),
         (r'/getresults', GetResultsHandler, dict(broker=broker)),
+        (r'/getgamestat', GetGameStatHandler, dict(broker=broker)),
         (r'/getlatestresults', GetLatestResultsHandler, dict(broker=broker)),
         (r'/ackresults', AckResultsHandler, dict(broker=broker)),
+        (r'/battlereport', BattleReportHandler, dict(broker=broker)),
         (r'/callfunction', CallFunctionHandler, dict(broker=broker)),
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),

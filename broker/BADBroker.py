@@ -63,6 +63,7 @@ class BADBroker:
         self.userToSubscriptionMap = {}  # indexed by dataverseName, userId, userSubscriptionId
 
         self.sessions = {}                  # keep accesstokens of logged in users
+        self.batstat = {}
         self.notifiers = {}                 # list of all possible notifiers
 
         self.initializeBroker()             # initialize broker, loads Users and ChannelSubscriptions
@@ -153,7 +154,7 @@ class BADBroker:
             return {'status': 'success', 'userId': userId}
 
     @tornado.gen.coroutine
-    def login(self, dataverseName, userName, password, platform, stay):
+    def login(self, dataverseName, userName, userType, password, platform, stay):
         """
         Signs in user and creates a session for the user. Only after login, the user is able to perform operations.
         :param dataverseName: dataverse name
@@ -184,8 +185,9 @@ class BADBroker:
                     }
                 
                 # Create a new session for this user
-                self.sessions[dataverseName][userId] = Session(dataverseName, userId, accessToken, platform,
+                self.sessions[dataverseName][userId] = Session(dataverseName, userId, userType, accessToken, platform,
                                                                datetime.now(), datetime.now())
+                # log.info('------->User<-------:' + str(self.sessions[dataverseName][userId].userType))
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
                 return {'status': 'success', 'userName': userName, 'userId': userId, 'accessToken': accessToken}
@@ -1329,6 +1331,54 @@ class BADBroker:
             log.error('Broker setup failed ' + response)
             return {'status': 'failed', 'error': response}
     
+    @tornado.gen.coroutine
+    def signalGame(self, dataverseName, userId, accessToken, signal):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        if signal == False or signal == True:
+            self.batstat = {}
+            return {'status': 'success'}
+        
+    @tornado.gen.coroutine
+    def battleReport(self, dataverseName, userId, accessToken, batmsg):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+        
+        for dataverse in list(self.sessions):
+            for userid in list(self.sessions[dataverse]):
+                if(userId == userid):
+                    if(userId in self.batstat):
+                        self.batstat[userId].append(batmsg)
+                    else:
+                        self.batstat[userId] = []
+                        self.batstat[userId].append(batmsg)
+                    log.info('1deamaxwu -----------------> Battle MSG <-----------------' + str(self.batstat[userId]))
+        # log.info('1deamaxwu -----------------> Battle MSG <-----------------' + batmsg)
+        return {'status': 'success'}
+        
+    @tornado.gen.coroutine
+    def getGameStat(self, dataverseName, userId, accessToken):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+        
+        userList = []
+        batmsg = []    
+        for dataverse in list(self.sessions):
+            for userid in list(self.sessions[dataverse]):
+            	userList.append({'userId': self.sessions[dataverse][userid].userId, 'userType': self.sessions[dataverse][userid].userType})
+            	if(userid in self.batstat):
+            	    batmsg += self.batstat[userid]
+        
+        return {
+            'status': 'success',
+            'gamestat': userList,
+            'batmsg': batmsg
+        }
+
     def SessionInterval(self):
         Timer(60*10, self.SessionInterval).start()
         log.info('1deamaxwu ==================> Session Interval <===================')

@@ -10,9 +10,10 @@ import brokerutils
 log = brokerutils.setup_logging(__name__)
 
 class Session:
-    def __init__(self, dataverseName, userId, accessToken, platform, creationTime, lastAccessTime):
+    def __init__(self, dataverseName, userId, userType, accessToken, platform, creationTime, lastAccessTime):
         self.dataverseName = dataverseName
         self.userId = userId
+        self.userType = userType
         self.accessToken = accessToken
         self.platform = platform
         self.creationTime = creationTime
