@@ -1,27 +1,6 @@
 import badclient
 import sys
 
-'''
-def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultCount):
-    print(channelName, subscriptionId)
-    print('Results for %s: result count %d, latest execution time %s' % (channelName, resultCount, channelExecutionTime))
-
-    resultObject = client.getresults(channelName, subscriptionId, 10)
-
-    while resultObject and len(resultObject['results']) > 0:
-        latestChannelExecutionTimeInResults = resultObject['latestChannelExecutionTimeInResults']
-        channelExecutionTime = resultObject['channelExecutionTime']
-
-        results = resultObject['results']
-
-        print('Retrieved %d results' % len(results))
-        for item in results:
-            print('APPDATA ' + str(item))
-
-        client.ackresults(channelName, subscriptionId, latestChannelExecutionTimeInResults)
-        resultObject = client.getresults(channelName, subscriptionId, 10)
-
-'''
 
 def on_channelresults(channelName, subscriptionId, results):
     print('Retrieved results for channel `%s` with sub `%s` -- %d records' %(channelName, subscriptionId, len(results)))
