@@ -33,11 +33,11 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='%s.ics.uci.edu' % sys.argv[1])
+client = badclient.BADClient(brokerServer='localhost')
+dataverseName = sys.argv[1]
 
-dataverseName = sys.argv[2]
-userName = sys.argv[3]
-password = 'yusufpass'
+userName = 'demo'
+password = 'demo'
 email = 'abc@abc.net'
 
 client.on_channelresults = on_channelresults
