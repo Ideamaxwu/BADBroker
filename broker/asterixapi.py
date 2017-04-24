@@ -129,16 +129,16 @@ class AsterixQueryManager():
 
     @tornado.gen.coroutine
     def executeQuery(self, dataverseName, queryStatment):
-        request_url = self.asterixBaseURL + "/" + "query/service"
+        request_url = self.asterixBaseURL + "/" + "query"
 
         query = ''
         if dataverseName is not None:
             query = "use dataverse " + dataverseName + "; "
         query = query + queryStatment + ";"
 
-        post_data = {'statement': query}
-        #params = {'statement': query}
-        #request_url = request_url + "?" + urllib.parse.urlencode(params)
+        params = {'query': query}
+        request_url = request_url + "?" + urllib.parse.urlencode(params)
+
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
 
         log.info('Executing.'
@@ -149,7 +149,7 @@ class AsterixQueryManager():
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.urlencode(post_data))
+            request = tornado.httpclient.HTTPRequest(request_url, method='GET')
             response = yield httpclient.fetch(request)
             return response.code, str(response.body, encoding='utf-8')
         except tornado.httpclient.HTTPError as e:
