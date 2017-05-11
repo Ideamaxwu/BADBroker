@@ -51,7 +51,7 @@ class AndroidClientNotifier():
                                                      body=json.dumps(post_data))
             response = yield self.client.fetch(request)
 
-            result = json.loads(str(response.body, 'uft-8'))
+            result = json.loads(str(response.body, 'utf-8'))
             log.debug(result)
             if result['success'] == 1:
                 log.info('FCM notification sent to %s' %userId)

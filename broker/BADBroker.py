@@ -1102,7 +1102,7 @@ class BADBroker:
     # Application Management routines
     @tornado.gen.coroutine
     def registerApplication(self, appName, appDataverse, adminUser, adminPassword, email, dropExisting=0, setupAQL=None):
-        # Check application environment, check whether 'BrokerMetadata' dataverse exists, if not, create
+        log.info('Check application environment, check whether \'BrokerMetadata\' dataverse exists, if not, create')
         yield Application.setupApplicationEnviroment(self.asterix)
 
         # Check if there is already an app exist with the same name, currently ignored.
