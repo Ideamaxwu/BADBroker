@@ -24,7 +24,7 @@ post_data = {'to': 'epYz7vfEmtA:APA91bFMQtyy5x3v69V7QQSHUpdSvMjgpQRtrvwq-oQwTCEh
 request = tornado.httpclient.HTTPRequest(gcm_server,
                                          method='POST',
                                          headers={'Content-Type': 'application/json',
-                                                  'Authorization': 'key=AIzaSyBAhgXCQERi2vwSdEEPrxvQV1xpJ7e4owk'},
+                                                  'Authorization': 'key=AIzaSyB9OcjeeU0uwdqHtTh9XN-gTsvHL7v6v38'},
                                          body=json.dumps(post_data))  #{'registration_ids': ['ABC']}
 response = client.fetch(request)
 print(response)
