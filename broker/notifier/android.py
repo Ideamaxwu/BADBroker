@@ -14,7 +14,7 @@ class AndroidClientNotifier():
         self.gcmServer = 'https://fcm.googleapis.com/fcm/send'
 
         # Authorization key is associated with bigactivedata@gmail.com, registered through FCM Console
-        self.gcmAuthorizationKey = 'AIzaSyB9OcjeeU0uwdqHtTh9XN-gTsvHL7v6v38'
+        self.gcmAuthorizationKey = 'AAAAD_tR9oM:APA91bEqlZ8nL7Z4gmYCB_iRI4dFqSEZvGENik6XESexoN9Wo82tTfvH2pjEfpAzMro5vplnJv9UC-PaDLf5nb_LyrF5qlaAXbIy_S_XKs9YQiWnsXgCa8kwZ5_OTnnFjiLE3VT1cO3F'   # 'AIzaSyB9OcjeeU0uwdqHtTh9XN-gTsvHL7v6v38'
 
         # Mobile clients send their tokens and they are stored here
         self.gcmRegistrationTokens = {}
