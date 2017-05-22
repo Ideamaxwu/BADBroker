@@ -126,6 +126,40 @@ Response:
 	"results": [... JSON Array...]
 }
 ```
+## insertrecords ##
+* Insert records into a dataset.
+```
+{
+	"dataverseName": string,
+	"userId": string,
+	"accessToken": string,
+	"datasetName": string,
+	"records": [...JSON array...]	
+}
+```
+Response:
+```
+{
+	"status": "success"/"failed"	
+}
+```
+## feedrecords ##
+* Feed data records through a socket feed (specified by the portNo).
+```
+{
+	"dataverseName": string,
+	"userId": string,
+	"accessToken": string,
+	"portNo": int,
+	"records": [...JSON array...]	
+}
+```
+Response:
+```
+{
+	"status": "success"/"failed"	
+}
+```
 
 ## callfunction ##
 * Return results from a function call.
@@ -209,7 +243,7 @@ Response:
 
 ## notifybroker ##
 
-* This is invoked by the Asterix Backend
+* This is invoked by the Asterix Backend.
 ``` 
 { 
 	"dataverseName" : string, 
