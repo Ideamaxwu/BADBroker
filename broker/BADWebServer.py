@@ -2,6 +2,7 @@
 
 import logging as log
 import os
+import signal
 from threading import Lock
 
 import simplejson as json
@@ -773,6 +774,7 @@ def start_server():
     ], **settings)
 
     application.listen(9118)
+    signal.signal(signal.SIGINT, lambda x, y: tornado.ioloop.IOLoop.current().stop())
     tornado.ioloop.IOLoop.current().start()
     
 if __name__ == '__main__':

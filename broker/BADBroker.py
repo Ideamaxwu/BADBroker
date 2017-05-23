@@ -141,7 +141,7 @@ class BADBroker:
                 'userId': user.userId
             }
         else:
-            userId = '{}@{}'.format(userName, dataverseName) #str(hashlib.sha224((dataverseName + userName).encode()).hexdigest())
+            userId = str(hashlib.sha224((dataverseName + '@' + userName).encode()).hexdigest())  # '{}@{}'.format(userName, dataverseName)
             password = hashlib.sha224(password.encode()).hexdigest()
 
             user = User(dataverseName, userId, userId, userName, password, email)
@@ -496,7 +496,8 @@ class BADBroker:
         return {'status': 'success'}
 
     def makeUserSubscriptionId(self, dataverseName, channelName, parameters, userId):
-        return dataverseName + '::' + userId + '::' + channelName + '::' + parameters.replace(', ', '').replace('"','')
+        sid = dataverseName + '::' + userId + '::' + channelName + '::' + parameters.replace(', ', '').replace('"', '')
+        return str(hashlib.sha224(sid.encode()).hexdigest())
 
     @tornado.gen.coroutine
     def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize=0):
@@ -539,7 +540,7 @@ class BADBroker:
                    '%s ' \
                    'return $t.channelExecutionTime' \
                    % ((channelName + 'Results'), whereClause, orderbyClause,
-                      'limit {}'.format(resultSize) if resultSize > 0 else '')
+                      'limit {}'.format(resultSize) if resultSize and resultSize > 0 else '')
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 

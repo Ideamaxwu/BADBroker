@@ -12,9 +12,9 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='localhost')
-dataverseName = sys.argv[1]
+client = badclient.BADClient(brokerServer='localhost', brokerPort=9118)
 
+dataverseName = 'demoapp'
 userName = 'demo'
 password = 'demo'
 email = 'abc@abc.net'
@@ -36,8 +36,8 @@ else:
 #if len(subIds) > 0:
 #    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
-#print ('Subscribed with ID %s' % subcriptionId)
+subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
+print ('Subscribed with ID %s' % subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])
