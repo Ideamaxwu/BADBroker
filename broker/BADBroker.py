@@ -499,7 +499,7 @@ class BADBroker:
         return dataverseName + '::' + userId + '::' + channelName + '::' + parameters.replace(', ', '').replace('"','')
 
     @tornado.gen.coroutine
-    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize):
+    def getResults(self, dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime, resultSize=0):
         check = self._checkAccess(dataverseName, userId, accessToken)
         if check['status'] == 'failed':
             return check
@@ -539,7 +539,7 @@ class BADBroker:
                    '%s ' \
                    'return $t.channelExecutionTime' \
                    % ((channelName + 'Results'), whereClause, orderbyClause,
-                      'limit {}'.format(resultSize) if resultSize and resultSize > 0 else '')
+                      'limit {}'.format(resultSize) if resultSize > 0 else '')
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -974,21 +974,28 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        iostream = tornado.iostream.IOStream(socket=sock)
-        yield iostream.connect((self.asterix.asterix_server, portNo))
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            iostream = tornado.iostream.IOStream(socket=sock)
+            yield iostream.connect((self.asterix.asterix_server, portNo))
 
-        if isinstance(records, list):
-            for record in records:
+            if isinstance(records, list):
+                for record in records:
+                    log.info('Feeding record {0}'.format(record))
+                    yield iostream.write(json.dumps(record).encode('utf-8'))
+            else:
+                record = records
                 log.info('Feeding record {0}'.format(record))
                 yield iostream.write(json.dumps(record).encode('utf-8'))
-        else:
-            record = records
-            log.info('Feeding record {0}'.format(record))
-            yield iostream.write(json.dumps(record).encode('utf-8'))
 
-        iostream.close()
-        sock.close()
+        except Exception as e:
+            return {'status': 'failed', 'error': 'Feed failed, may be due to ' + str(e)}
+        finally:
+            if iostream:
+                iostream.close()
+            if sock:
+                sock.close()
+
         return {'status': 'success'}
 
     def gcmRegistration(self, dataverseName, userId, accessToken, gcmRegistrationToken):
