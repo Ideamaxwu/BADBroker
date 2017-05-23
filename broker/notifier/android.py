@@ -14,7 +14,7 @@ class AndroidClientNotifier():
         self.gcmServer = 'https://fcm.googleapis.com/fcm/send'
 
         # Authorization key is associated with bigactivedata@gmail.com, registered through FCM Console
-        self.gcmAuthorizationKey = 'AIzaSyB9OcjeeU0uwdqHtTh9XN-gTsvHL7v6v38'
+        self.gcmAuthorizationKey = 'AAAAD_tR9oM:APA91bEqlZ8nL7Z4gmYCB_iRI4dFqSEZvGENik6XESexoN9Wo82tTfvH2pjEfpAzMro5vplnJv9UC-PaDLf5nb_LyrF5qlaAXbIy_S_XKs9YQiWnsXgCa8kwZ5_OTnnFjiLE3VT1cO3F'   # 'AIzaSyB9OcjeeU0uwdqHtTh9XN-gTsvHL7v6v38'
 
         # Mobile clients send their tokens and they are stored here
         self.gcmRegistrationTokens = {}
@@ -51,7 +51,7 @@ class AndroidClientNotifier():
                                                      body=json.dumps(post_data))
             response = yield self.client.fetch(request)
 
-            result = json.loads(str(response.body, 'uft-8'))
+            result = json.loads(str(response.body, 'utf-8'))
             log.debug(result)
             if result['success'] == 1:
                 log.info('FCM notification sent to %s' %userId)
