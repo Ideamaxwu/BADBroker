@@ -1162,20 +1162,38 @@ class BADBroker:
             }
 
     @tornado.gen.coroutine
-    def updateApplication(self, appName, apiKey, setupAQL=None):
-        # Check if an application already exists, if so match ApiKey
+    def checkApplication(self, appName, apiKey):
         applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
 
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
+        if not applications or len(applications) == 0:
+            log.error('No application `%s` exists' % appName)
             return {
                 'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
+                'error': 'No application exists'
+            }
+        elif applications[0].apiKey != apiKey:
+            log.error('API key does not match')
+            return {
+                'status': 'failed',
+                'error': 'Application APIKey does not match'
+            }
+        return {'status': 'success'}, applications[0]
+
+    @tornado.gen.coroutine
+    def updateApplication(self, appName, apiKey, setupAQL=None):
+        # Check if an application already exists, if so match ApiKey
+        check, app = self.checkApplication(appName, apiKey)
+        if check['status'] == 'failed':
+            return check
+
+        if setupAQL is None or len(setupAQL) == 0:
+            return {
+                'status': 'failed',
+                'error': 'No setup AQL is provided.'
             }
 
-        dataverseName = applications[0].appDataverse
-
-        log.info('Setting up dataverse {} for app {}....'.format(dataverseName, appName))
+        dataverseName = app.appDataverse
+        log.info('Setting up or updating dataverse {} for app {}....'.format(dataverseName, appName))
 
         # The setup AQL MUST not contain use dataverse or create dataverse commands
         if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
@@ -1230,15 +1248,11 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListChannels(self, appName, apiKey):
         # Check if application exists, if so match ApiKey
-        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+        check, app = self.checkApplication(appName, apiKey)
+        if check['status'] == 'failed':
+            return check
 
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
-            return {
-                'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
-            }
-        dataverseName = applications[0].appDataverse
+        dataverseName = app.appDataverse
 
         aql = 'for $t in dataset Channel where $t.DataverseName = \"{}\" return $t'.format(dataverseName)
         status, response = yield self.asterix.executeAQL('Metadata', aql)
@@ -1258,16 +1272,11 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListSubscriptions(self, appName, apiKey, channelName):
         # Check if application exists, if so match ApiKey
-        applications = yield Application.load(dataverseName=Application.dataverseName, appName=appName)
+        check, app = self.checkApplication(appName, apiKey)
+        if check['status'] == 'failed':
+            return check
 
-        if not applications or len(applications) == 0 or applications[0].apiKey != apiKey:
-            log.error('No application exists or ApiKey does not match')
-            return {
-                'status': 'failed',
-                'error': 'No application exists or ApiKey does not match '
-            }
-
-        dataverseName = applications[0].appDataverse
+        dataverseName = app.appDataverse
         subscriptions = yield UserSubscription.load(dataverseName, channelName=channelName)
 
         log.debug(subscriptions)

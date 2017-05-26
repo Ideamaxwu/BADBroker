@@ -116,7 +116,7 @@ Response:
 	"accessToken": string,
 	"channelName": string,
 	"userSubscriptionId": string,
-	"channelExecutionTime": string
+	"channelExecutionTime": string [optional]
 }
 ```
 Response:
