@@ -86,11 +86,8 @@ class RegisterApplicationHandler(BaseHandler):
                     response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email)
 
             except tornado.web.MissingArgumentError as e:
-                log.error(e.with_traceback)
+                log.error(e.with_traceback())
                 response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
-            except Exception as e:
-                log.error(response)
-                response = {'status': 'failed', 'error': str(e)}
         else:
             post_data = json.loads(str(self.request.body, encoding='utf-8'))
             log.debug(post_data)

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import hashlib
 import re
 import socket
-from datetime import datetime
 from threading import Lock
 
+from datetime import datetime
 import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
@@ -182,7 +181,8 @@ class BADBroker:
                     }
                 '''
                 # Create a new session for this user
-                self.sessions[dataverseName][userId] = Session(dataverseName, userId, accessToken, platform,
+                user.lastLoginTime = str(datetime.now())
+                self.sessions[dataverseName][userId] = Session(dataverseName, userId, accessToken, platform, user,
                                                                datetime.now(), datetime.now())
 
                 tornado.ioloop.IOLoop.current().add_callback(self.loadSubscriptionsForUser, dataverseName=dataverseName, userId=userId)
@@ -269,8 +269,11 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def clearStateForUser(self, dataverseName, userId):
-        # Delete session entry
+        # Update user state and delete session entry
         if dataverseName in self.sessions and userId in self.sessions[dataverseName]:
+            user = self.sessions[dataverseName][userId].user
+            user.lastLogoffTime = str(datetime.now())
+            yield user.save()
             del self.sessions[dataverseName][userId]
 
         # Clear subscription from user-to-subscription map
@@ -1134,6 +1137,7 @@ class BADBroker:
             log.info('Creating new app {} in dataverse {}'.format(appName, appDataverse))
             apiKey = str(hashlib.sha224((appDataverse+ appName + str(datetime.now())).encode()).hexdigest())
 
+            adminPassword = str(hashlib.sha224((appName + adminUser + adminPassword).encode()).hexdigest())
             app = Application(Application.dataverseName, appName, appName, appDataverse, adminUser, adminPassword, email, apiKey)
             yield app.save()
 
@@ -1182,7 +1186,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def updateApplication(self, appName, apiKey, setupAQL=None):
         # Check if an application already exists, if so match ApiKey
-        check, app = self.checkApplication(appName, apiKey)
+        check, app = yield self.checkApplication(appName, apiKey)
         if check['status'] == 'failed':
             return check
 
@@ -1217,7 +1221,7 @@ class BADBroker:
             return {
                 'status': 'failed',
                 'appName': appName,
-                'error': 'Setup failed, possible reason %s' %response
+                'error': 'Setup failed, possible reason %s' % response
             }
 
     @tornado.gen.coroutine
@@ -1227,11 +1231,14 @@ class BADBroker:
         if not applications or len(applications) == 0:
             return {
                 'status': 'failed',
-                'error': 'No application exists with name `%s`' %appName
+                'error': 'No application exists with name `%s`' % appName
             }
 
         app = applications[0]
+        adminPassword = str(hashlib.sha224((appName + adminUser + adminPassword).encode()).hexdigest())
+
         if (adminUser, adminPassword) == (app.adminUser, app.adminPassword):
+            log.info('App admin `%s` logs in' % adminUser)
             return {
                 'status': 'success',
                 'appName': appName,
@@ -1242,7 +1249,7 @@ class BADBroker:
             log.error('Password does not match')
             return {
                 'status': 'failed',
-                'error': 'No application exists or Passord does not match '
+                'error': 'No application exists or Password does not match'
             }
 
     @tornado.gen.coroutine
