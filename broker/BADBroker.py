@@ -332,18 +332,18 @@ class BADBroker:
         aql_stmt = 'subscribe to ' + channelName + '(' + parameters + ') on ' + self.brokerName
         log.debug(aql_stmt)
 
-        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+        status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
 
         if status_code != 200:
             log.debug(response)
             if 'There is no broker with this name' in response:
                 log.info('Broker `%s` is not registered. Registering..' % self.brokerName)
                 command = 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
-                status_code, response = yield self.asterix.executeAQL(dataverseName, command)
+                status_code, response = yield self.asterix.executeSQLPP(dataverseName, command)
                 if status_code != 200:
                     raise BADException(response)
                 else:
-                    status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+                    status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
                     if status_code != 200:
                         raise BADException(response)
             else:
@@ -488,7 +488,7 @@ class BADBroker:
         userSubscriptions = yield UserSubscription.load(dataverseName, channelSubscriptionId=channelSubscriptionId)
         if not userSubscriptions or len(userSubscriptions) == 0:
             # No subscription left for this channel, so unsubscribe and remove the subscription
-            status_code, response = yield self.asterix.executeAQL(dataverseName, 'unsubscribe \"{0}\" from {1}'.format(channelSubscriptionId, channelName))
+            status_code, response = yield self.asterix.executeSQLPP(dataverseName, 'unsubscribe \"{0}\" from {1}'.format(channelSubscriptionId, channelName))
             if status_code != 200:
                 raise BADException(response)
 
@@ -529,21 +529,20 @@ class BADBroker:
         log.debug('Check %s --- %s' %(latestDeliveredResultTime, channelExecutionTime))
 
         # Retrieve all execution times from current to the last delivered time
-        whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
-                      'and $t.channelExecutionTime > datetime(\"{1}\") ' \
-                      'and $t.channelExecutionTime <= datetime(\"{2}\")'.format(channelSubscriptionId,
+        whereClause = 'subscriptionId = uuid(\"{0}\") ' \
+                      'and channelExecutionTime > datetime(\"{1}\") ' \
+                      'and channelExecutionTime <= datetime(\"{2}\")'.format(channelSubscriptionId,
                                                                                 latestDeliveredResultTime,
                                                                                 channelExecutionTime)
 
-        orderbyClause = '$t.channelExecutionTime asc'
-        aql_stmt = 'for $t in dataset %s ' \
+        orderbyClause = 'channelExecutionTime asc'
+        aql_stmt = 'SELECT * FROM %s ' \
                    'distinct by $t.channelExecutionTime ' \
-                   'where %s ' \
-                   'order by %s ' \
-                   '%s ' \
-                   'return $t.channelExecutionTime' \
+                   'WHERE %s ' \
+                   'ORDER BY %s ' \
+                   '%s' \
                    % ((channelName + 'Results'), whereClause, orderbyClause,
-                      'limit {}'.format(resultSize) if resultSize and resultSize > 0 else '')
+                      'LIMIT {}'.format(resultSize) if resultSize and resultSize > 0 else '')
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -608,12 +607,10 @@ class BADBroker:
         latestChannelExecutionTime = self.channelSubscriptionTable[dataverseName][channelName][channelSubscriptionId].latestChannelExecutionTime
 
         # Retrieve the last execution time of this subscription
-        whereClause = '$t.subscriptionId = uuid(\"{}\") ' \
-                      'and $t.channelExecutionTime = datetime(\"{}\")'.format(channelSubscriptionId, latestChannelExecutionTime)
+        whereClause = 'subscriptionId = uuid(\"{}\") ' \
+                      'and channelExecutionTime = datetime(\"{}\")'.format(channelSubscriptionId, latestChannelExecutionTime)
 
-        aql_stmt = 'for $t in dataset %s ' \
-                   'where %s return $t.result' \
-                   % ((channelName + 'Results'), whereClause)
+        aql_stmt = 'SELECT result.result FROM %s result WHERE %s' % ((channelName + 'Results'), whereClause)
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -677,11 +674,10 @@ class BADBroker:
     def getResultsFromAsterix(self, dataverseName, channelName, channelSubscriptionId, channelExecutionTime):
         #return [{'channelExecutionTime': channelExecutionTime, 'result': ['A', 'B', 'C']}]
 
-        whereClause = '$t.subscriptionId = uuid(\"{0}\") ' \
-                      'and $t.channelExecutionTime = datetime(\"{1}\")'.format(channelSubscriptionId, channelExecutionTime)
-        orderbyClause = '$t.channelExecutionTime asc'
-        aql_stmt = 'for $t in dataset %s where %s order by %s return $t' \
-                   % ((channelName + 'Results'), whereClause, orderbyClause)
+        whereClause = 'subscriptionId = uuid(\"{0}\") ' \
+                      'and channelExecutionTime = datetime(\"{1}\")'.format(channelSubscriptionId, channelExecutionTime)
+        orderbyClause = 'channelExecutionTime asc'
+        aql_stmt = 'SELECT * FROM %s where %s ORDER BY %s' % ((channelName + 'Results'), whereClause, orderbyClause)
 
         status, response = yield self.asterix.executeQuery(dataverseName, aql_stmt)
 
@@ -730,9 +726,8 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getChannelInfo(self, dataverseName, channelName):
-        aql_stmt = 'for $t in dataset Metadata.Channel '
-        aql_stmt = aql_stmt + 'where $t.ChannelName = \"' + channelName + '\" '
-        aql_stmt = aql_stmt + 'return $t'
+        aql_stmt = 'SELECT * FROM Metadata.Channel '
+        aql_stmt = aql_stmt + 'WHERE ChannelName = \"' + channelName + '\" '
 
         log.debug(aql_stmt)
 
@@ -803,13 +798,12 @@ class BADBroker:
                 continue
 
             # Now, retrieve results and try to cache them
-            query = 'for $t in dataset {0}Results ' \
-                    'distinct by $t.channelExecutionTime ' \
-                    'where $t.subscriptionId = uuid(\"{1}\") ' \
-                    'and $t.channelExecutionTime > datetime(\"{2}\") ' \
-                    'and $t.channelExecutionTime <= datetime(\"{3}\") ' \
-                    'order by $t.channelExecutionTime ' \
-                    'return $t.channelExecutionTime'.format(channelName,
+            query = 'SELECT channelExecutionTime FROM {0}Results ' \
+                    'distinct by channelExecutionTime ' \
+                    'WHERE subscriptionId = uuid(\"{1}\") ' \
+                    'and channelExecutionTime > datetime(\"{2}\") ' \
+                    'and channelExecutionTime <= datetime(\"{3}\") ' \
+                    'order by channelExecutionTime'.format(channelName,
                                                     channelSubscriptionId,
                                                     latestChannelExecutionTime, channelExecutionTime)
 
@@ -860,13 +854,10 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getResultCount(self, dataverseName, channelName, userId, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime):
-        statement = "let $times := " \
-                    "for $t in dataset {}Results " \
-                    "distinct by $t.channelExecutionTime " \
-                    "where $t.subscriptionId = uuid(\"{}\") and " \
-                    "$t.channelExecutionTime > datetime(\"{}\") and " \
-                    "$t.channelExecutionTime <= datetime(\"{}\") return $t.channelExecutionTime " \
-                    "return count($times)".format(channelName, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
+        statement = "SELECT count(distinct channelExecutionTime) FROM {}Results " \
+                    "WHERE subscriptionId = uuid(\"{}\") and " \
+                    "channelExecutionTime > datetime(\"{}\") and " \
+                    "channelExecutionTime <= datetime(\"{}\")".format(channelName, channelSubscriptionId, latestDeliveredResultTime, latestChannelExecutionTime)
 
         status, response = yield self.asterix.executeQuery(dataverseName, statement)
         if status == 200 and response:
@@ -912,7 +903,7 @@ class BADBroker:
     def moveSubscription(self, channelSubscriptionId, channelName, brokerB):
         # move subscription "c45ef6d0-c5ae-4b9e-b5da-cf1932718296" on nearbyTweetChannel to BrokerB
         aql_stmt = 'move subscription \"{0}\" on {1} to {2}'.format(channelSubscriptionId, channelName, brokerB)
-        status_code, response = yield self.asterix.executeAQL(aql_stmt)
+        status_code, response = yield self.asterix.executeSQLPP(aql_stmt)
 
         if status_code != 200:
             raise BADException(response)
@@ -942,8 +933,8 @@ class BADBroker:
             else:
                 params = params + "{}".format(value)
 
-        aql_stmt = 'for $t in {}({}) return $t'.format(functionName, params)
-        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+        aql_stmt = 'SELECT * FROM {}({})'.format(functionName, params)
+        status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
 
         if status_code == 200 and response:
             result = json.loads(response)
@@ -963,8 +954,8 @@ class BADBroker:
         #if check['status'] == 'failed':
         #    return check
 
-        aql_stmt = 'insert into dataset {0} {1}'.format(datasetName, records)
-        status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
+        aql_stmt = 'INSERT into {0}({1})'.format(datasetName, records)
+        status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
 
         if status_code != 200:
             raise BADException(response)
@@ -1032,22 +1023,21 @@ class BADBroker:
                 channelName = channels[0].channelName
 
                 # Find the number of records to be deleted
-                statement = 'let $values := for $t in dataset {}Results ' \
-                            'where $t.subscriptionId = uuid("{}") ' \
-                            'and $t.channelExecutionTime <= datetime("{}") return $t ' \
-                            'return count($values)'.format(channelName, channelSubscriptionId, latestResultDeliveryTime)
+                statement = 'SELECT count(*) FROM {}Results ' \
+                            'where subscriptionId = uuid("{}") ' \
+                            'and channelExecutionTime <= datetime("{}")'.format(channelName, channelSubscriptionId, latestResultDeliveryTime)
 
                 status, response = yield self.asterix.executeQuery(dataverse, statement)
 
                 if status == 200 and response:
                     count = json.loads(response)[0]
                     if count > 0:
-                        statement = 'delete $t from dataset {}Results ' \
-                                    'where $t.subscriptionId = uuid("{}") ' \
-                                    'and $t.channelExecutionTime <= datetime(\"{}\")'.format(channelName, channelSubscriptionId,
+                        statement = 'DELETE FROM {}Results ' \
+                                    'where subscriptionId = uuid("{}") ' \
+                                    'and channelExecutionTime <= datetime(\"{}\")'.format(channelName, channelSubscriptionId,
                                                                                              latestResultDeliveryTime)
 
-                        status, response = yield self.asterix.executeAQL(dataverse, statement)
+                        status, response = yield self.asterix.executeSQLPP(dataverse, statement)
 
                         if status == 200:
                             log.info('%d resultsets are deleted from Channel %s with ChannelSubscriptionId %s' %(count,
@@ -1064,12 +1054,11 @@ class BADBroker:
             dataverse = kwargs['dataverse']
 
             # Find min(latestDeliveryTime) for each subscription
-            statement = 'for $t in dataset UserSubscriptionDataset ' \
-                        'let $times := $t.latestDeliveredResultTime ' \
-                        'group by $channelSubscriptionId := $t.channelSubscriptionId with $times ' \
-                        'return {"channelSubscriptionId": $channelSubscriptionId, "latestDeliveredResultTime": min($times)}'
+            statement = 'SELECT value {\"channelSubscriptionId\": channelSubscriptionId, \"latestDeliveredResultTime\": min(latestDeliveredResultTime)} ' \
+                        'FROM UserSubscriptionDataset ' \
+                        'group by channelSubscriptionId'
 
-            status, response = yield self.asterix.executeAQL(dataverse, statement)
+            status, response = yield self.asterix.executeSQLPP(dataverse, statement)
 
             if status == 200 and response:
                 log.debug(response)
@@ -1084,7 +1073,7 @@ class BADBroker:
                 log.error('ChannelSubscriptionId failed.')
         else:
             # Find all dataverses from Metadata.Channel
-            statement = 'for $t in dataset Metadata.Channel return $t.DataverseName'
+            statement = 'SELECT DataverseName FROM Metadata.Channel distinct by DataverseName'
             status, response = yield self.asterix.executeQuery(None, statement)
 
             if status == 200 and response:
@@ -1129,7 +1118,7 @@ class BADBroker:
         log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, appDataverse))
 
         command = 'drop dataverse {} if exists; create dataverse {};'.format(appDataverse, appDataverse)
-        status, response = yield self.asterix.executeAQL(None, command);
+        status, response = yield self.asterix.executeSQLPP(None, command);
 
         log.debug(response)
 
@@ -1200,13 +1189,13 @@ class BADBroker:
         log.info('Setting up or updating dataverse {} for app {}....'.format(dataverseName, appName))
 
         # The setup AQL MUST not contain use dataverse or create dataverse commands
-        if 'use dataverse' in setupAQL or 'create dataverse' in setupAQL:
+        if 'use ' in setupAQL or 'create dataverse' in setupAQL:
             return {
                 'status': 'failed',
                 'error': 'The AQL command MUST not contain `use dataverse` or `create dataverse` commands'
             }
 
-        status, response = yield self.asterix.executeAQL(dataverseName, setupAQL)
+        status, response = yield self.asterix.executeSQLPP(dataverseName, setupAQL)
         log.debug(response)
 
         if status == 200:
@@ -1261,8 +1250,8 @@ class BADBroker:
 
         dataverseName = app.appDataverse
 
-        aql = 'for $t in dataset Channel where $t.DataverseName = \"{}\" return $t'.format(dataverseName)
-        status, response = yield self.asterix.executeAQL('Metadata', aql)
+        aql = 'SELECT * FROM Channel WHERE DataverseName = \"{}\"'.format(dataverseName)
+        status, response = yield self.asterix.executeSQLPP('Metadata', aql)
 
         log.debug(response)
         if status == 200 and response:
@@ -1327,7 +1316,7 @@ class BADBroker:
 
         #commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
 
-        status, response = yield self.asterix.executeAQL(dataverseName, commands)
+        status, response = yield self.asterix.executeSQLPP(dataverseName, commands)
 
         if status == 200:
             log.info('Broker setup succeeded for app {}'.format(appName))

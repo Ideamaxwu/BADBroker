@@ -36,8 +36,8 @@ else:
 #if len(subIds) > 0:
 #    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
 
-subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
-print ('Subscribed with ID %s' % subcriptionId)
+#subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
+#print ('Subscribed with ID %s' % subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

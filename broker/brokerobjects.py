@@ -25,7 +25,7 @@ class Session:
 class BrokerObject:
     @classmethod
     def getCreateStatement(cls):
-        statement = 'create type %sType as closed {' % (cls.__name__)
+        statement = 'CREATE TYPE %sType as closed {' % (cls.__name__)
         dataitems = None
         for key, value in cls.__dict__.items():
             if key.startswith('__') or callable(value) or isinstance(value, classmethod):
@@ -38,15 +38,15 @@ class BrokerObject:
             dataitems = (dataitems + (',\n' + item)) if dataitems else ('\n' + item)
 
         statement += dataitems + '\n}\n'
-        statement += 'create dataset %sDataset (%sType) primary key recordId;\n' % (cls.__name__, cls.__name__);
+        statement += 'CREATE DATASET %sDataset (%sType) PRIMARY KEY recordId;\n' % (cls.__name__, cls.__name__);
         log.debug(statement)
         return statement
 
     @tornado.gen.coroutine
     def delete(self):
         asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
+        cmd_stmt = 'DELETE FROM ' + str(self.__class__.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' WHERE $t.recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
@@ -70,8 +70,8 @@ class BrokerObject:
                     clause = '$t.{} = {}'.format(key, value)
                 whereClause = whereClause + ' and ' + clause if whereClause else clause
 
-        cmd_stmt = 'delete $t from dataset ' + str(cls.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' where {}'.format(whereClause)
+        cmd_stmt = 'DELETE FROM ' + str(cls.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' WHERE {}'.format(whereClause)
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
@@ -85,7 +85,7 @@ class BrokerObject:
     @tornado.gen.coroutine
     def save(self):
         asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
+        cmd_stmt = 'UPSERT INTO ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
         cmd_stmt = cmd_stmt + ')'
@@ -122,9 +122,9 @@ class BrokerObject:
         dataset = objectName + 'Dataset'
 
         if condition:
-            query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
+            query = 'SELECT * FROM {0} where {1}'.format(dataset, condition)
         else:
-            query = 'for $t in dataset {0} return $t'.format(dataset)
+            query = 'SELECT * FROM {0}'.format(dataset)
 
         status, response = yield asterix.executeQuery(dataverseName, query)
 
@@ -195,14 +195,14 @@ class Application(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def setupApplicationEnviroment(cls, asterix):
-        statement = 'use dataverse %s' % Application.dataverseName
+        statement = 'USE %s' % Application.dataverseName
         status, response = yield asterix.executeQuery(None, statement)
         if status != 200 and response and 'Unknown dataverse %s' %(Application.dataverseName) in response:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
-            status, response = yield asterix.executeAQL(None, 'create dataverse %s' % (Application.dataverseName))
+            status, response = yield asterix.executeSQLPP(None, 'create dataverse %s' % (Application.dataverseName))
             if status == 200:
                 statement = Application.getCreateStatement()
-                status, response = yield asterix.executeAQL(Application.dataverseName, statement)
+                status, response = yield asterix.executeSQLPP(Application.dataverseName, statement)
                 if status == 200:
                     return
             else:
