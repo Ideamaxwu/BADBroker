@@ -152,12 +152,11 @@ class AsterixQueryManager():
         #request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
-        log.info(request_url)
-
-
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.parse.urlencode(params))
+            log.debug(request.body)
+
             response = yield httpclient.fetch(request)
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':
