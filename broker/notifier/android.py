@@ -33,10 +33,10 @@ class AndroidClientNotifier():
         registration_token = self.gcmRegistrationTokens[userId]
         post_data = {
                      'registration_ids': [registration_token],
-                     'notification': {
-                         'title': 'New results',
-                         'text': 'In channel %s' % message['channelName']
-                     },
+                     #'notification': {
+                     #    'title': 'New results',
+                     #    'text': 'In channel %s' % message['channelName']
+                     #},
                      'priority': 'high',
                      'collapse_key': message['channelName'],
                      'data': message
