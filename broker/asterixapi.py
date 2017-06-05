@@ -144,22 +144,27 @@ class AsterixQueryManager():
 
     @tornado.gen.coroutine
     def executeSQLPP(self, dataverseName, query):
-        request_url = self.asterixBaseURL + "/" + "sqlpp"
+        request_url = self.asterixBaseURL + '/' + 'query/service'
         if dataverseName:
-            query = "use dataverse " + dataverseName + "; " + query
-        params = {'sqlpp': query}
-        request_url = request_url + "?" + urllib.parse.urlencode(params)
+            query = 'use dataverse ' + dataverseName + "; " + query + ';'
+        params = {'statement': query}
 
+        #request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
         log.info(request_url)
-        errorMessage = 'Error'
+
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='GET')
+            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.parse.urlencode(params))
             response = yield httpclient.fetch(request)
-            return response.code, str(response.body, encoding='utf-8')
+            result = json.loads(str(response.body, encoding='utf-8'))
+            if result['status'] == 'success':
+                return 200, result['results']
+            else:
+                log.error(response)
+                return 500, response['errors']
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response)
