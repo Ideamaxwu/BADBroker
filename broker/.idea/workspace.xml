@@ -100,8 +100,8 @@
       <file leaf-file-name="asterixapi.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/asterixapi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.30650684">
-              <caret line="162" column="31" selection-start-line="162" selection-start-column="31" selection-end-line="162" selection-end-column="31" />
+            <state vertical-scroll-proportion="0.82020545">
+              <caret line="180" column="16" selection-start-line="180" selection-start-column="16" selection-end-line="180" selection-end-column="16" />
               <folding>
                 <element signature="e#24#39#0" expanded="true" />
               </folding>
@@ -574,12 +574,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00047" summary="Some changes.">
-      <created>1474486152415</created>
-      <option name="number" value="00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1474486152415</updated>
-    </task>
     <task id="LOCAL-00048" summary="Some changes.">
       <created>1474607030922</created>
       <option name="number" value="00048" />
@@ -868,7 +862,13 @@
       <option name="project" value="LOCAL" />
       <updated>1496639753380</updated>
     </task>
-    <option name="localTasksCounter" value="96" />
+    <task id="LOCAL-00096" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639932898</created>
+      <option name="number" value="00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639932898</updated>
+    </task>
+    <option name="localTasksCounter" value="97" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1330,8 +1330,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/asterixapi.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.30650684">
-          <caret line="162" column="31" selection-start-line="162" selection-start-column="31" selection-end-line="162" selection-end-column="31" />
+        <state vertical-scroll-proportion="0.82020545">
+          <caret line="180" column="16" selection-start-line="180" selection-start-column="16" selection-end-line="180" selection-end-column="16" />
           <folding>
             <element signature="e#24#39#0" expanded="true" />
           </folding>

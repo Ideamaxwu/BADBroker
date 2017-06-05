@@ -161,11 +161,12 @@ class AsterixQueryManager():
             request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.parse.urlencode(params))
             response = yield httpclient.fetch(request)
             log.debug(response)
+
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':
                 return 200, json.dumps(result['results'])
             else:
-                log.error(response)
+
                 return 500, json.dumps(response['errors'])
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
@@ -177,8 +178,5 @@ class AsterixQueryManager():
                 errorMessage = errorResponse['errors']['msg']
             else:
                 errorMessage = str(e)
-        except Exception as e:
-            log.error('Error ' + str(e))
-            errorMessage = str(e)
 
         return 500, 'Query failed ' + str(errorMessage)
