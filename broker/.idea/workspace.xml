@@ -4,7 +4,7 @@
     <option name="SCOPE_TYPE" value="3" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
+    <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="Asterix POST call is made to /qeury/service">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/asterixapi.py" afterPath="$PROJECT_DIR$/asterixapi.py" />
     </list>
@@ -100,8 +100,8 @@
       <file leaf-file-name="asterixapi.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/asterixapi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.82020545">
-              <caret line="180" column="16" selection-start-line="180" selection-start-column="16" selection-end-line="180" selection-end-column="16" />
+            <state vertical-scroll-proportion="0.5890411">
+              <caret line="171" column="17" selection-start-line="171" selection-start-column="17" selection-end-line="171" selection-end-column="17" />
               <folding>
                 <element signature="e#24#39#0" expanded="true" />
               </folding>
@@ -574,12 +574,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00048" summary="Some changes.">
-      <created>1474607030922</created>
-      <option name="number" value="00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1474607030922</updated>
-    </task>
     <task id="LOCAL-00049" summary="Some changes.">
       <created>1474627275460</created>
       <option name="number" value="00049" />
@@ -868,7 +862,13 @@
       <option name="project" value="LOCAL" />
       <updated>1496639932898</updated>
     </task>
-    <option name="localTasksCounter" value="97" />
+    <task id="LOCAL-00097" summary="Asterix POST call is made to /qeury/service">
+      <created>1496640366768</created>
+      <option name="number" value="00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1496640366768</updated>
+    </task>
+    <option name="localTasksCounter" value="98" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -1330,8 +1330,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/asterixapi.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.82020545">
-          <caret line="180" column="16" selection-start-line="180" selection-start-column="16" selection-end-line="180" selection-end-column="16" />
+        <state vertical-scroll-proportion="0.5890411">
+          <caret line="171" column="17" selection-start-line="171" selection-start-column="17" selection-end-line="171" selection-end-column="17" />
           <folding>
             <element signature="e#24#39#0" expanded="true" />
           </folding>

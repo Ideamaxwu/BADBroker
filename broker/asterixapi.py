@@ -164,9 +164,11 @@ class AsterixQueryManager():
 
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':
-                return 200, json.dumps(result['results'])
+                if 'results' in result:
+                    return 200, json.dumps(result['results'])
+                else:
+                    return 200, '{}'
             else:
-
                 return 500, json.dumps(response['errors'])
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
