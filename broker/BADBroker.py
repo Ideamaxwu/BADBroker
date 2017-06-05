@@ -1117,8 +1117,8 @@ class BADBroker:
 
         log.info('Registering fresh application `{}` at dataverse `{}`'.format(appName, appDataverse))
 
-        command = 'drop dataverse {} if exists; create dataverse {};'.format(appDataverse, appDataverse)
-        status, response = yield self.asterix.executeSQLPP(None, command);
+        command = 'drop dataverse {} if exists; create dataverse {}'.format(appDataverse, appDataverse)
+        status, response = yield self.asterix.executeSQLPP(None, command)
 
         log.debug(response)
 
@@ -1312,7 +1312,7 @@ class BADBroker:
         '''
 
         for cls in [User, ChannelSubscription, UserSubscription]:
-            commands += cls.getCreateStatement();
+            commands += cls.getCreateStatement()
 
         #commands = commands + 'create broker {} at "http://{}:{}/notifybroker"'.format(self.brokerName, self.brokerIPAddr, self.brokerPort)
 
