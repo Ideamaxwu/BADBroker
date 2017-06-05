@@ -146,7 +146,7 @@ class AsterixQueryManager():
     def executeSQLPP(self, dataverseName, query):
         request_url = self.asterixBaseURL + '/' + 'query/service'
         if dataverseName:
-            query = 'use dataverse ' + dataverseName + "; " + query
+            query = 'use ' + dataverseName + '; ' + query
 
         query += ';'
         params = {'statement': query}
@@ -177,7 +177,7 @@ class AsterixQueryManager():
                 log.debug(e.response.body)
                 errorResponse = json.loads(str(e.response.body, 'utf-8'))
                 log.debug(errorResponse['errors'])
-                errorMessage = errorResponse['errors']['msg']
+                errorMessage = errorResponse['errors']['msg'] if 'msg' in errorResponse['errors'] else 'Unknown error'
             else:
                 errorMessage = str(e)
 
