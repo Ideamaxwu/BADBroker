@@ -146,7 +146,9 @@ class AsterixQueryManager():
     def executeSQLPP(self, dataverseName, query):
         request_url = self.asterixBaseURL + '/' + 'query/service'
         if dataverseName:
-            query = 'use dataverse ' + dataverseName + "; " + query + ';'
+            query = 'use dataverse ' + dataverseName + "; " + query
+
+        query += ';'
         params = {'statement': query}
 
         log.debug(params)
@@ -160,18 +162,18 @@ class AsterixQueryManager():
             response = yield httpclient.fetch(request)
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':
-                return 200, result['results']
+                return 200, json.dumps(result['results'])
             else:
                 log.error(response)
-                return 500, response['errors']
+                return 500, json.dumps(response['errors'])
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response)
             if e.response and len(e.response.body) > 0:
                 log.debug(e.response.body)
                 errorResponse = json.loads(str(e.response.body, 'utf-8'))
-                log.debug(errorResponse['error-code'])
-                errorMessage = errorResponse['summary']
+                log.debug(errorResponse['errors'])
+                errorMessage = errorResponse['errors']['msg']
             else:
                 errorMessage = str(e)
         except Exception as e:
