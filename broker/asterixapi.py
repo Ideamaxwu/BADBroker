@@ -160,6 +160,7 @@ class AsterixQueryManager():
         try:
             request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.parse.urlencode(params))
             response = yield httpclient.fetch(request)
+            log.debug(response)
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':
                 return 200, json.dumps(result['results'])
