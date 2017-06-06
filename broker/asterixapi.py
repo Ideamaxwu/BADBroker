@@ -129,130 +129,55 @@ class AsterixQueryManager():
 
     @tornado.gen.coroutine
     def executeQuery(self, dataverseName, queryStatment):
-        request_url = self.asterixBaseURL + "/" + "query"
-
-        query = ''
-        if dataverseName is not None:
-            query = "use dataverse " + dataverseName + "; "
-        query = query + queryStatment + ";"
-
-        params = {'query': query}
-        request_url = request_url + "?" + urllib.parse.urlencode(params)
-
-        # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
-
-        log.info('Executing.'
-                 '.. ' + query)
-        log.info('Request URL... ' + request_url)
-
-        errorMessage = 'Error'
-
-        httpclient = tornado.httpclient.AsyncHTTPClient()
-        try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='GET')
-            response = yield httpclient.fetch(request)
-            return response.code, str(response.body, encoding='utf-8')
-        except tornado.httpclient.HTTPError as e:
-            log.error('Error ' + str(e))
-            log.debug(e.response.body)
-            if e.response and len(e.response.body) > 0:
-                log.debug(e.response.body)
-                errorResponse = json.loads(str(e.response.body, 'utf-8'))
-                log.debug(errorResponse['summary'])
-                errorMessage = errorResponse['summary']
-            else:
-                errorMessage = 'Query failed ' + str(e)
-
-        except Exception as e:
-            log.error('Error ' + str(e))
-            errorMessage = 'Query failed ' + str(e)
-
-        return 500, 'Query failed due to ' + str(errorMessage)
+        response = yield self.executeSQLPP(dataverseName, queryStatment)
+        return response
 
     @tornado.gen.coroutine
     def executeUpdate(self, dataverseName, query):
-        request_url = self.asterixBaseURL + "/" + "update"
-        query = "use dataverse " + dataverseName + "; " + query + ";"
-        params = {'statements': query}
-        request_url = request_url + "?" + urllib.parse.urlencode(params)
-        # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
-        log.info('Executing... ' + query)
-        httpclient = tornado.httpclient.AsyncHTTPClient()
-        errorMessage = 'Error'
-
-        try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='GET')
-            response = yield httpclient.fetch(request)
-            return response.code, str(response.body, encoding='utf-8')
-        except tornado.httpclient.HTTPError as e:
-            log.error('Error ' + str(e))
-            log.debug(e.response.body)
-            if e.response and len(e.response.body) > 0:
-                log.debug(e.response.body)
-                errorResponse = json.loads(str(e.response.body, 'utf-8'))
-                log.debug(errorResponse['summary'])
-                errorMessage = errorResponse['summary']
-            else:
-                errorMessage = 'Query failed ' + str(e)
-
-        except Exception as e:
-            log.error('Error ' + str(e))
-            errorMessage = str(e)
-
-        return 500, 'Query failed: ' + str(errorMessage)
+        response = yield self.executeSQLPP(dataverseName, query)
+        return response
 
     @tornado.gen.coroutine
-    def executeAQL(self, dataverseName, query):
-        request_url = self.asterixBaseURL + "/" + "aql"
-        if dataverseName:
-            query = "use dataverse " + dataverseName + "; " + query
-        params = {'aql': query}
-        request_url = request_url + "?" + urllib.parse.urlencode(params)
+    def executeDDL(self, dataverseName, ddlStatement):
+        response = yield self.executeSQLPP(dataverseName, ddlStatement)
+        return response
 
+    @tornado.gen.coroutine
+    def executeSQLPP(self, dataverseName, query):
+        request_url = self.asterixBaseURL + '/' + 'query/service'
+        if dataverseName:
+            query = 'use ' + dataverseName + '; ' + query
+
+        query += ';'
+
+        log.debug(query)
+
+        #request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
-        log.info('Executing... ' + query)
-        log.info(request_url)
-        errorMessage = 'Error'
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='GET')
+            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=query)
             response = yield httpclient.fetch(request)
-            return response.code, str(response.body, encoding='utf-8')
+            log.debug(response.body)
+
+            result = json.loads(str(response.body, encoding='utf-8'))
+            if result['status'] == 'success':
+                if 'results' in result:
+                    return 200, json.dumps(result['results'])
+                else:
+                    return 200, ''
+            else:
+                return 500, json.dumps(response['errors'])
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response)
             if e.response and len(e.response.body) > 0:
                 log.debug(e.response.body)
                 errorResponse = json.loads(str(e.response.body, 'utf-8'))
-                log.debug(errorResponse['error-code'])
-                errorMessage = errorResponse['summary']
+                log.debug(errorResponse['errors'])
+                errorMessage = errorResponse['errors']['msg'] if 'msg' in errorResponse['errors'] else 'Unknown error'
             else:
                 errorMessage = str(e)
-        except Exception as e:
-            log.error('Error ' + str(e))
-            errorMessage = str(e)
 
         return 500, 'Query failed ' + str(errorMessage)
-
-    @tornado.gen.coroutine
-    def executeDDL(self, dataverseName, ddlStatement):
-        request_url = self.asterixBaseURL + "/" + "ddl"    
-        statement = "use dataverse " + dataverseName + "; " + ddlStatement + ";"
-        log.info('Executing... ' + statement)
-
-        params = {'ddl': ddlStatement}
-        request_url = request_url + "?" + urllib.parse.urlencode(params)
-
-        httpclient = tornado.httpclient.AsyncHTTPClient()
-        try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='GET', headers={'Accept': 'application/json'})
-            response = yield httpclient.fetch(request)
-            return response.code, str(response.body, encoding='utf-8')
-        except tornado.httpclient.HTTPError as e:
-            log.error('Error ' + str(e))
-            log.debug(e.response.body)
-        except Exception as e:
-            log.error('Error ' + str(e))
-
-        return 500, 'Query failed: ' + ddlStatement

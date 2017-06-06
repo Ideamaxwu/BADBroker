@@ -26,7 +26,7 @@ class Session:
 class BrokerObject:
     @classmethod
     def getCreateStatement(cls):
-        statement = 'create type %sType as closed {' % (cls.__name__)
+        statement = 'CREATE TYPE %sType as closed {' % (cls.__name__)
         dataitems = None
         for key, value in cls.__dict__.items():
             if key.startswith('__') or callable(value) or isinstance(value, classmethod):
@@ -39,15 +39,15 @@ class BrokerObject:
             dataitems = (dataitems + (',\n' + item)) if dataitems else ('\n' + item)
 
         statement += dataitems + '\n}\n'
-        statement += 'create dataset %sDataset (%sType) primary key recordId;\n' % (cls.__name__, cls.__name__);
+        statement += 'CREATE DATASET %sDataset (%sType) PRIMARY KEY recordId;\n' % (cls.__name__, cls.__name__);
         log.debug(statement)
         return statement
 
     @tornado.gen.coroutine
     def delete(self):
         asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'delete $t from dataset ' + str(self.__class__.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' where $t.recordId = \"{0}\"'.format(self.recordId)
+        cmd_stmt = 'DELETE FROM ' + str(self.__class__.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' WHERE $t.recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
@@ -71,8 +71,8 @@ class BrokerObject:
                     clause = '$t.{} = {}'.format(key, value)
                 whereClause = whereClause + ' and ' + clause if whereClause else clause
 
-        cmd_stmt = 'delete $t from dataset ' + str(cls.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' where {}'.format(whereClause)
+        cmd_stmt = 'DELETE FROM ' + str(cls.__name__) + 'Dataset '
+        cmd_stmt = cmd_stmt + ' WHERE {}'.format(whereClause)
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(dataverseName, cmd_stmt)
@@ -86,7 +86,7 @@ class BrokerObject:
     @tornado.gen.coroutine
     def save(self):
         asterix = AsterixQueryManager.getInstance()
-        cmd_stmt = 'upsert into dataset ' + self.__class__.__name__ + 'Dataset'
+        cmd_stmt = 'UPSERT INTO ' + self.__class__.__name__ + 'Dataset'
         cmd_stmt = cmd_stmt + '('
         cmd_stmt = cmd_stmt + json.dumps(self.__dict__)
         cmd_stmt = cmd_stmt + ')'
@@ -102,7 +102,7 @@ class BrokerObject:
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName, objectName, **kwargs):
+    def load(cls, fields, dataverseName, objectName, **kwargs):
         asterix = AsterixQueryManager.getInstance()
         condition = None
         if kwargs:
@@ -113,9 +113,9 @@ class BrokerObject:
                     paramvalue = value
 
                 if condition is None:
-                    condition = '$t.{0} = {1}'.format(key, paramvalue)
+                    condition = '{0} = {1}'.format(key, paramvalue)
                 else:
-                    condition = condition + ' and $t.{0} = {1}'.format(key, paramvalue)
+                    condition = condition + ' and {0} = {1}'.format(key, paramvalue)
         else:
             log.warning('No argument is provided for load')
             return None
@@ -123,9 +123,9 @@ class BrokerObject:
         dataset = objectName + 'Dataset'
 
         if condition:
-            query = 'for $t in dataset {0} where {1} return $t'.format(dataset, condition)
+            query = 'SELECT {} FROM {} where {}'.format(', '.join(fields), dataset, condition)
         else:
-            query = 'for $t in dataset {0} return $t'.format(dataset)
+            query = 'SELECT {} FROM {}'.format(', '.join(fields), dataset)
 
         status, response = yield asterix.executeQuery(dataverseName, query)
 
@@ -190,20 +190,23 @@ class Application(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, appName=None):
-        objects = yield BrokerObject.load(dataverseName, cls.__name__, appName=appName)
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
+        objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, appName=appName)
         return Application.createFrom(objects)
 
     @classmethod
     @tornado.gen.coroutine
     def setupApplicationEnviroment(cls, asterix):
-        statement = 'use dataverse %s' % Application.dataverseName
+        statement = 'USE Metadata; SELECT DataverseName from `Dataverse` WHERE DataverseName=\"%s\"' % Application.dataverseName
         status, response = yield asterix.executeQuery(None, statement)
-        if status != 200 and response and 'Unknown dataverse %s' %(Application.dataverseName) in response:
+        dataverses = json.loads(response) if len(response) > 0 else []
+
+        if status != 200 or len(dataverses) == 0:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
-            status, response = yield asterix.executeAQL(None, 'create dataverse %s' % (Application.dataverseName))
+            status, response = yield asterix.executeSQLPP(None, 'create dataverse %s' % (Application.dataverseName))
             if status == 200:
                 statement = Application.getCreateStatement()
-                status, response = yield asterix.executeAQL(Application.dataverseName, statement)
+                status, response = yield asterix.executeSQLPP(Application.dataverseName, statement)
                 if status == 200:
                     return
             else:
@@ -248,7 +251,8 @@ class User(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userName=None):
-        objects = yield BrokerObject.load(dataverseName, cls.__name__, userName=userName)
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
+        objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userName=userName)
         return User.createFrom(objects)
 
     def __str__(self):
@@ -278,12 +282,13 @@ class ChannelSubscription(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parametersHash=None):
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
         if parametersHash:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
         elif channelName and channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
         elif channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
 
         return ChannelSubscription.createFrom(objects)
 
@@ -329,14 +334,15 @@ class UserSubscription(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userId=None, userSubscriptionId=None, channelName=None, channelSubscriptionId=None):
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
         if userId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, userId=userId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userId=userId)
         elif userSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
         elif channelName:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName)
         elif channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
         else:
             return None
 

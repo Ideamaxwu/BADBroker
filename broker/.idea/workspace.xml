@@ -5,8 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/DemoApp.py" afterPath="$PROJECT_DIR$/../BADPythonClient/DemoApp.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/app-demoapp.aql" afterPath="$PROJECT_DIR$/../BADPythonClient/app-demoapp.aql" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/notifier/android.py" afterPath="$PROJECT_DIR$/notifier/android.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADBroker.py" afterPath="$PROJECT_DIR$/BADBroker.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/asterixapi.py" afterPath="$PROJECT_DIR$/asterixapi.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/brokerobjects.py" afterPath="$PROJECT_DIR$/brokerobjects.py" />
     </list>
     <ignored path="broker.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -27,11 +32,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BADBroker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="1188" column="27" selection-start-line="1188" selection-start-column="27" selection-end-line="1188" selection-end-column="27" />
+            <state vertical-scroll-proportion="0.51473135">
+              <caret line="865" column="51" selection-start-line="865" selection-start-column="51" selection-end-line="865" selection-end-column="51" />
               <folding>
                 <element signature="e#24#33#0" expanded="true" />
               </folding>
@@ -55,21 +60,9 @@
         <entry file="file://$PROJECT_DIR$/BADWebServer.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="106" column="44" selection-start-line="106" selection-start-column="44" selection-end-line="106" selection-end-column="44" />
+              <caret line="293" column="0" selection-start-line="293" selection-start-column="0" selection-end-line="293" selection-end-column="0" />
               <folding>
                 <element signature="e#24#45#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="test_code.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/test_code.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="100" column="48" selection-start-line="100" selection-start-column="48" selection-end-line="100" selection-end-column="48" />
-              <folding>
-                <element signature="e#23#48#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -78,8 +71,8 @@
       <file leaf-file-name="android.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/notifier/android.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5315024">
-              <caret line="50" column="80" selection-start-line="50" selection-start-column="80" selection-end-line="50" selection-end-column="80" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="40" column="22" selection-start-line="40" selection-start-column="22" selection-end-line="40" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -101,7 +94,7 @@
         <entry file="file://$PROJECT_DIR$/asterixapi.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="204" column="8" selection-start-line="204" selection-start-column="8" selection-end-line="204" selection-end-column="8" />
+              <caret line="146" column="65" selection-start-line="146" selection-start-column="8" selection-end-line="146" selection-end-column="65" />
               <folding>
                 <element signature="e#24#39#0" expanded="true" />
               </folding>
@@ -112,8 +105,8 @@
       <file leaf-file-name="brokerobjects.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/brokerobjects.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="273" column="23" selection-start-line="273" selection-start-column="23" selection-end-line="273" selection-end-column="23" />
+            <state vertical-scroll-proportion="-5.7777777">
+              <caret line="135" column="17" selection-start-line="135" selection-start-column="17" selection-end-line="135" selection-end-column="17" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -148,6 +141,11 @@
       </list>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="master" />
+      </map>
+    </option>
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
@@ -195,11 +193,11 @@
         <option value="$PROJECT_DIR$/brokersetup.aql" />
         <option value="$PROJECT_DIR$/test_asterix.py" />
         <option value="$PROJECT_DIR$/test_code.py" />
-        <option value="$PROJECT_DIR$/asterixapi.py" />
-        <option value="$PROJECT_DIR$/BADBroker.py" />
         <option value="$PROJECT_DIR$/BADWebServer.py" />
-        <option value="$PROJECT_DIR$/brokerobjects.py" />
         <option value="$PROJECT_DIR$/notifier/android.py" />
+        <option value="$PROJECT_DIR$/asterixapi.py" />
+        <option value="$PROJECT_DIR$/brokerobjects.py" />
+        <option value="$PROJECT_DIR$/BADBroker.py" />
       </list>
     </option>
   </component>
@@ -323,14 +321,14 @@
     <property name="DefaultHtmlFileTemplate" value="HTML File" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/cachingschemes" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/static" />
       <recent name="$PROJECT_DIR$/../BADPythonClient" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="RunManager" selected="Python.BADWebServer">
@@ -569,66 +567,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00042" summary="Android notifier is added.">
-      <created>1474195403203</created>
-      <option name="number" value="00042" />
-      <option name="project" value="LOCAL" />
-      <updated>1474195403203</updated>
-    </task>
-    <task id="LOCAL-00043" summary="Dataverse specific sessions are maintained.">
-      <created>1474376445722</created>
-      <option name="number" value="00043" />
-      <option name="project" value="LOCAL" />
-      <updated>1474376445722</updated>
-    </task>
-    <task id="LOCAL-00044" summary="Some changes.">
-      <created>1474379415090</created>
-      <option name="number" value="00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1474379415090</updated>
-    </task>
-    <task id="LOCAL-00045" summary="Some changes.">
-      <created>1474379493838</created>
-      <option name="number" value="00045" />
-      <option name="project" value="LOCAL" />
-      <updated>1474379493838</updated>
-    </task>
-    <task id="LOCAL-00046" summary="Some changes.">
-      <created>1474379592912</created>
-      <option name="number" value="00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1474379592912</updated>
-    </task>
-    <task id="LOCAL-00047" summary="Some changes.">
-      <created>1474486152415</created>
-      <option name="number" value="00047" />
-      <option name="project" value="LOCAL" />
-      <updated>1474486152415</updated>
-    </task>
-    <task id="LOCAL-00048" summary="Some changes.">
-      <created>1474607030922</created>
-      <option name="number" value="00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1474607030922</updated>
-    </task>
-    <task id="LOCAL-00049" summary="Some changes.">
-      <created>1474627275460</created>
-      <option name="number" value="00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1474627275460</updated>
-    </task>
-    <task id="LOCAL-00050" summary="Some changes.">
-      <created>1476742546964</created>
-      <option name="number" value="00050" />
-      <option name="project" value="LOCAL" />
-      <updated>1476742546972</updated>
-    </task>
-    <task id="LOCAL-00051" summary="Least Subscribe Content">
-      <created>1477033744409</created>
-      <option name="number" value="00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1477033744410</updated>
-    </task>
     <task id="LOCAL-00052" summary="Changes brokers and clients.">
       <created>1477440322970</created>
       <option name="number" value="00052" />
@@ -863,15 +801,80 @@
       <option name="project" value="LOCAL" />
       <updated>1495835613097</updated>
     </task>
-    <option name="localTasksCounter" value="91" />
+    <task id="LOCAL-00091" summary="User login time and log off time are recorded.">
+      <created>1496362237440</created>
+      <option name="number" value="00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1496362237450</updated>
+    </task>
+    <task id="LOCAL-00092" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639048079</created>
+      <option name="number" value="00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639048080</updated>
+    </task>
+    <task id="LOCAL-00093" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639278878</created>
+      <option name="number" value="00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639278878</updated>
+    </task>
+    <task id="LOCAL-00094" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639370778</created>
+      <option name="number" value="00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639370778</updated>
+    </task>
+    <task id="LOCAL-00095" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639753380</created>
+      <option name="number" value="00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639753380</updated>
+    </task>
+    <task id="LOCAL-00096" summary="Asterix POST call is made to /qeury/service">
+      <created>1496639932898</created>
+      <option name="number" value="00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1496639932898</updated>
+    </task>
+    <task id="LOCAL-00097" summary="Asterix POST call is made to /qeury/service">
+      <created>1496640366768</created>
+      <option name="number" value="00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1496640366768</updated>
+    </task>
+    <task id="LOCAL-00098" summary="Asterix POST call is made to /qeury/service">
+      <created>1496640557036</created>
+      <option name="number" value="00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1496640557036</updated>
+    </task>
+    <task id="LOCAL-00099" summary="Asterix POST call is made to /qeury/service">
+      <created>1496640581067</created>
+      <option name="number" value="00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1496640581067</updated>
+    </task>
+    <task id="LOCAL-00100" summary="Asterix POST call is made to /qeury/service">
+      <created>1496682366931</created>
+      <option name="number" value="00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1496682366931</updated>
+    </task>
+    <option name="localTasksCounter" value="101" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="65" y="24" width="1301" height="744" extended-state="6" />
+    <frame x="65" y="24" width="1615" height="1026" extended-state="6" />
     <editor active="false" />
     <layout>
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2160804" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3700108" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.30636463" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16431925" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
@@ -888,6 +891,8 @@
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3969795" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39940387" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24792862" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3257821" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -940,7 +945,9 @@
     <MESSAGE value="Broker metadata problem solved." />
     <MESSAGE value="Password hash is stored." />
     <MESSAGE value="Some small changes." />
-    <option name="LAST_COMMIT_MESSAGE" value="Some small changes." />
+    <MESSAGE value="User login time and log off time are recorded." />
+    <MESSAGE value="Asterix POST call is made to /qeury/service" />
+    <option name="LAST_COMMIT_MESSAGE" value="Asterix POST call is made to /qeury/service" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -949,31 +956,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/brokerobjects.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/brokerconfig.ini">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="19" column="27" selection-start-line="19" selection-start-column="27" selection-end-line="19" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.PyCharm50/system/python_stubs/-1247971765/builtins.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.33235294">
-          <caret line="552" column="4" selection-start-line="552" selection-start-column="4" selection-end-line="552" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/lib/python3.4/dist-packages/pika/heartbeat.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-2.0673814">
@@ -1226,16 +1208,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/notifier/desktop.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="10" column="29" selection-start-line="10" selection-start-column="29" selection-end-line="10" selection-end-column="29" />
-          <folding>
-            <element signature="e#24#39#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python3.5/signal.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.3322785">
@@ -1250,12 +1222,27 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test_code.py">
+    <entry file="file:///usr/lib/python3.5/datetime.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33278146">
+          <caret line="1310" column="6" selection-start-line="1310" selection-start-column="6" selection-end-line="1310" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/notifier/android.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="100" column="48" selection-start-line="100" selection-start-column="48" selection-end-line="100" selection-end-column="48" />
+          <caret line="40" column="22" selection-start-line="40" selection-start-column="22" selection-end-line="40" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/notifier/desktop.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="10" column="29" selection-start-line="10" selection-start-column="29" selection-end-line="10" selection-end-column="29" />
           <folding>
-            <element signature="e#23#48#0" expanded="true" />
+            <element signature="e#24#39#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1270,6 +1257,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/numbers_repeat_k_times_except_one.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test_code.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.29765886">
+          <caret line="100" column="48" selection-start-line="100" selection-start-column="48" selection-end-line="100" selection-end-column="48" />
+          <folding>
+            <element signature="e#23#48#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/BADWebServer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="293" column="0" selection-start-line="293" selection-start-column="0" selection-end-line="293" selection-end-column="0" />
+          <folding>
+            <element signature="e#24#45#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/brokerconfig.ini">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -1278,17 +1293,36 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/lib/python3.5/datetime.py">
+    <entry file="file://$USER_HOME$/.local/lib/python3.5/site-packages/tornado/httpclient.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.33278146">
-          <caret line="1310" column="6" selection-start-line="1310" selection-start-column="6" selection-end-line="1310" selection-end-column="6" />
+        <state vertical-scroll-proportion="0.3979933">
+          <caret line="324" column="44" selection-start-line="324" selection-start-column="44" selection-end-line="324" selection-end-column="44" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.local/lib/python3.5/site-packages/tornado/simple_httpclient.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="475" column="0" selection-start-line="475" selection-start-column="0" selection-end-line="475" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/brokerobjects.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-5.7777777">
+          <caret line="135" column="17" selection-start-line="135" selection-start-column="17" selection-end-line="135" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/asterixapi.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="204" column="8" selection-start-line="204" selection-start-column="8" selection-end-line="204" selection-end-column="8" />
+          <caret line="146" column="65" selection-start-line="146" selection-start-column="8" selection-end-line="146" selection-end-column="65" />
           <folding>
             <element signature="e#24#39#0" expanded="true" />
           </folding>
@@ -1297,39 +1331,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BADBroker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="1188" column="27" selection-start-line="1188" selection-start-column="27" selection-end-line="1188" selection-end-column="27" />
+        <state vertical-scroll-proportion="0.51473135">
+          <caret line="865" column="51" selection-start-line="865" selection-start-column="51" selection-end-line="865" selection-end-column="51" />
           <folding>
             <element signature="e#24#33#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/brokerobjects.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="273" column="23" selection-start-line="273" selection-start-column="23" selection-end-line="273" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/BADWebServer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="106" column="44" selection-start-line="106" selection-start-column="44" selection-end-line="106" selection-end-column="44" />
-          <folding>
-            <element signature="e#24#45#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/notifier/android.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5315024">
-          <caret line="50" column="80" selection-start-line="50" selection-start-column="80" selection-end-line="50" selection-end-column="80" />
-          <folding />
         </state>
       </provider>
     </entry>
