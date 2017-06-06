@@ -12,7 +12,7 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='localhost', brokerPort=9118)
+client = badclient.BADClient(brokerServer='cert24.ics.uci.edu', brokerPort=9118)
 
 dataverseName = 'demoapp'
 userName = 'demo'

@@ -935,7 +935,7 @@ class BADBroker:
             else:
                 params = params + "{}".format(value)
 
-        aql_stmt = 'SELECT * FROM {}({})'.format(functionName, params)
+        aql_stmt = 'SELECT value result FROM {}({}) as result'.format(functionName, params)
         status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
 
         if status_code == 200 and response:
