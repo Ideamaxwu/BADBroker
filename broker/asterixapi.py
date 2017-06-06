@@ -149,18 +149,17 @@ class AsterixQueryManager():
             query = 'use ' + dataverseName + '; ' + query
 
         query += ';'
-        params = {'statement': query}
 
-        log.debug(params)
+        log.debug(query)
 
         #request_url = request_url + "?" + urllib.parse.urlencode(params)
         # response = requests.get(request_url, params = {"aql": query, 'output': 'json'})
 
         httpclient = tornado.httpclient.AsyncHTTPClient()
         try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=urllib.parse.urlencode(params))
+            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=query)
             response = yield httpclient.fetch(request)
-            log.debug(response)
+            log.debug(response.body)
 
             result = json.loads(str(response.body, encoding='utf-8'))
             if result['status'] == 'success':

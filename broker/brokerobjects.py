@@ -101,7 +101,7 @@ class BrokerObject:
 
     @classmethod
     @tornado.gen.coroutine
-    def load(cls, dataverseName, objectName, **kwargs):
+    def load(cls, fields, dataverseName, objectName, **kwargs):
         asterix = AsterixQueryManager.getInstance()
         condition = None
         if kwargs:
@@ -112,9 +112,9 @@ class BrokerObject:
                     paramvalue = value
 
                 if condition is None:
-                    condition = '$t.{0} = {1}'.format(key, paramvalue)
+                    condition = '{0} = {1}'.format(key, paramvalue)
                 else:
-                    condition = condition + ' and $t.{0} = {1}'.format(key, paramvalue)
+                    condition = condition + ' and {0} = {1}'.format(key, paramvalue)
         else:
             log.warning('No argument is provided for load')
             return None
@@ -122,9 +122,9 @@ class BrokerObject:
         dataset = objectName + 'Dataset'
 
         if condition:
-            query = 'SELECT * FROM {0} where {1}'.format(dataset, condition)
+            query = 'SELECT {} FROM {} where {}'.format(', '.join(fields), dataset, condition)
         else:
-            query = 'SELECT * FROM {0}'.format(dataset)
+            query = 'SELECT {} FROM {}'.format(', '.join(fields), dataset)
 
         status, response = yield asterix.executeQuery(dataverseName, query)
 
@@ -189,15 +189,18 @@ class Application(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, appName=None):
-        objects = yield BrokerObject.load(dataverseName, cls.__name__, appName=appName)
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
+        objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, appName=appName)
         return Application.createFrom(objects)
 
     @classmethod
     @tornado.gen.coroutine
     def setupApplicationEnviroment(cls, asterix):
-        statement = 'USE %s' % Application.dataverseName
+        statement = 'USE Metadata; SELECT DataverseName from `Dataverse` WHERE DataverseName=\"%s\"' % Application.dataverseName
         status, response = yield asterix.executeQuery(None, statement)
-        if status != 200 and response and 'Unknown dataverse %s' %(Application.dataverseName) in response:
+        dataverses = json.loads(response) if len(response) > 0 else []
+
+        if status != 200 or len(dataverses) == 0:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
             status, response = yield asterix.executeSQLPP(None, 'create dataverse %s' % (Application.dataverseName))
             if status == 200:
@@ -247,7 +250,8 @@ class User(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userName=None):
-        objects = yield BrokerObject.load(dataverseName, cls.__name__, userName=userName)
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
+        objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userName=userName)
         return User.createFrom(objects)
 
     def __str__(self):
@@ -277,12 +281,13 @@ class ChannelSubscription(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, channelName=None, brokerName=None, channelSubscriptionId=None, parametersHash=None):
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
         if parametersHash:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName, brokerName=brokerName, parametersHash=parametersHash)
         elif channelName and channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName, channelSubscriptionId=channelSubscriptionId)
         elif channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
 
         return ChannelSubscription.createFrom(objects)
 
@@ -328,14 +333,15 @@ class UserSubscription(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def load(cls, dataverseName=None, userId=None, userSubscriptionId=None, channelName=None, channelSubscriptionId=None):
+        fields = [key for key, value in cls.__dict__.items() if not (key.startswith('__') or callable(value) or isinstance(value, classmethod))]
         if userId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, userId=userId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userId=userId)
         elif userSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, userSubscriptionId=userSubscriptionId)
         elif channelName:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelName=channelName)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelName=channelName)
         elif channelSubscriptionId:
-            objects = yield BrokerObject.load(dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
+            objects = yield BrokerObject.load(fields, dataverseName, cls.__name__, channelSubscriptionId=channelSubscriptionId)
         else:
             return None
 
