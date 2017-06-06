@@ -869,7 +869,7 @@ def start_server():
         (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
     ])
 
-    application.listen(9118)
+    application.listen(8989)
     signal.signal(signal.SIGINT, lambda x, y: tornado.ioloop.IOLoop.current().stop())
     tornado.ioloop.IOLoop.current().start()
     

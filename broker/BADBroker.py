@@ -2,12 +2,8 @@
 
 import re
 import socket
-<<<<<<< HEAD
 from datetime import datetime, timedelta
 from threading import Lock, Timer
-=======
-from threading import Lock
->>>>>>> yusuf/master
 
 from datetime import datetime
 import tornado.gen
