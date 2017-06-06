@@ -946,7 +946,7 @@ class BADBroker:
             else:
                 params = params + "{}".format(value)
 
-        aql_stmt = 'for $t in {}({}) return $t'.format(functionName, params)
+        aql_stmt = '{}({})'.format(functionName, params)
         status_code, response = yield self.asterix.executeAQL(dataverseName, aql_stmt)
 
         if status_code == 200 and response:
