@@ -129,7 +129,7 @@ class AsterixQueryManager():
 
     @tornado.gen.coroutine
     def executeQuery(self, dataverseName, queryStatment):
-        request_url = self.asterixBaseURL + "/" + "query"    
+        request_url = self.asterixBaseURL + "/" + "query"
 
         query = ''
         if dataverseName is not None:
@@ -138,9 +138,13 @@ class AsterixQueryManager():
 
         params = {'query': query}
         request_url = request_url + "?" + urllib.parse.urlencode(params)
+
         # response = requests.get(request_url, params = {"query": query, 'output': 'json'})
 
-        log.info('Executing... ' + query)
+        log.info('Executing.'
+                 '.. ' + query)
+        log.info('Request URL... ' + request_url)
+
         errorMessage = 'Error'
 
         httpclient = tornado.httpclient.AsyncHTTPClient()

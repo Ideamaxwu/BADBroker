@@ -2,6 +2,7 @@
 
 import logging as log
 import os
+import signal
 from threading import Lock
 
 import simplejson as json
@@ -94,11 +95,8 @@ class RegisterApplicationHandler(BaseHandler):
                     response = yield self.broker.registerApplication(appName, appDataverse, adminUser, adminPasseword, email)
 
             except tornado.web.MissingArgumentError as e:
-                log.error(e.with_traceback)
-                response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
-            except Exception as e:
-                log.error(response)
-                response = {'status': 'failed', 'error': str(e)}
+                log.error(e.with_traceback())
+                response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
         else:
             post_data = json.loads(str(self.request.body, encoding='utf-8'))
             log.debug(post_data)
@@ -116,7 +114,7 @@ class RegisterApplicationHandler(BaseHandler):
             except KeyError as e:
                 log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
                 log.info(e.with_traceback())
-                response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+                response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -140,11 +138,10 @@ class SetupApplicationHandler(BaseHandler):
             setupAQL = post_data['setupAQL']
 
             response = yield self.broker.updateApplication(appName, apiKey, setupAQL)
-
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
             log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -172,7 +169,7 @@ class UpdateApplicationHandler(BaseHandler):
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
             log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -196,11 +193,10 @@ class ApplicationAdminLoginHandler(BaseHandler):
             adminPassword = post_data['adminPassword']
 
             response = yield self.broker.applicationAdminLogin(appName, adminUser, adminPassword)
-
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
             log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -237,7 +233,7 @@ class AdminQueryHandler(BaseHandler):
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
             log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response, for_json=True))
         self.flush()
@@ -258,15 +254,14 @@ class RegistrationHandler(BaseHandler):
         try:
             dataverseName = post_data['dataverseName']
             userName = post_data['userName']
-            email = post_data['email']
+            email = post_data['email'] if 'email' in post_data else 'none'
             password = post_data['password']
 
             response = yield self.broker.register(dataverseName, userName, password, email)
-
         except KeyError as e:
             log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
             log.info(e.with_traceback())
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -295,7 +290,7 @@ class LoginHandler (BaseHandler):
             response = yield self.broker.login(dataverseName, userName, userType, password, platform, stay)
 
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         log.debug(response)
 
@@ -321,9 +316,8 @@ class LogoutHandler (BaseHandler):
             accessToken = post_data['accessToken']
 
             response = yield self.broker.logout(dataverseName, userId, accessToken)
-
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -376,7 +370,7 @@ class SubscriptionHandler(BaseHandler):
             response = yield self.broker.subscribe(dataverseName, userId, accessToken, channelName, parameters)
         except KeyError as e:
             log.error(str(e))
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -402,7 +396,7 @@ class UnsubscriptionHandler(BaseHandler):
 
             response = yield self.broker.unsubscribe(dataverseName, userId, accessToken, userSubscriptionId)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -463,7 +457,7 @@ class GetGameStatHandler(BaseHandler):
 
             response = yield self.broker.getGameStat(dataverseName, userId, accessToken)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         log.info(json.dumps(response))
         self.write(json.dumps(response))
@@ -494,7 +488,7 @@ class GetLatestResultsHandler(BaseHandler):
 
             response = yield self.broker.getLatestResults(dataverseName, userId, accessToken, channelName, userSubscriptionId)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request missing field ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         log.info(json.dumps(response))
         self.write(json.dumps(response))
@@ -526,7 +520,7 @@ class AckResultsHandler(BaseHandler):
 
             response = yield self.broker.ackResults(dataverseName, userId, accessToken, userSubscriptionId, channelExecutionTime)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field' + str(e)}
 
         print(json.dumps(response))
         self.write(json.dumps(response))
@@ -585,7 +579,7 @@ class CallFunctionHandler(BaseHandler):
 
             response = yield self.broker.callFunction(dataverseName, userId, accessToken, functionName, parameters)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request ' + str(e)}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         print(json.dumps(response))
         self.write(json.dumps(response))
@@ -616,7 +610,7 @@ class InsertRecordsHandler(BaseHandler):
 
             response = yield self.broker.insertRecords(dataverseName, userId, accessToken, datasetName, records)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         log.info(json.dumps(response))
         self.write(json.dumps(response))
@@ -645,9 +639,12 @@ class FeedRecordsHandler(BaseHandler):
             portNo = post_data['portNo']
             records = post_data['records']
 
-            response = yield self.broker.feedRecords(dataverseName, userId, accessToken, portNo, records)
+            if not isinstance(portNo, int) or portNo <= 0:
+                response = {'status': 'failed', 'error': 'portNo should be a +ve integer'}
+            else:
+                response = yield self.broker.feedRecords(dataverseName, userId, accessToken, portNo, records)
         except KeyError as e:
-            response = {'status': 'failed', 'error': 'Bad formatted request'}
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         log.info(json.dumps(response))
         self.write(json.dumps(response))
@@ -671,12 +668,15 @@ class NotifyBrokerHandler(BaseHandler):
         post_data = json.loads(self.request.body)
         log.debug(post_data)
 
-        dataverseName = post_data['dataverseName']
-        channelName = post_data['channelName']
-        channelExecutionTime = post_data['channelExecutionTime']
-        subscriptionIds = post_data['subscriptionIds']
+        try:
+            dataverseName = post_data['dataverseName']
+            channelName = post_data['channelName']
+            channelExecutionTime = post_data['channelExecutionTime']
+            subscriptionIds = post_data['subscriptionIds']
 
-        response = yield self.broker.notifyBroker(dataverseName, channelName, channelExecutionTime, subscriptionIds)
+            response = yield self.broker.notifyBroker(dataverseName, channelName, channelExecutionTime, subscriptionIds)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         mutex.acquire()
         try:
@@ -703,12 +703,15 @@ class GCMRegistrationHandler(BaseHandler):
         post_data = json.loads(self.request.body)
         log.debug(post_data)
 
-        dataverseName = post_data['dataverseName']
-        userId = post_data['userId']
-        accessToken = post_data['accessToken']
-        gcmRegistrationToken = post_data['gcmRegistrationToken']
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            gcmRegistrationToken = post_data['gcmRegistrationToken']
 
-        response = self.broker.gcmRegistration(dataverseName, userId, accessToken, gcmRegistrationToken)
+            response = self.broker.gcmRegistration(dataverseName, userId, accessToken, gcmRegistrationToken)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -753,11 +756,14 @@ class ListChannelsHandler(BaseHandler):
         post_data = json.loads(self.request.body)
         log.debug(post_data)
 
-        dataverseName = post_data['dataverseName']
-        userId = post_data['userId']
-        accessToken = post_data['accessToken']
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
 
-        response = yield self.broker.listchannels(dataverseName, userId, accessToken)
+            response = yield self.broker.listchannels(dataverseName, userId, accessToken)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response))
         self.flush()
@@ -812,11 +818,14 @@ class ListSubscriptionsHandler(BaseHandler):
         post_data = json.loads(self.request.body)
         log.debug(post_data)
 
-        dataverseName = post_data['dataverseName']
-        userId = post_data['userId']
-        accessToken = post_data['accessToken']
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
 
-        response = yield self.broker.listsubscriptions(dataverseName, userId, accessToken)
+            response = yield self.broker.listsubscriptions(dataverseName, userId, accessToken)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
 
         self.write(json.dumps(response, for_json=True))
         self.flush()
@@ -860,7 +869,8 @@ def start_server():
         (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
     ])
 
-    application.listen(8989)
+    application.listen(9118)
+    signal.signal(signal.SIGINT, lambda x, y: tornado.ioloop.IOLoop.current().stop())
     tornado.ioloop.IOLoop.current().start()
     
 if __name__ == '__main__':

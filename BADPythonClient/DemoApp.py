@@ -1,27 +1,6 @@
 import badclient
 import sys
 
-'''
-def on_channelresults(channelName, subscriptionId, channelExecutionTime, resultCount):
-    print(channelName, subscriptionId)
-    print('Results for %s: result count %d, latest execution time %s' % (channelName, resultCount, channelExecutionTime))
-
-    resultObject = client.getresults(channelName, subscriptionId, 10)
-
-    while resultObject and len(resultObject['results']) > 0:
-        latestChannelExecutionTimeInResults = resultObject['latestChannelExecutionTimeInResults']
-        channelExecutionTime = resultObject['channelExecutionTime']
-
-        results = resultObject['results']
-
-        print('Retrieved %d results' % len(results))
-        for item in results:
-            print('APPDATA ' + str(item))
-
-        client.ackresults(channelName, subscriptionId, latestChannelExecutionTimeInResults)
-        resultObject = client.getresults(channelName, subscriptionId, 10)
-
-'''
 
 def on_channelresults(channelName, subscriptionId, results):
     print('Retrieved results for channel `%s` with sub `%s` -- %d records' %(channelName, subscriptionId, len(results)))
@@ -33,11 +12,11 @@ def on_error(where, error_msg):
     print(where, ' ---> ', error_msg)
 
 
-client = badclient.BADClient(brokerServer='%s.ics.uci.edu' % sys.argv[1])
+client = badclient.BADClient(brokerServer='localhost', brokerPort=9118)
 
-dataverseName = sys.argv[2]
-userName = sys.argv[3]
-password = 'yusufpass'
+dataverseName = 'demoapp'
+userName = 'demo'
+password = 'demo'
 email = 'abc@abc.net'
 
 client.on_channelresults = on_channelresults
@@ -57,8 +36,8 @@ else:
 #if len(subIds) > 0:
 #    client.unsubcribe(subIds[0]) # unsubscribing from the first the subscription
 
-#subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
-#print ('Subscribed with ID %s' % subcriptionId)
+subcriptionId = client.subscribe('nearbyTweetChannel', ['Dead'])
+print ('Subscribed with ID %s' % subcriptionId)
 
 #client.subscribe('recentEmergenciesOfTypeChannel', ['tornado'], on_channelresults)
 #client.insertrecords('TweetMessageuuids', [{'message-text': 'Happy man'}, {'message-text': 'Sad man'}])

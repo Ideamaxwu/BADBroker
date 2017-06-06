@@ -3,11 +3,13 @@ import tornado.ioloop
 import tornado.iostream
 import hashlib
 
+from datetime import datetime
 import simplejson as json
 from asterixapi import *
 import brokerutils
 
 log = brokerutils.setup_logging(__name__)
+
 
 class Session:
     def __init__(self, dataverseName, userId, userType, accessToken, platform, creationTime, lastAccessTime):
@@ -16,6 +18,7 @@ class Session:
         self.userType = userType
         self.accessToken = accessToken
         self.platform = platform
+        self.user = user
         self.creationTime = creationTime
         self.lastAccessTime = lastAccessTime
 
@@ -193,7 +196,7 @@ class Application(BrokerObject):
     @classmethod
     @tornado.gen.coroutine
     def setupApplicationEnviroment(cls, asterix):
-        statement = 'use dataverse %s;' % Application.dataverseName
+        statement = 'use dataverse %s' % Application.dataverseName
         status, response = yield asterix.executeQuery(None, statement)
         if status != 200 and response and 'Unknown dataverse %s' %(Application.dataverseName) in response:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))
@@ -226,6 +229,9 @@ class User(BrokerObject):
     userName = ''
     password = ''
     email = ''
+    registrationTime = ''
+    lastLoginTime = ''
+    lastLogoffTime = ''
 
     def __init__(self, dataverseName=None, recordId=None, userId=None, userName=None, password=None, email=None):
         self.dataverseName = dataverseName
@@ -234,6 +240,10 @@ class User(BrokerObject):
         self.userName = userName
         self.password = password
         self.email = email
+
+        self.registrationTime = str(datetime.now())
+        self.lastLoginTime = str(datetime.now())
+        self.lastLogoffTime = str(datetime.now())
 
     @classmethod
     @tornado.gen.coroutine

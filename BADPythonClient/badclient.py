@@ -290,14 +290,14 @@ class BADClient:
                     log.debug(r)
                     self.on_error('feedrecords', 'Error:', response['error'])
 
-    def getresults(self, subscriptionId, resultSize=None):
+    def getresults(self, subscriptionId, resultSize=0):
         log.info('Getresults for %s' % subscriptionId)
 
         post_data = {'dataverseName': self.dataverseName,
                      'userId': self.userId,
                      'accessToken': self.accessToken,
                      'userSubscriptionId': subscriptionId,
-                     'resultSize': resultSize
+                     'resultSize': 0
                      }
 
         r = requests.post(self.brokerUrl + '/getresults', data=json.dumps(post_data))
