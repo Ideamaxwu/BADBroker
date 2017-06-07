@@ -714,7 +714,7 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        aql_stmt = 'SELECT DataverseName, ChannelName, `Function`, Duration FROM Channel ' \
+        aql_stmt = 'SELECT value c FROM Channel c ' \
                    'WHERE DataverseName = \"%s\"' %(dataverseName)
 
         status, response = yield self.asterix.executeQuery('Metadata', aql_stmt)
@@ -731,7 +731,7 @@ class BADBroker:
 
     @tornado.gen.coroutine
     def getChannelInfo(self, dataverseName, channelName):
-        aql_stmt = 'SELECT DataverseName, ChannelName, `Function`, Duration FROM Channel ' \
+        aql_stmt = 'SELECT value c FROM Channel c ' \
                    'WHERE DataverseName = \"%s\" and ChannelName = \"%s\"' % (dataverseName, channelName)
 
         status, response = yield self.asterix.executeQuery('Metadata', aql_stmt)
@@ -1246,14 +1246,14 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListChannels(self, appName, apiKey):
         # Check if application exists, if so match ApiKey
-        check, app = self.checkApplication(appName, apiKey)
+        check, app = yield self.checkApplication(appName, apiKey)
         if check['status'] == 'failed':
             return check
 
         dataverseName = app.appDataverse
 
-        aql = 'SELECT DataverseName, DataverseName,  `Function`, Duration ' \
-              'FROM Channel WHERE DataverseName = \"{}\"'.format(dataverseName)
+        aql = 'SELECT value c ' \
+              'FROM Channel c WHERE DataverseName = \"{}\"'.format(dataverseName)
         status, response = yield self.asterix.executeSQLPP('Metadata', aql)
 
         log.debug(response)
@@ -1271,7 +1271,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListSubscriptions(self, appName, apiKey, channelName):
         # Check if application exists, if so match ApiKey
-        check, app = self.checkApplication(appName, apiKey)
+        check, app = yield self.checkApplication(appName, apiKey)
         if check['status'] == 'failed':
             return check
 
