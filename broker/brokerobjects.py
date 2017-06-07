@@ -197,7 +197,7 @@ class Application(BrokerObject):
     def setupApplicationEnviroment(cls, asterix):
         statement = 'USE Metadata; SELECT DataverseName from `Dataverse` WHERE DataverseName=\"%s\"' % Application.dataverseName
         status, response = yield asterix.executeQuery(None, statement)
-        dataverses = json.loads(response) if len(response) > 0 else []
+        dataverses = json.loads(response) if response and len(response) > 0 else []
 
         if status != 200 or len(dataverses) == 0:
             log.warning('Application metadata dataverse %s does not exist. Creating one' % (Application.dataverseName))

@@ -315,7 +315,6 @@ class BADBroker:
             log.warning('Channel routine takes %d arguments, given %d' % (arity, len(parameters)))
             raise BADException('Channel routine takes %d arguments, given %d' % (arity, len(parameters)))
 
-
         parameter_list = ''
         if parameters is not None:
             for value in parameters:
@@ -344,32 +343,35 @@ class BADBroker:
                 raise BADException(response)
 
         # Subscribe to the channel
-        statement = 'use ' + dataverseName + '; subscribe to ' + channelName + '(' + parameters + ') on ' + self.brokerName + ';'
+        statement = 'subscribe to ' + channelName + '(' + parameters + ') on ' + self.brokerName + ';'
 
-        #status_code, response = yield self.asterix.executeSQLPP(dataverseName, statement)
-        #if status_code != 200:
-        #    raise BADException(response)
+        status_code, response = yield self.asterix.executeSQLPP(dataverseName, statement)
+        if status_code != 200:
+            raise BADException(response)
 
-        httpclient = tornado.httpclient.AsyncHTTPClient()
-        request_url = self.asterix.asterixBaseURL + '/' + 'query/service'
-        request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=statement)
-        print(request_url, statement)
+        # httpclient = tornado.httpclient.AsyncHTTPClient()
+        # request_url = self.asterix.asterixBaseURL + '/' + 'query/service'
+        # request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=statement)
+        # print(request_url, statement)
+        #
+        # response = yield httpclient.fetch(request)
+        # response = str(response.body, encoding='utf-8')
+        #
+        # log.debug(response)
+        # response = response.replace('\n', '').replace(' ', '')
+        #channelSubscriptionId = re.match(r'(.*)\[uuid\(\"(.*)\"\)\](.*)', response).group(2)
 
-        response = yield httpclient.fetch(request)
-        response = str(response.body, encoding='utf-8')
+        subIds = json.loads(response)
+        if len(subIds) > 0:
+            channelSubscriptionId = subIds[0]
 
-        log.debug(response)
-        response = response.replace('\n', '').replace(' ', '')
-
-        # response = json.loads(response)
-        channelSubscriptionId = re.match(r'(.*)\[uuid\(\"(.*)\"\)\](.*)', response).group(2)
-
-        uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
-        currentDateTime = yield self.getCurrentDateTime()
-        channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, parameters, channelSubscriptionId, currentDateTime)
-        yield channelSubscription.save()
-
-        return channelSubscription
+            uniqueId = dataverseName + '::' + channelName + '::' + channelSubscriptionId
+            currentDateTime = yield self.getCurrentDateTime()
+            channelSubscription = ChannelSubscription(dataverseName, uniqueId, channelName, self.brokerName, parameters, channelSubscriptionId, currentDateTime)
+            yield channelSubscription.save()
+            return channelSubscription
+        else:
+            raise BADException('Subscribe to Asterix failed!')
 
     @tornado.gen.coroutine
     def createUserSubscription(self, dataverseName, userId, channelName, parameters, channelSubscriptionId, timestamp):
