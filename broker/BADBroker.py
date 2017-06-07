@@ -186,7 +186,7 @@ class BADBroker:
                     }
                 
                 # Create a new session for this user
-                self.sessions[dataverseName][userId] = Session(dataverseName, userId, userType, accessToken, platform,
+                self.sessions[dataverseName][userId] = Session(dataverseName, userId, userType, accessToken, platform, user,
                                                                datetime.now(), datetime.now())
                 # log.info('------->User<-------:' + str(self.sessions[dataverseName][userId].userType))
 
@@ -943,7 +943,8 @@ class BADBroker:
             else:
                 params = params + "{}".format(value)
 
-        aql_stmt = 'SELECT * FROM {}({})'.format(functionName, params)
+        #aql_stmt = 'SELECT * FROM {}({}) AS record;'.format(functionName, params)
+        aql_stmt = '{}({});'.format(functionName, params)
         status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
 
         if status_code == 200 and response:
@@ -1255,13 +1256,13 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListChannels(self, appName, apiKey):
         # Check if application exists, if so match ApiKey
-        check, app = self.checkApplication(appName, apiKey)
+        check, app = yield self.checkApplication(appName, apiKey)
         if check['status'] == 'failed':
             return check
 
         dataverseName = app.appDataverse
 
-        aql = 'SELECT DataverseName, DataverseName,  `Function`, Duration ' \
+        aql = 'SELECT ChannelName, DataverseName,  `Function`, Duration, ResultsDatasetName, SubscriptionDatasetName ' \
               'FROM Channel WHERE DataverseName = \"{}\"'.format(dataverseName)
         status, response = yield self.asterix.executeSQLPP('Metadata', aql)
 
@@ -1281,7 +1282,7 @@ class BADBroker:
     @tornado.gen.coroutine
     def adminQueryListSubscriptions(self, appName, apiKey, channelName):
         # Check if application exists, if so match ApiKey
-        check, app = self.checkApplication(appName, apiKey)
+        check, app = yield self.checkApplication(appName, apiKey)
         if check['status'] == 'failed':
             return check
 
@@ -1297,7 +1298,7 @@ class BADBroker:
         else:
             return {
                 'status': 'failed',
-                'error': 'No subscription exists in this channel'
+                'error': 'No subscription exists in this channel: ' + channelName
             }
 
     @tornado.gen.coroutine

@@ -12,7 +12,7 @@ log = brokerutils.setup_logging(__name__)
 
 
 class Session:
-    def __init__(self, dataverseName, userId, userType, accessToken, platform, creationTime, lastAccessTime):
+    def __init__(self, dataverseName, userId, userType, accessToken, platform, user, creationTime, lastAccessTime):
         self.dataverseName = dataverseName
         self.userId = userId
         self.userType = userType
@@ -47,7 +47,7 @@ class BrokerObject:
     def delete(self):
         asterix = AsterixQueryManager.getInstance()
         cmd_stmt = 'DELETE FROM ' + str(self.__class__.__name__) + 'Dataset '
-        cmd_stmt = cmd_stmt + ' WHERE $t.recordId = \"{0}\"'.format(self.recordId)
+        cmd_stmt = cmd_stmt + ' WHERE recordId = \"{0}\"'.format(self.recordId)
         log.debug(cmd_stmt)
 
         status, response = yield asterix.executeUpdate(self.dataverseName, cmd_stmt)
@@ -66,9 +66,9 @@ class BrokerObject:
         if kwargs:
             for key, value in kwargs.items():
                 if isinstance(value, str):
-                    clause = '$t.{} = \"{}\"'.format(key, value)
+                    clause = '{} = \"{}\"'.format(key, value)
                 else:
-                    clause = '$t.{} = {}'.format(key, value)
+                    clause = '{} = {}'.format(key, value)
                 whereClause = whereClause + ' and ' + clause if whereClause else clause
 
         cmd_stmt = 'DELETE FROM ' + str(cls.__name__) + 'Dataset '
