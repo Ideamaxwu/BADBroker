@@ -586,6 +586,34 @@ class CallFunctionHandler(BaseHandler):
         self.flush()
         self.finish()
 
+class ExecSqlppHandler(BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        print(self.request.body)
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            dataverseName = post_data['dataverseName']
+            userId = post_data['userId']
+            accessToken = post_data['accessToken']
+            sqlpp = post_data['sqlpp']
+
+            response = yield self.broker.execSqlpp(dataverseName, userId, accessToken, sqlpp)
+        except KeyError as e:
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
+
+        print(json.dumps(response))
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
 
 class InsertRecordsHandler(BaseHandler):
     def initialize(self, broker):
@@ -859,6 +887,7 @@ def start_server():
         (r'/ackresults', AckResultsHandler, dict(broker=broker)),
         (r'/battlereport', BattleReportHandler, dict(broker=broker)),
         (r'/callfunction', CallFunctionHandler, dict(broker=broker)),
+        (r'/execsqlpp', ExecSqlppHandler, dict(broker=broker)),
         (r'/notifybroker', NotifyBrokerHandler, dict(broker=broker)),
         (r'/listchannels', ListChannelsHandler, dict(broker=broker)),
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),

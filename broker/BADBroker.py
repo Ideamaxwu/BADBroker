@@ -1391,7 +1391,12 @@ class BADBroker:
             'gamestat': userList,
             'batmsg': batmsg
         }
-
+    
+    def WriteToFile(self, fin, path, fname):
+        f = open(path + fname, 'w')
+        f.write(str(fin))
+        f.close()
+    
     def SessionInterval(self):
         Timer(60*10, self.SessionInterval).start()
         log.info('1deamaxwu ==================> Session Interval <===================')
@@ -1400,7 +1405,38 @@ class BADBroker:
                 #log.info(datetime.now() - self.sessions[dataverse][userid].lastAccessTime)
                 if(datetime.now() - self.sessions[dataverse][userid].lastAccessTime) >= timedelta(seconds = 60*30):
                     self.clearStateForUser(dataverse, userid)
-                    log.info('1deamaxwu ==================> NO Activity LOGOUT: ' + userid)    
+                    log.info('1deamaxwu ==================> NO Activity LOGOUT: ' + userid)
+               
+    @tornado.gen.coroutine
+    def execSqlpp(self, dataverseName, userId, accessToken, sqlpp):
+        """
+        :param dataverseName: dataverse name
+        :param userId: userId
+        :param accessToken: access token
+        :param sqlpp: sqlpp script
+        :return: results
+        """
+
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        aql_stmt = sqlpp
+        status_code, response = yield self.asterix.executeSQLPP(dataverseName, aql_stmt)
+
+        if status_code == 200 and response:
+            result = json.loads(response)
+            self.WriteToFile(result, '../../BAD_WebClient/mgr/res/data/', 'data')
+            return {
+                'status': 'success',
+                'results': result
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': 'Sqlpp execution failed ' + response
+            }
+    
 
 def set_live_web_sockets(web_socket_object):
     global live_web_sockets
