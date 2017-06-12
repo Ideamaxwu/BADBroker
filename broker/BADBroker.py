@@ -1396,16 +1396,36 @@ class BADBroker:
         f = open(path + fname, 'w')
         f.write(str(fin))
         f.close()
-    
+        
+    def CheckAppAlive(self, appname, dataverse, autoScript):
+        log.info("CheckAppAlive")
+        status_code, response = yield self.asterix.executeSQLPP("Metadata", "select * from Metadata.`Dataverse` dv where dv.DataverseName=\"channels\";")
+
+        if status_code == 200 and response:
+            result = json.loads(response)
+            return {
+                'status': 'success',
+                'results': result
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': 'CheckAppAlive failed ' + response
+            }
+                
     def SessionInterval(self):
         Timer(60*10, self.SessionInterval).start()
         log.info('1deamaxwu ==================> Session Interval <===================')
+        #response = yield self.CheckAppAlive("emapp", "channels", None)
+        #log.info(str(response))
         for dataverse in list(self.sessions):
             for userid in list(self.sessions[dataverse]):
                 #log.info(datetime.now() - self.sessions[dataverse][userid].lastAccessTime)
                 if(datetime.now() - self.sessions[dataverse][userid].lastAccessTime) >= timedelta(seconds = 60*30):
                     self.clearStateForUser(dataverse, userid)
-                    log.info('1deamaxwu ==================> NO Activity LOGOUT: ' + userid)
+                    log.info('> NO Activity LOGOUT: ' + userid)
+                else:
+                    log.info('> ' + userid + ' is online.')
                
     @tornado.gen.coroutine
     def execSqlpp(self, dataverseName, userId, accessToken, sqlpp):
