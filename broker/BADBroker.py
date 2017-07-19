@@ -88,7 +88,8 @@ class BADBroker:
 
         post_request = {
                 "brokerName": self.brokerName,
-                "brokerIP": str(self.brokerIPAddr)
+                "brokerIP": str(self.brokerIPAddr),
+                "brokerPort": str(self.brokerPort)
         }
 
         log.info(post_request)

@@ -3,6 +3,7 @@ import tornado.ioloop
 import tornado.web
 import logging as log
 import simplejson as json
+from threading import Lock, Timer
 from brokerobjects import *
 
 log = brokerutils.setup_logging(__name__)
@@ -19,6 +20,15 @@ class BCServer:
         log.info("BCServer start.")
         self.brokers = {}
     
+    def BrokersCheck(self):
+        Timer(60*10, self.BrokersCheck).start()
+        log.info('1deamaxwu ==================> BCS Brokers Status <===================')
+        if len(self.brokers) == 0:
+            log.info("> NO broker is ACTIVE.")
+        else:
+            for broker in list(self.brokers):
+                log.info("> " + broker + " is ACTIVE.")
+    
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -33,14 +43,24 @@ class BaseHandler(tornado.web.RequestHandler):
         log.info("options")
              
 class RegisterBrokerHandler(BaseHandler):
+    def initialize(self, bcs):
+        self.bcs = bcs
+        
+    def get(self):
+        print(self.request.body)
+        
     @tornado.gen.coroutine
     def post(self):
         post_data = json.loads(str(self.request.body, encoding='utf-8'))
         try:
             brokerName = post_data['brokerName']
             brokerIP = post_data['brokerIP']
+            brokerPort = post_data['brokerPort']
             
-            log.info("brokerName " + brokerName + ", brokerIP: " + brokerIP)
+            log.info("brokerName " + brokerName + ", brokerIP: " + brokerIP + ", brokerPort: " + brokerPort)
+            
+            bcs.brokers[brokerName] = brokerIP + ":" + brokerPort
+            log.info(bcs.brokers)
 
             response={'status':'success'}
         
@@ -51,13 +71,14 @@ class RegisterBrokerHandler(BaseHandler):
         self.flush()
         self.finish()
 
-def make_app():
+def make_app(bcs):
     return tornado.web.Application([
-        (r"/registerbroker", RegisterBrokerHandler)
+        (r"/registerbroker", RegisterBrokerHandler, dict(bcs=bcs))
     ])
 
 if __name__ == "__main__":
     bcs = BCServer.getInstance()
-    app = make_app()
+    bcs.BrokersCheck()
+    app = make_app(bcs)
     app.listen(5000)
     tornado.ioloop.IOLoop.current().start()
