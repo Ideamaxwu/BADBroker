@@ -71,9 +71,35 @@ class RegisterBrokerHandler(BaseHandler):
         self.flush()
         self.finish()
 
+class GetBrokerHandler(BaseHandler):
+    def initialize(self, bcs):
+        self.bcs = bcs
+        
+    def get(self):
+        print(self.request.body)
+        
+    @tornado.gen.coroutine
+    def post(self):
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+        try:
+            platform = post_data['platform']
+            
+            log.info("platform " + platform)
+
+            response={'status':'success', 'brokerUrl': 'radon.ics.uci.edu:9110'}
+        
+        except Exception as e:
+            response={'status':'failed','error':str(e)}
+            
+        self.write(json.dumps(response))
+
+        self.flush()
+        self.finish()
+
 def make_app(bcs):
     return tornado.web.Application([
-        (r"/registerbroker", RegisterBrokerHandler, dict(bcs=bcs))
+        (r"/registerbroker", RegisterBrokerHandler, dict(bcs=bcs)),
+        (r"/getbroker", GetBrokerHandler, dict(bcs=bcs)),
     ])
 
 if __name__ == "__main__":
