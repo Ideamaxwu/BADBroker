@@ -77,6 +77,12 @@ class GetBrokerHandler(BaseHandler):
         
     def get(self):
         print(self.request.body)
+    
+    
+    def brokerSelector(self, brokerDict):
+        for broker in brokerDict:
+            return broker, brokerDict[broker]
+        return 'brokerUrl', 'radon.ics.uci.edu:9110'
         
     @tornado.gen.coroutine
     def post(self):
@@ -85,8 +91,10 @@ class GetBrokerHandler(BaseHandler):
             platform = post_data['platform']
             
             log.info("platform " + platform)
+            
+            brokerName, brokerUrl = self.brokerSelector(self.bcs.brokers)
 
-            response={'status':'success', 'brokerUrl': 'radon.ics.uci.edu:9110'}
+            response={'status':'success', 'brokerUrl': brokerUrl}
         
         except Exception as e:
             response={'status':'failed','error':str(e)}
