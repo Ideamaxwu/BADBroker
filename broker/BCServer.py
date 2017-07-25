@@ -19,6 +19,7 @@ class BCServer:
     def __init__(self):
         log.info("BCServer start.")
         self.brokers = {}
+        self.bcsUrl = "128.195.52.128:5000"
     
     def BrokersCheck(self):
         Timer(60*10, self.BrokersCheck).start()
@@ -28,6 +29,25 @@ class BCServer:
         else:
             for broker in list(self.brokers):
                 log.info("> " + broker + " is ACTIVE.")
+                #heartbeat
+                
+                request_url = 'http://' + self.brokers[broker] + '/' + 'heartbeat'
+                params = {'bcsUrl': self.bcsUrl}
+                body = json.dumps(params)
+                httpclient = tornado.httpclient.HTTPClient()
+                try:
+                    request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=body)
+                    response = httpclient.fetch(request)
+                    log.debug(response.body)
+                
+                    result = json.loads(str(response.body, encoding='utf-8'))
+                    if result['status'] == 'success':
+                        log.info("heartbeat STATE of " + broker + " is "+ result['state'])
+                    else:
+                        log.info("some Error!")
+                except tornado.httpclient.HTTPError as e:
+                    log.error('Error ' + str(e))
+                    log.debug(e.response)
     
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):

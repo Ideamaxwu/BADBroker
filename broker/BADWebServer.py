@@ -65,7 +65,27 @@ class HeartBeatHandler(BaseHandler):
         self.set_status(204)
         self.finish()
 
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
 
+        log.debug(post_data)
+
+        try:
+            BCSUrl = post_data['bcsUrl']
+            log.info("heartbeat BCSUrl: " + BCSUrl)
+
+            response = {'status': 'success', 'state': 'ALIVE'}
+        except KeyError as e:
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+        
 class RegisterApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
