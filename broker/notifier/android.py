@@ -20,17 +20,20 @@ class AndroidClientNotifier():
         self.gcmRegistrationTokens = {}
         self.client = tornado.httpclient.AsyncHTTPClient()
 
-    def setRegistrationToken(self, userId, registrationToken):
-        log.info('Entering or Updating registration token of User %s' %userId)
-        self.gcmRegistrationTokens[userId] = registrationToken
+    def setRegistrationToken(self, dataverseName, userId, registrationToken):
+        log.info('Entering or Updating registration token of User %s' % userId)
+        if dataverseName not in self.gcmRegistrationTokens:
+            self.gcmRegistrationTokens[dataverseName] = {}
+
+        self.gcmRegistrationTokens[dataverseName][userId] = registrationToken
 
     @tornado.gen.coroutine
-    def notify(self, userId, message):
-        if userId not in self.gcmRegistrationTokens:
-            log.error('User %s does not have an FCM token' %userId)
+    def notify(self, dataverseName, userId, message):
+        if dataverseName not in self.gcmRegistrationTokens or userId not in self.gcmRegistrationTokens[dataverseName]:
+            log.error('User %s does not have an FCM token' % userId)
             return
 
-        registration_token = self.gcmRegistrationTokens[userId]
+        registration_token = self.gcmRegistrationTokens[dataverseName][userId]
         post_data = {
                      'registration_ids': [registration_token],
                      #'notification': {
@@ -47,16 +50,16 @@ class AndroidClientNotifier():
         try:
             request = tornado.httpclient.HTTPRequest(self.gcmServer, method='POST',
                                                      headers={'Content-Type': 'application/json',
-                                                              'Authorization': 'key=%s' %self.gcmAuthorizationKey},
+                                                              'Authorization': 'key=%s' % self.gcmAuthorizationKey},
                                                      body=json.dumps(post_data))
             response = yield self.client.fetch(request)
 
             result = json.loads(str(response.body, 'utf-8'))
             log.debug(result)
             if result['success'] == 1:
-                log.info('FCM notification sent to %s' %userId)
+                log.info('FCM notification sent to %s' % userId)
             else:
-                log.info('FCM notification sending failde to %s' %userId)
+                log.info('FCM notification sending failed to %s' % userId)
 
         except tornado.httpclient.HTTPError as e:
             log.error('FCM notification failed ' + str(e))
