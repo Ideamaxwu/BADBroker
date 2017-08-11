@@ -1017,6 +1017,17 @@ class BADBroker:
         self.notifiers['web'].setCallbackUrl(userId, callbackUrl)
         return {'status': 'success'}
 
+    def addWebsocket(self, dataverseName, userId, accessToken, websocket):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+        platform = self.sessions[dataverseName][userId].platform
+
+        if platform != 'web':
+            return {'status': 'failed', 'error': 'Invalid platform `%s`; only web clients are allowed to set websockets'
+                                                 % platform}
+        self.notifiers[platform].addWebsocket(dataverseName, userId, websocket)
+
     @tornado.gen.coroutine
     def scheduleDropResultsFromChannels(self):
         yield self.dropChannelResults()

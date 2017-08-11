@@ -5,14 +5,16 @@ import tornado.gen
 import brokerutils
 import simplejson as json
 import tornado.httpclient
+import tornado.websocket
 
 log = brokerutils.setup_logging(__name__)
 
 
-class WebClientNotifier():
+class WebClientNotifier:
     def __init__(self):
         self.callbackUrls = {}
         self.live_web_sockets = set()
+        self.websockets = {}
 
     def setCallbackUrl(self, dataverseName, userId, callbackUrl):
         if dataverseName not in self.callbackUrls:
@@ -21,6 +23,29 @@ class WebClientNotifier():
 
     @tornado.gen.coroutine
     def notify(self, dataverseName, userId, message):
+        if dataverseName not in self.websockets or userId not in self.websockets[dataverseName]:
+            log.error('User `%s` does not have an open websocket' % userId)
+            return
+
+        sockets = self.websockets[dataverseName][userId]
+        removeable = set()
+
+        for socket in sockets:
+            try:
+                socket.write_message(message)
+            except tornado.websocket.WebSocketClosedError:
+                log.error('Notification failed, websocket is closed for user `%s`' % userId)
+                removeable.add(socket)
+
+        # Remove the closed sockets
+        if len(removeable) > 0:
+            for socket in removeable:
+                self.websockets[dataverseName][userId].remove(socket)
+            if len(self.websockets[dataverseName][userId]) == 0:
+                del self.websockets[dataverseName][userId]
+
+    @tornado.gen.coroutine
+    def notifyv2(self, dataverseName, userId, message):
         if dataverseName not in self.callbackUrls or userId not in self.callbackUrls[dataverseName]:
             log.error('User `%s` does not have a callback Url' % userId)
             return
@@ -48,6 +73,15 @@ class WebClientNotifier():
                 ws.write_message(message)
         for ws in removable:
             self.live_web_sockets.remove(ws)
+
+
+    def addWebsocket(self, dataverseName, userId, websocket):
+        if dataverseName not in self.websockets:
+            self.websockets[dataverseName] = {}
+        if userId not in self.websockets[dataverseName]:
+            self.websockets[dataverseName][userId] = []
+
+        self.websockets[dataverseName][userId].append(websocket)
 
     def set_live_web_sockets(self, live_web_sockets):
         self.live_web_sockets = live_web_sockets

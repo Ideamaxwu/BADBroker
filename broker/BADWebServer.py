@@ -707,6 +707,30 @@ class ListChannelsHandler(BaseHandler):
 
 class BrowserWebSocketHandler(BaseWebSocketHandler):
     def open(self):
+        log.info("WebSocket opened")
+
+    def on_message(self, message):
+        log.info('Websocket received message:', message)
+        msg = json.loads(message)
+        try:
+            dataverseName = msg['dataverseName']
+            userId = msg['userId']
+            accessToken = msg['accessToken']
+        except KeyError as kerr:
+            log.error('Invalid message received, missing field `%s`' % str(kerr))
+
+        response = yield self.broker.addWebsocket(dataverseName, userId, accessToken, self)
+        log.info(response)
+
+    def on_close(self):
+        log.info("WebSocket closed")
+
+
+'''
+Old version Websocket handler
+
+class BrowserWebSocketHandler(BaseWebSocketHandler):
+    def open(self):
         global live_web_sockets
         log.info("WebSocket opened")
         self.set_nodelay(True)
@@ -721,6 +745,8 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
 
     def on_close(self):
         log.info("WebSocket closed")
+'''
+
 
 def webSocketSendMessage(message):
     global live_web_sockets
