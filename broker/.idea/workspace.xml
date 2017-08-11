@@ -5,13 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2e78d07d-f857-408f-a4f1-2210a2c750c5" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../BADPythonClient/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADBroker.py" afterPath="$PROJECT_DIR$/BADBroker.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/BADWebServer.py" afterPath="$PROJECT_DIR$/BADWebServer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/notifier/android.py" afterPath="$PROJECT_DIR$/notifier/android.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/notifier/desktop.py" afterPath="$PROJECT_DIR$/notifier/desktop.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/notifier/web.py" afterPath="$PROJECT_DIR$/notifier/web.py" />
     </list>
     <ignored path="broker.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -35,8 +30,8 @@
       <file leaf-file-name="BADBroker.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/BADBroker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.3321918">
-              <caret line="901" column="16" selection-start-line="901" selection-start-column="16" selection-end-line="901" selection-end-column="16" />
+            <state vertical-scroll-proportion="0.6164383">
+              <caret line="1026" column="83" selection-start-line="1026" selection-start-column="83" selection-end-line="1026" selection-end-column="83" />
               <folding>
                 <element signature="e#24#33#0" expanded="true" />
               </folding>
@@ -207,11 +202,11 @@
         <option value="$PROJECT_DIR$/test_code.py" />
         <option value="$PROJECT_DIR$/asterixapi.py" />
         <option value="$PROJECT_DIR$/brokerobjects.py" />
-        <option value="$PROJECT_DIR$/BADBroker.py" />
         <option value="$PROJECT_DIR$/BADWebServer.py" />
         <option value="$PROJECT_DIR$/notifier/desktop.py" />
         <option value="$PROJECT_DIR$/notifier/android.py" />
         <option value="$PROJECT_DIR$/notifier/web.py" />
+        <option value="$PROJECT_DIR$/BADBroker.py" />
       </list>
     </option>
   </component>
@@ -581,12 +576,6 @@
       <option name="number" value="Default" />
       <updated>1453932460384</updated>
     </task>
-    <task id="LOCAL-00054" summary="Python client changes.">
-      <created>1477526414329</created>
-      <option name="number" value="00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1477526414330</updated>
-    </task>
     <task id="LOCAL-00055" summary="Python client changes.">
       <created>1477526440906</created>
       <option name="number" value="00055" />
@@ -875,13 +864,20 @@
       <option name="project" value="LOCAL" />
       <updated>1501785712200</updated>
     </task>
-    <option name="localTasksCounter" value="103" />
+    <task id="LOCAL-00103" summary="Web notification updated; notification is sent to a specific client not all.">
+      <created>1502482374305</created>
+      <option name="number" value="00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1502482374306</updated>
+    </task>
+    <option name="localTasksCounter" value="104" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="24" width="1301" height="744" extended-state="6" />
     <editor active="true" />
     <layout>
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -895,7 +891,6 @@
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3257821" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.30636463" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39940387" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -955,7 +950,8 @@
     <MESSAGE value="User login time and log off time are recorded." />
     <MESSAGE value="Asterix POST call is made to /qeury/service" />
     <MESSAGE value="Web notification is changed." />
-    <option name="LAST_COMMIT_MESSAGE" value="Web notification is changed." />
+    <MESSAGE value="Web notification updated; notification is sent to a specific client not all." />
+    <option name="LAST_COMMIT_MESSAGE" value="Web notification updated; notification is sent to a specific client not all." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1342,8 +1338,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/BADBroker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.3321918">
-          <caret line="901" column="16" selection-start-line="901" selection-start-column="16" selection-end-line="901" selection-end-column="16" />
+        <state vertical-scroll-proportion="0.6164383">
+          <caret line="1026" column="83" selection-start-line="1026" selection-start-column="83" selection-end-line="1026" selection-end-column="83" />
           <folding>
             <element signature="e#24#33#0" expanded="true" />
           </folding>
