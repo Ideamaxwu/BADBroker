@@ -830,8 +830,9 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
             mutex.release()
 
     def on_message(self, message):
-        log.info('Message incoming:', message)
-
+        msgjson = json.loads(message)
+        log.info('Message incoming: ' + message + ' from userId: ' + msgjson['userId'])
+        
     def on_close(self):
         log.info("WebSocket closed")
 

@@ -1,0 +1,53 @@
+//DROP DATAVERSE StateSession IF EXISTS;
+create dataverse StateSession if not exists;
+use StateSession;
+create type BrokerStateType as{
+	brokerName: string,
+	brokerIp: string,
+	brokerPort: string
+};
+
+create dataset BrokerStates(BrokerStateType) primary key brokerName;
+
+//select item as stateItem from BrokerStates item;
+/*
+upsert into BrokerStates(
+	{"brokerName":"brokertest",
+	 "brokerIp":"128.123.9.10",
+	 "brokerPort":"9115"
+	}
+);
+*/
+
+create type ClientStateType as{
+	dataverseName: string,
+	userId: string,
+	userType: string,
+	accessToken: string,
+	platform: string,
+	userName: string,
+	creationtime: string,
+	lastAccessTime: string,
+	brokerName: string,
+	status: string
+};
+
+create dataset ClientStates(ClientStateType) primary key userId;
+
+//select item as stateItem from ClientStates item;
+/*
+upsert into ClientStates(
+{
+	"dataverseName": "channels",
+	"userId": "client1",
+	"userType": "sbr",
+	"accessToken": "asf4e45f",
+	"platform": "web",
+	"userName": "yao",
+	"creationtime": "12:12:12",
+	"lastAccessTime": "12:13:14",
+	"brokerName": "broker1",
+	"status": "online"
+}
+);
+*/

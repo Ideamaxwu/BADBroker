@@ -19,7 +19,7 @@ class BCServer:
     def __init__(self):
         log.info("BCServer start.")
         self.brokers = {}
-        self.bcsUrl = "128.195.52.128:5000"
+        self.bcsUrl = "128.195.4.50:5000"
     
     def BrokersCheck(self):
         Timer(60*10, self.BrokersCheck).start()
