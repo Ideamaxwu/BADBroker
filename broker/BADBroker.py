@@ -877,14 +877,14 @@ class BADBroker:
             resultCount = len(json.loads(response))
             return resultCount
         else:
-            return -1 # Something wrong
+            return -1  # Something wrong
 
     @tornado.gen.coroutine
     def notifyUser(self, dataverseName, channelName, userId, channelSubscriptionId, userSubscriptionId, latestChannelExecutionTime, resultCount):
         log.info('Channel %s: sending notification to user %s for %s with resultcount %d' % (channelName, userId, userSubscriptionId, resultCount))
 
-        message = {'userId': userId,
-                   'dataverseName': dataverseName,
+        message = {'dataverseName': dataverseName,
+                   'userId': userId,
                    'channelName':  channelName,
                    'channelSubscriptionId': channelSubscriptionId,
                    'userSubscriptionId': userSubscriptionId,
@@ -899,6 +899,7 @@ class BADBroker:
             if platform not in self.notifiers:
                 log.error('Platform `%s` is NOT supported yet!!' % platform)
             else:
+                '''
                 if platform == 'web':
                     mutex.acquire()
                     try:
@@ -906,11 +907,8 @@ class BADBroker:
                         self.notifiers[platform].set_live_web_sockets(live_web_sockets)
                     finally:
                         mutex.release()
-
-                if platform == 'android':
-                    yield self.notifiers[platform].notify(userId, message)
-                else:
-                    self.notifiers[platform].notify(userId, message)
+                '''
+                yield self.notifiers[platform].notify(dataverseName, userId, message)
 
     @tornado.gen.coroutine
     def moveSubscription(self, channelSubscriptionId, channelName, brokerB):
@@ -1012,8 +1010,34 @@ class BADBroker:
         if check['status'] == 'failed':
             return check
 
-        self.notifiers['android'].setRegistrationToken(userId, gcmRegistrationToken)
+        if self.sessions[dataverseName][userId].platform != 'android':
+            return {'status': 'failed', 'error': 'User is not on Android'}
+
+        self.notifiers['android'].setRegistrationToken(dataverseName, userId, gcmRegistrationToken)
         return {'status': 'success'}
+
+    def setCallbackUrl(self, dataverseName, userId, accessToken, callbackUrl):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+
+        if self.sessions[dataverseName][userId].platform != 'web':
+            return {'status': 'failed', 'error': 'User is not on a web client'}
+
+        self.notifiers['web'].setCallbackUrl(userId, callbackUrl)
+        return {'status': 'success'}
+
+    def addWebsocket(self, dataverseName, userId, accessToken, websocket):
+        check = self._checkAccess(dataverseName, userId, accessToken)
+        if check['status'] == 'failed':
+            return check
+        platform = self.sessions[dataverseName][userId].platform
+
+        if platform == 'web':
+            self.notifiers[platform].addWebsocket(dataverseName, userId, websocket)
+        else:
+            return {'status': 'failed', 'error': 'Invalid platform `%s`; only web clients are allowed to set websockets'
+                                                 % platform}
 
     @tornado.gen.coroutine
     def scheduleDropResultsFromChannels(self):
