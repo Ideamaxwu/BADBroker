@@ -709,7 +709,6 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
     def open(self):
         log.info("WebSocket opened")
 
-    @tornado.gen.coroutine
     def on_message(self, message):
         log.info('Websocket received message:', message)
         msg = json.loads(message)
@@ -720,7 +719,7 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
         except KeyError as kerr:
             log.error('Invalid message received, missing field `%s`' % str(kerr))
 
-        response = yield self.broker.addWebsocket(dataverseName, userId, accessToken, self)
+        response = self.broker.addWebsocket(dataverseName, userId, accessToken, self)
         log.info(response)
 
     def on_close(self):
