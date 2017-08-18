@@ -74,7 +74,6 @@ class WebClientNotifier:
         for ws in removable:
             self.live_web_sockets.remove(ws)
 
-
     def addWebsocket(self, dataverseName, userId, websocket):
         if dataverseName not in self.websockets:
             self.websockets[dataverseName] = {}

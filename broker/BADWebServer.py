@@ -709,6 +709,7 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
     def open(self):
         log.info("WebSocket opened")
 
+    @tornado.gen.coroutine
     def on_message(self, message):
         log.info('Websocket received message:', message)
         msg = json.loads(message)
