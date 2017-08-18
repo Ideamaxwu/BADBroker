@@ -865,7 +865,7 @@ class BrowserWebSocketHandler(BaseWebSocketHandler):
         except KeyError as kerr:
             log.error('Invalid message received, missing field `%s`' % str(kerr))
 
-        response = yield self.broker.addWebsocket(dataverseName, userId, accessToken, self)
+        response = self.broker.addWebsocket(dataverseName, userId, accessToken, self)
         log.info(response)
 
     def on_close(self):
