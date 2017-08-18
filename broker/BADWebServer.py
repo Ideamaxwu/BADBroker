@@ -848,11 +848,15 @@ class ListChannelsHandler(BaseHandler):
 
 
 class BrowserWebSocketHandler(BaseWebSocketHandler):
+    def initialize(self, broker):
+        self.broker = broker
+        
     def open(self):
         log.info("WebSocket opened")
-
+    
+    @tornado.gen.coroutine
     def on_message(self, message):
-        log.info('Websocket received message:', message)
+        log.info('Websocket received message:' + message)
         msg = json.loads(message)
         try:
             dataverseName = msg['dataverseName']
@@ -969,7 +973,7 @@ def start_server():
         (r'/listsubscriptions', ListSubscriptionsHandler, dict(broker=broker)),
         (r'/setcallbackurl', SetCallbackUrlHandler, dict(broker=broker)),
         (r'/gcmregistration', GCMRegistrationHandler, dict(broker=broker)),
-		(r'/websocketlistener', BrowserWebSocketHandler),
+		(r'/websocketlistener', BrowserWebSocketHandler, dict(broker=broker)),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker)),
         (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
