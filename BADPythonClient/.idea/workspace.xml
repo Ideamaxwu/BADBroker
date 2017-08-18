@@ -4,8 +4,7 @@
     <list default="true" id="42080b5d-7835-442f-9eb4-474f95600f8c" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/.idea/workspace.xml" afterPath="$PROJECT_DIR$/../broker/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/BADWebServer.py" afterPath="$PROJECT_DIR$/../broker/BADWebServer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/notifier/web.py" afterPath="$PROJECT_DIR$/../broker/notifier/web.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../broker/BADBroker.py" afterPath="$PROJECT_DIR$/../broker/BADBroker.py" />
     </list>
     <ignored path="BADDesktopClient.iws" />
     <ignored path=".idea/workspace.xml" />

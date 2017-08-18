@@ -1025,6 +1025,7 @@ class BADBroker:
 
         if platform == 'web':
             self.notifiers[platform].addWebsocket(dataverseName, userId, websocket)
+            return {'status': 'success'}
         else:
             return {'status': 'failed', 'error': 'Invalid platform `%s`; only web clients are allowed to set websockets'
                                                  % platform}
