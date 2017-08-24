@@ -22,7 +22,7 @@ class StateMgr():
 	def Capture(self, dataverse, dataset, stateData):
 		log.info("StateMgr capture. > " + dataverse + "." + dataset)
 		if dataverse+'.'+dataset in self.stateDict:
-			print('stateData has in stateDict')
+			print('> stateData has in stateDict')
 		else:
 			self.stateDict[dataverse+'.'+dataset] = stateData
 		
@@ -38,7 +38,7 @@ class StateMgr():
 		status_code, response = yield self.asterix.executeSQLPP(dataverseName, sqlpp_stmt)
 		if status_code != 200:
 			raise BADException(response)
-		log.info('State upsert into %s' %datasetName)
+		print('> State upsert into %s' %datasetName)
 		
 		'''
 		for k, v in self.stateDict.items():
@@ -57,13 +57,13 @@ class StateMgr():
 		log.info("StateMgr migration.")
 		
 		# MigrateUser @initBroker
-		print('Migrate Users ' + str(userList) + ' from Broker ' + initBroker)
+		print('> Migrate Users ' + str(userList) + ' from Broker ' + initBroker)
 		lenOfBrokers = len(self.stateDict['StateSession.BrokerStates'])-1
 		uIndex = 0
 		targetBrokerSet = {b:self.stateDict['StateSession.BrokerStates'][b] for b in self.stateDict['StateSession.BrokerStates'] if b!=initBroker}
 		for user in userList:
 			targetBroker = list(targetBrokerSet.keys())[uIndex%lenOfBrokers]
-			print('Moving User ' + user + ' to Broker ' + str(targetBroker))
+			print('> Moving User ' + user + ' to Broker ' + str(targetBroker))
 			
 			#TODO send request to targetBroker
 			
@@ -72,38 +72,42 @@ class StateMgr():
 		#TODO similar with MigrateUser, but broker selection policy is different
 		
 	# state recovery
+	@tornado.gen.coroutine
 	def Recovery(self, deadBroker):
 		log.info("StateMgr recovery.")
 		
-		print("Broker " + deadBroker + " is recovering...")
+		print("> Broker " + deadBroker + " is recovering...")
 		# NewBroker
 		#TODO run script to start a new broker, SQLPP all the users of the dead broker, and migrate them to it
 		
 		# DistributeToBrokers
 		#TODO SQLPP all the users of the dead broker, and migrate them to them
-		'''
+		
 		
 		dataverseName = "StateSession"
 		datasetName = "BrokerStates"
-		record = {"brokerName":"brokertest","brokerIp":"128.123.9.10","brokerPort":"9810"}
-		sqlpp_stmt = "upsert into {0}({1})".format(datasetName, record)
+		sqlpp_stmt = "select item from {0}.{1} item".format(dataverseName, datasetName)
 		status_code, response = yield self.asterix.executeSQLPP(dataverseName, sqlpp_stmt)
 		if status_code != 200:
 			raise BADException(response)
-		log.info('State upsert into %s' %datasetName)
+		print('> State retrieval from %s' %datasetName)
+		brokerStates = json.loads(response)
+		for brokerState in brokerStates:
+			print("> brokerItem: " + str(brokerState['item']))
 		
-		'''
+		print("> Broker " + deadBroker + " is recovered")
+		
 	# state status
 	def Status(self):
 		log.info("StateMgr status.")
 		if len(self.stateDict) == 0:
-			print("No state.")
+			print("> No state.")
 		else:
 			for k,v in self.stateDict.items():
-				print(k + ': ' + str(v))
-			
-if __name__ == "__main__":
-	
+				print('> ' + k + ': ' + str(v))
+
+@tornado.gen.coroutine
+def main():
 	brokers = {'broker1':{'ip':'128.195.4.21'}}
 	clients = {'client1':{'name':'yao'}}
 	
@@ -124,4 +128,8 @@ if __name__ == "__main__":
 	
 	stateMgr.Migration('broker1', ['client1','client2','client3'])
 	
-	stateMgr.Recovery('broker1')
+	stateMgr.Recovery('broker1')			
+if __name__ == "__main__":
+	tornado.ioloop.IOLoop.current().add_callback(main)
+	tornado.ioloop.IOLoop.current().start()
+	
