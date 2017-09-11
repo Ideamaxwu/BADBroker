@@ -85,7 +85,38 @@ class HeartBeatHandler(BaseHandler):
         self.write(json.dumps(response))
         self.flush()
         self.finish()
-        
+
+
+class MigrateInUserHandler(BaseHandler):
+    def initialize(self, broker):
+        self.broker = broker
+
+    def get(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        self.set_status(204)
+        self.finish()
+
+    @tornado.gen.coroutine
+    def post(self):
+        log.info(str(self.request.body, encoding='utf-8'))
+        post_data = json.loads(str(self.request.body, encoding='utf-8'))
+
+        log.debug(post_data)
+
+        try:
+            migrateInUserId = post_data['migrateInUserId']
+            log.info("broker accept migrateInUserId: " + migrateInUserId)
+
+            response = {'status': 'success'}
+        except KeyError as e:
+            log.info('Parse error for ' + str(e) + ' in ' + str(post_data))
+            log.info(e.with_traceback())
+            response = {'status': 'failed', 'error': 'Bad formatted request, missing field ' + str(e)}
+
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
+                
 class RegisterApplicationHandler(BaseHandler):
     def initialize(self, broker):
         self.broker = broker
@@ -942,6 +973,7 @@ class ListSubscriptionsHandler(BaseHandler):
 def start_server():
     broker = BADBroker.getInstance()
     broker.SessionInterval()
+    #broker.LoadBalancer()
 
     application = tornado.web.Application([
         (r'/(favicon.ico)', tornado.web.StaticFileHandler, {'path': "Web"}),
@@ -976,7 +1008,8 @@ def start_server():
 		(r'/websocketlistener', BrowserWebSocketHandler, dict(broker=broker)),
         (r'/insertrecords', InsertRecordsHandler, dict(broker=broker)),
         (r'/feedrecords', FeedRecordsHandler, dict(broker=broker)),
-        (r'/heartbeat', HeartBeatHandler, dict(broker=broker))
+        (r'/heartbeat', HeartBeatHandler, dict(broker=broker)),
+        (r'/migrateinuser', MigrateInUserHandler, dict(broker=broker))
     ])
 
     application.listen(8989)

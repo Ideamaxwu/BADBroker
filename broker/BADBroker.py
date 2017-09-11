@@ -1452,7 +1452,33 @@ class BADBroker:
                     log.info('> NO Activity LOGOUT: ' + userid)
                 else:
                     log.info('> ' + userid + ' is online.')
-               
+
+    def LoadBalancer(self):
+        Timer(6*1, self.LoadBalancer).start()
+        log.info('1deamaxwu -----> Load Balancer <--------')
+        loadFactor = 9
+        if loadFactor > 7:
+            self.MigrateOutUser()
+            log.info('> some user needs to be migrated')
+    
+    @tornado.gen.coroutine
+    def MigrateOutUser(self):
+        log.info('> broker sends migrateOutUser request to BCS')
+        post_request = {
+                "brokerName": self.brokerName,
+                "brokerIP": str(self.brokerIPAddr),
+                "brokerPort": str(self.brokerPort),
+                "migrateOutUserId": "testUserId"
+        }
+        try:
+            r = requests.post(self.bcsUrl + "/migrateoutuser", json=post_request)
+            if r and r.status_code == 200:
+                log.info('> broker sends migrateOutUser request to BCS successfully')
+            else:
+                log.debug('> broker sends migrateOutUser request to BCS failed!')
+        except Exception as e:
+            log.debug('> broker sends migrateOutUser request to BCS failed for reason %s' %(e))
+                   
     @tornado.gen.coroutine
     def execSqlpp(self, dataverseName, userId, accessToken, sqlpp):
         """
