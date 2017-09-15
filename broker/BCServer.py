@@ -47,7 +47,7 @@ class BCServer:
                         log.info("some Error!")
                         #TODO brokerFailure
                         #TODO targeted brokers selection
-                        #TODO bcs.MigrateInUser
+                        #TODO self.bcs.MigrateInUser
                 except tornado.httpclient.HTTPError as e:
                     log.error('Error ' + str(e))
                     log.debug(e.response)
@@ -75,6 +75,10 @@ class BCServer:
         except tornado.httpclient.HTTPError as e:
             log.error('Error ' + str(e))
             log.debug(e.response)
+            
+        self.write(json.dumps(response))
+        self.flush()
+        self.finish()
             
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
@@ -106,8 +110,8 @@ class RegisterBrokerHandler(BaseHandler):
             
             log.info("brokerName " + brokerName + ", brokerIP: " + brokerIP + ", brokerPort: " + brokerPort)
             
-            bcs.brokers[brokerName] = brokerIP + ":" + brokerPort
-            log.info(bcs.brokers)
+            self.bcs.brokers[brokerName] = brokerIP + ":" + brokerPort
+            log.info(self.bcs.brokers)
 
             response={'status':'success'}
         
@@ -138,7 +142,7 @@ class MigrateOutUserHandler(BaseHandler):
             
             #TODO targeted brokers selection
             
-            bcs.MigrateInUser(targetBrokers, migrateOutUserId)
+            res = self.bcs.MigrateInUser(targetBrokers, migrateOutUserId)
             
             response={'status':'success'}
         
