@@ -29,8 +29,8 @@ class BCServer:
         else:
             for broker in list(self.brokers):
                 log.info("> " + broker + " is ACTIVE.")
-                #heartbeat
                 
+                #heartbeat
                 request_url = 'http://' + self.brokers[broker] + '/' + 'heartbeat'
                 params = {'bcsUrl': self.bcsUrl}
                 body = json.dumps(params)
@@ -45,10 +45,37 @@ class BCServer:
                         log.info("heartbeat STATE of " + broker + " is "+ result['state'])
                     else:
                         log.info("some Error!")
+                        #TODO brokerFailure
+                        #TODO targeted brokers selection
+                        #TODO bcs.MigrateInUser
                 except tornado.httpclient.HTTPError as e:
                     log.error('Error ' + str(e))
                     log.debug(e.response)
     
+    def MigrateInUser(self, targetBrokers, migrateInUserId):
+        targetBroker = "128.195.4.50:8989"
+        log.info('> BCS sends migrateInUser request to brokers')
+        request_url = 'http://' + targetBroker + '/' + 'migrateinuser'
+        params = {'migrateInUserId': migrateInUserId}
+        body = json.dumps(params)
+        httpclient = tornado.httpclient.HTTPClient()
+        try:
+            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=body)
+            response = httpclient.fetch(request)
+            log.debug(response.body)
+                
+            result = json.loads(str(response.body, encoding='utf-8'))
+            if result['status'] == 'success':
+                log.info("BCS sends migrateInUser request to brokers successfully")
+                #TODO update mappingList
+            else:
+                log.info("some Error!")
+                #TODO targeted brokers REselection
+                
+        except tornado.httpclient.HTTPError as e:
+            log.error('Error ' + str(e))
+            log.debug(e.response)
+            
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -109,7 +136,9 @@ class MigrateOutUserHandler(BaseHandler):
             
             log.info("brokerName " + brokerName + ", brokerIP: " + brokerIP + ", brokerPort: " + brokerPort + ", migrateOutUserId: " + migrateOutUserId)
             
-            self.MigrateInUser(migrateOutUserId)
+            #TODO targeted brokers selection
+            
+            bcs.MigrateInUser(targetBrokers, migrateOutUserId)
             
             response={'status':'success'}
         
@@ -119,28 +148,6 @@ class MigrateOutUserHandler(BaseHandler):
         self.write(json.dumps(response))
         self.flush()
         self.finish()
-    
-    def MigrateInUser(self, migrateInUserId):
-        targetBroker = "128.195.4.50:8989"
-        log.info('> BCS sends migrateInUser request to brokers')
-        request_url = 'http://' + targetBroker + '/' + 'migrateinuser'
-        params = {'migrateInUserId': migrateInUserId}
-        body = json.dumps(params)
-        httpclient = tornado.httpclient.HTTPClient()
-        try:
-            request = tornado.httpclient.HTTPRequest(request_url, method='POST', body=body)
-            response = httpclient.fetch(request)
-            log.debug(response.body)
-                
-            result = json.loads(str(response.body, encoding='utf-8'))
-            if result['status'] == 'success':
-                log.info("BCS sends migrateInUser request to brokers successfully")
-
-            else:
-                log.info("some Error!")
-        except tornado.httpclient.HTTPError as e:
-            log.error('Error ' + str(e))
-            log.debug(e.response)
        
 class GetBrokerHandler(BaseHandler):
     def initialize(self, bcs):
